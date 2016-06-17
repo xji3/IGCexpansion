@@ -1420,111 +1420,68 @@ class ReCodonGeneconv:
             self.x = np.loadtxt(open(save_file, 'r'))
             self.update_by_x()
 
-def main(args):
-    paralog = [args.paralog1, args.paralog2]
-    #alignment_file = '../MafftAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
-    alignment_file = './NewPairsAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
-    newicktree = '../PairsAlignemt/YeastTree.newick'
-    path = './NewPackageNewRun/'
-    summary_path = './NewPackageNewRun/'
-    omega_guess = 0.1
-
-    print ('Now calculate MLE for pair', paralog)
-    
-    if hasattr(args, 'Force'):
-        Force = args.Force
-        Force_hky = None
-        if Force != None:
-            path += 'Force_'
-            Force_hky = {4:0.0}
-    else:
-        Force = None
-        Force_hky = None
-
-    test_hky = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force_hky, clock = False)
-    result_hky = test_hky.get_mle(display = False, derivative = True, em_iterations = 1, method = 'BFGS')
-    test_hky.get_ExpectedNumGeneconv()
-    test_hky.get_ExpectedHetDwellTime()
-    test_hky.get_individual_summary(summary_path = summary_path)
-    test_hky.save_to_file(path = path)
-
-    test2_hky = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force_hky, clock = True)
-    result2_hky = test2_hky.get_mle(display = False, derivative = True, em_iterations = 1, method = 'BFGS')
-    test2_hky.get_ExpectedNumGeneconv()
-    test2_hky.get_ExpectedHetDwellTime()
-    test2_hky.get_individual_summary(summary_path = summary_path)
-    test2_hky.save_to_file(path = path)
-
-
-    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False)
-    x = np.concatenate((test_hky.x_process[:-1], np.log([omega_guess]), test_hky.x_process[-1:], test_hky.x_rates))
-    test.update_by_x(x)
-    
-    result = test.get_mle(display = True, derivative = True, em_iterations = 1, method = 'BFGS')
-    test.get_ExpectedNumGeneconv()
-    test.get_ExpectedHetDwellTime()
-    test.get_individual_summary(summary_path = summary_path)
-    test.save_to_file(path = path)
-
-    test2 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = True)
-    #x_clock = np.concatenate((test2_hky.x_process[:-1], np.log([omega_guess]), test2_hky.x_process[-1:], test2_hky.x_Lr))
-    #test2.update_by_x_clock(x_clock)
-    result = test2.get_mle(display = True, derivative = True, em_iterations = 0, method = 'BFGS')
-    test2.get_ExpectedNumGeneconv()
-    test2.get_individual_summary(summary_path = summary_path)
-    test2.save_to_file(path = path)
+##def main(args):
+##    paralog = [args.paralog1, args.paralog2]
+##    #alignment_file = '../MafftAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
+##    alignment_file = './NewPairsAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
+##    newicktree = '../PairsAlignemt/YeastTree.newick'
+##    path = './NewPackageNewRun/'
+##    summary_path = './NewPackageNewRun/'
+##    omega_guess = 0.1
+##
+##    print ('Now calculate MLE for pair', paralog)
+##    
+##    if hasattr(args, 'Force'):
+##        Force = args.Force
+##        Force_hky = None
+##        if Force != None:
+##            path += 'Force_'
+##            Force_hky = {4:0.0}
+##    else:
+##        Force = None
+##        Force_hky = None
+##
+##    test_hky = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force_hky, clock = False)
+##    result_hky = test_hky.get_mle(display = False, derivative = True, em_iterations = 1, method = 'BFGS')
+##    test_hky.get_ExpectedNumGeneconv()
+##    test_hky.get_ExpectedHetDwellTime()
+##    test_hky.get_individual_summary(summary_path = summary_path)
+##    test_hky.save_to_file(path = path)
+##
+##    test2_hky = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force_hky, clock = True)
+##    result2_hky = test2_hky.get_mle(display = False, derivative = True, em_iterations = 1, method = 'BFGS')
+##    test2_hky.get_ExpectedNumGeneconv()
+##    test2_hky.get_ExpectedHetDwellTime()
+##    test2_hky.get_individual_summary(summary_path = summary_path)
+##    test2_hky.save_to_file(path = path)
+##
+##
+##    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False)
+##    x = np.concatenate((test_hky.x_process[:-1], np.log([omega_guess]), test_hky.x_process[-1:], test_hky.x_rates))
+##    test.update_by_x(x)
+##    
+##    result = test.get_mle(display = True, derivative = True, em_iterations = 1, method = 'BFGS')
+##    test.get_ExpectedNumGeneconv()
+##    test.get_ExpectedHetDwellTime()
+##    test.get_individual_summary(summary_path = summary_path)
+##    test.save_to_file(path = path)
+##
+##    test2 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = True)
+##    #x_clock = np.concatenate((test2_hky.x_process[:-1], np.log([omega_guess]), test2_hky.x_process[-1:], test2_hky.x_Lr))
+##    #test2.update_by_x_clock(x_clock)
+##    result = test2.get_mle(display = True, derivative = True, em_iterations = 0, method = 'BFGS')
+##    test2.get_ExpectedNumGeneconv()
+##    test2.get_individual_summary(summary_path = summary_path)
+##    test2.save_to_file(path = path)
     
 
 if __name__ == '__main__':
-##    parser = argparse.ArgumentParser()
-##    parser.add_argument('--paralog1', required = True, help = 'Name of the 1st paralog')
-##    parser.add_argument('--paralog2', required = True, help = 'Name of the 2nd paralog')
-##    parser.add_argument('--Force', type = ast.literal_eval, help = 'Parameter constraints')
-##    
-##    main(parser.parse_args())
-
-##    paralog1 = 'YNL069C'
-##    paralog2 = 'YIL133C'
-##    paralog1 = 'YBL087C'
-##    paralog2 = 'YER117W'
-##    paralog1 = 'YDR502C'
-##    paralog2 = 'YLR180W'
-    paralog1 = 'YLR406C'
-    paralog2 = 'YDL075W'
-##    #paralog1 = 'YML026C'
-##    #paralog2 = 'YDR450W'
-####    path = './NewPackageNewRun/'
-######    paralog1 = 'ECP'
-######    paralog2 = 'EDN'
-######
-####    Force    = {5:0.0}
-######
+    paralog1 = 'ENSG00000104818'
+    paralog2 = 'ENSG00000104827'
     paralog = [paralog1, paralog2]
-    #alignment_file = './simulation/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '.fasta'
-    alignment_file = '../../MafftAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
+    alignment_file = '/Users/xji3/GitFolders/PrimateMultigeneFamilySearch/Sg_GeneFamilies/noOutgroup/Before_Marmoset/ENSG00000104818_ENSG00000104827/ENSG00000104818_ENSG00000104827_input.fasta'
     save_name = '../test_save.txt'
-    #alignment_file = './BootStrapSamples/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_Boot1.fasta'
-    #save_name = './BootStrapSave/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_Boot1_save.txt'
-##    alignment_file = './TestTau/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_switched.fasta'
-##    #alignment_file = '../MafftAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
-##    alignment_file = './NewPairsAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
-##    #alignment_file = '../data/cleaned_input_data.fasta'
-##    #alignment_file = '../data/cleanedfasta.fasta'
-##    #newicktree = './YeastTree_remove_Cas.newick'
-    #newicktree = '../PairsAlignemt/YeastTree.newick'
-    newicktree = '../YeastTree.newick'
-##    #newicktree = '../data/input_tree.newick'
-
-##    x = np.array([-0.72980621, -0.56994663, -0.96216856,  1.73940961, -1.71054117,  0.54387332,
-##                  -1.33866266, -3.47424374, -1.68831105, -1.80543811, -3.62520339, -2.69364618,
-##                  -4.41935536, -2.61416486, -3.63272477, -2.78779654, -3.17653234, -3.95894103])
-##
-##    x_clock = np.array([-0.69711204, -0.49848498, -1.33603066,  1.861808,   -2.21507185,  5.23430255,
-##                        -5.82838102, -0.07656569, -1.56484193, -0.18590612, -0.16381505, -0.41778555,
-##                        -0.18178853])
-####
-##    out_group_blen = np.arange(0.0001, 0.01, 0.005)
-##    ll_list = []
+    newicktree = '/Users/xji3/GitFolders/PrimateMultigeneFamilySearch/Sg_GeneFamilies/Before_Marmoset_Primate_Tree.newick'
 
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = None, clock = False, save_name = save_name)
     test.get_mle(False, True, 0, 'BFGS')
@@ -1532,111 +1489,3 @@ if __name__ == '__main__':
     print (test.gen_save_file_name())
     print (test._loglikelihood2())
     test.get_SitewisePosteriorSummary(summary_path = '../Summary/')
-#    test.get_individual_summary(summary_path = './BootStrapSummary/' + '_'.join(paralog) + '/', file_name = './BootStrapSummary/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_Boot1_summary.txt')
-
-
-
-##    paralog1 = 'YER131W'
-##    paralog2 = 'YGL189C'
-##    paralog = [paralog1, paralog2]
-##    alignment_file = '../MafftAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
-##
-##    newicktree = '../PairsAlignemt/YeastTree.newick'
-##    test3 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = None, clock = True)
-##    test3.get_mle(True, True, 0, 'BFGS')
-##    print test3.tau
-##
-##    test4 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = None, clock = True)
-##    test4.get_mle(True, False, 0, 'BFGS')
-##    print test4.tau
-
-##    for blen in out_group_blen:
-##        test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = {6:blen}, clock = False)
-##        #test.Force = Force = {6:blen}
-##        #test.update_by_x()
-##        test.get_mle(False, True, 1, 'BFGS')
-##        ll_list.append(test.ll)
-    
-##    np.savetxt(open('./testlikelihood.txt', 'w+'), np.matrix([ll_list, out_group_blen]), delimiter = ' ')
-##    test.get_mle(False, False, 1, 'basin-hopping')
-    
-##    test3.update_by_x(x)
-##    #test3.update_by_x_clock(x_clock)
-##    #print test3._loglikelihood2()
-##    #test3.get_mle(display = True, em_iterations = 0)
-####    test3.save_to_file(path = path)
-##    
-##    test4 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = True)
-##    test4.update_by_x_clock(x_clock)
-##    test4.get_mle(display = True)
-##    test4.save_to_file(path = path)
-    
-##    #test.get_ExpectedNumGeneconv()
-##    #print test.ExpectedGeneconv
-####    x = np.array([-0.64353555, -0.48264002, -0.93307917,  1.76977596, -2.44028574, 1.19617746,
-####                   -3.90910406, -2.01786889,  # N0
-####                   -2.92359461, -2.83555499,  # N1
-####                   -4.30005794, -3.29056063,  # N2
-####                   -4.59465356, -3.49891453,  # N3
-####                   -6.28014701, -3.10701318,  # N4
-####                   -3.87159909, -3.97438916]) # N5
-####                 
-####    test.update_by_x(x = x)
-####    test.get_mle(display = True)
-####    test.save_to_file(path = path)
-####
-####    # MG94 Force nonclock
-####    test2 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, nnsites = 157)
-####    test2.update_by_x(x = test.x)
-####    test2.get_mle(display = True)
-####    test2.save_to_file(path = path)
-####
-####    # MG94 clock
-####    test3 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = None, clock = True, nnsites = 157)
-####    test3.update_by_x_clock(x_clock = test.x_clock)
-####    test3.get_mle(display = True)
-####    test3.save_to_file(path = path)
-####
-####    # MG94 nonclock
-####    test4 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = None, clock = False, nnsites = 157)
-####    test4.update_by_x(x = test3.x)
-####    test4.get_mle(display = True)
-####    test4.save_to_file(path = path)
-##
-##    print test._loglikelihood()  # should be -1513.0033676643861
-##    test.get_mle(False)
-##    test.get_ExpectedHetDwellTime()
-##    test.get_ExpectedNumGeneconv()
-##
-##    for i in test.edge_list:
-##        if test.ExpectedDwellTime[i] != 0:
-##            print i, test.ExpectedGeneconv[i]/(test.ExpectedDwellTime[i] * test.edge_to_blen[i])
-##
-##
-####    paralog1 = 'YDR502C'
-####    paralog2 = 'YLR180W'
-####
-####
-####    Force    = {5:0.0}
-####
-####    paralog = [paralog1, paralog2]
-####    alignment_file = '../PairsAlignemt/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
-####
-####    newicktree = '../PairsAlignemt/YeastTree.newick'
-####    test2 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = None, clock = False)#, nnsites = 5)
-####
-####
-####    x = np.array([-0.76374179, -0.56512517, -0.8661595 ,  1.33286957, -3.12679708, -0.55435137,
-####                  -1.59080985, -1.35214307,   # N0
-####                  -1.48481827, -0.5117971 ,   # N1
-####                  -2.4550277 , -2.02888192,   # N2
-####                  -2.47147681, -1.7627708 ,   # N3
-####                  -2.62667816, -1.64821228,   # N4
-####                  -2.38731535, -2.41097359])  # N5
-####                  
-####    test2.update_by_x(x = x)
-####
-####    print test2._loglikelihood()
-####        
-##        
-##        

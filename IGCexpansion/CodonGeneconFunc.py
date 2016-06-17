@@ -135,10 +135,19 @@ def get_x_clock_guess(edge_to_blen):
 
 def read_newick(newick_file, post_dup = 'N1'):
     assert(os.path.isfile(newick_file))  # check if file exists
-    tree = Phylo.read(newick_file, 'newick')
+    tree = Phylo.read(newick_file, 'newick', rooted=True)
 
     # locate 1st post-duplication node
     post_dup_clade = tree.find_clades(post_dup).next()
+
+    # if the root node is the 1st post-duplication node,
+    # then add a duplication node before the root
+    # inspired by root_with_outgroup() function in Phylo
+    # http://biopython.org/DIST/docs/api/Bio.Phylo.BaseTree-pysrc.html
+    if tree.root == post_dup_clade:
+        new_root = tree.root.__class__(branch_length = tree.root.branch_length, name = 'dup')
+        new_root.clades.insert(0, tree.root)
+        tree.root = new_root
     
     ## from http://biopython.org/wiki/Phylo_cookbook
     allclades = list(tree.find_clades(order = 'level'))
