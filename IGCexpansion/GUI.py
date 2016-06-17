@@ -12,9 +12,10 @@ class TextDisplay(HasTraits):
     view = View( Item('string', show_label = False, springy = True, style = 'custom'))
 
 # This should be the Model part in MVC structure
-class SimpleTest(HasTraits):
+class Alignment(HasTraits):
     Alignment_file = File
-    Alignment = Instance(TextDisplay)
+    display = Instance(TextDisplay)
+    #Align   = Button()
     _updated = Bool(False)
 
    # Display specification (one Item per editor style):
@@ -27,6 +28,8 @@ class SimpleTest(HasTraits):
         Item( '_' ),
         Item( 'file_name', style = 'readonly', label = 'ReadOnly' )
     )
+
+    view = View( Item('Alignment_file', show_label = False))#, Item('Align', show_label = False))
 
     def _Alignment_file_changed(self):
         self.Alignment = '  '
@@ -47,6 +50,15 @@ class TC_Handler(Handler):
 class MainWindow(HasTraits):
     display = Instance(TextDisplay, ())
 
+    alignment = Instance(Alignment)
+
+    def _alignment_default(self):
+        return Alignment(display = self.display)
+    view = View('display', 'alignment',
+                buttons = [OKButton, CancelButton],
+                title = 'IGC GUI',
+                style = 'custom', resizable=True)
+
 view_test = View(Item(name = 'Alignment_file'),
                  title = 'Alter Title',
                  handler = TC_Handler(),
@@ -54,5 +66,5 @@ view_test = View(Item(name = 'Alignment_file'),
                  buttons = ['OK', 'Cancel'])
 
 if __name__ == '__main__':
-    test = SimpleTest()
-    test.configure_traits(view = view_test)
+    test = MainWindow()
+    test.configure_traits()
