@@ -87,3 +87,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# R related files
+*.Rhistory
+*.DS_Store
