@@ -806,7 +806,7 @@ class ReCodonGeneconv:
 
         return -ll
         
-    def get_mle(self, display = True, derivative = True, em_iterations = 3, method = 'basin-hopping', niter = 2000):
+    def get_mle(self, display = True, derivative = True, em_iterations = 0, method = 'basin-hopping', niter = 2000):
         if em_iterations > 0:
             ll = self._loglikelihood2()
             # http://jsonctmctree.readthedocs.org/en/latest/examples/hky_paralog/yeast_geneconv_zero_tau/index.html#em-for-edge-lengths-only
@@ -837,7 +837,8 @@ class ReCodonGeneconv:
             else:
                 f = partial(self.objective_wo_derivative, display)
             guess_x = self.x            
-            bnds.extend([(None, None)] * (len(self.x_process) - 3))
+            bnds.extend([(None, None)] * (len(self.x_process) - 4))
+            bnds.extend([(None, 7.0)] * (1))  # Now add upper limit for tau
             edge_bnds = [(None, None)] * len(self.x_rates)
             edge_bnds[1] = (self.minlogblen, None)
             bnds.extend(edge_bnds)
@@ -1479,9 +1480,10 @@ if __name__ == '__main__':
     paralog1 = 'ENSG00000104818'
     paralog2 = 'ENSG00000104827'
     paralog = [paralog1, paralog2]
-    alignment_file = '/Users/xji3/GitFolders/PrimateMultigeneFamilySearch/Sg_GeneFamilies/noOutgroup/Before_Marmoset/ENSG00000104818_ENSG00000104827/ENSG00000104818_ENSG00000104827_input.fasta'
+    home_path = '/Users/Xiang/'
+    alignment_file = home_path + 'GitFolders/PrimateMultigeneFamilySearch/Sg_GeneFamilies/noOutgroup/Before_Marmoset/ENSG00000104818_ENSG00000104827/ENSG00000104818_ENSG00000104827_input.fasta'
     save_name = '../test_save.txt'
-    newicktree = '/Users/xji3/GitFolders/PrimateMultigeneFamilySearch/Sg_GeneFamilies/Before_Marmoset_Primate_Tree.newick'
+    newicktree = home_path + 'GitFolders/PrimateMultigeneFamilySearch/Sg_GeneFamilies/Before_Marmoset_Primate_Tree.newick'
 
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = None, clock = False, save_name = save_name)
     test.get_mle(False, True, 0, 'BFGS')
@@ -1489,3 +1491,6 @@ if __name__ == '__main__':
     print (test.gen_save_file_name())
     print (test._loglikelihood2())
     test.get_SitewisePosteriorSummary(summary_path = '../Summary/')
+
+    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = {4:0.0}, clock = False, save_name = save_name)
+    test.get_mle(False, True, 0, 'BFGS')

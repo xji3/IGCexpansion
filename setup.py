@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name = 'IGCexpansion',
-      version = '0.1dev',
+      version = '0.14-dev',
       author = 'Xiang Ji',
       #url = 'https://github.com/xji3/Genconv/tree/master/IGCexpansion/',
       #download_url = 'https://github.com/xji3/Genconv/tree/master/IGCexpansion/',
