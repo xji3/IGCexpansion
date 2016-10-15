@@ -43,12 +43,10 @@ class ReCodonGeneconv:
         codons = [a+b+c for a in bases for b in bases for c in bases]
         amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
         
-        self.nt_to_state    = {a:i for (i, a) in enumerate('ACGT')}
-        self.nt_to_state['-'] = -1
+        self.nt_to_state    = {a:i for (i, a) in enumerate('ACGT')}        
         self.codon_table    = dict(zip(codons, amino_acids))
         self.codon_nonstop  = [a for a in self.codon_table.keys() if not self.codon_table[a]=='*']
         self.codon_to_state = {a.upper() : i for (i, a) in enumerate(self.codon_nonstop)}
-        self.codon_to_state['---'] = -1
         self.pair_to_state  = {pair:i for i, pair in enumerate(product(self.codon_nonstop, repeat = 2))}
 
         # Tip data related variable
@@ -119,9 +117,11 @@ class ReCodonGeneconv:
         if self.Model == 'MG94':
             # Convert from nucleotide sequences to codon sequences.
             self.nts_to_codons()
-            obs_to_state = self.codon_to_state
+            obs_to_state = deepcopy(self.codon_to_state)
+            obs_to_state['---'] = -1
         else:
-            obs_to_state = self.nt_to_state        
+            obs_to_state = deepcopy(self.nt_to_state)
+            obs_to_state['-'] = -1
 
         # change the number of sites for calculation if requested
         if self.nsites is None:
@@ -977,10 +977,10 @@ class ReCodonGeneconv:
             print ('Need to implement this for old package')
 
     def _ExpectedHetDwellTime(self, package = 'new', display = False):
-
+        
         if package == 'new':
             self.scene_ll = self.get_scene()
-            if self.Model == 'MG94':
+            if self.Model == 'MG94':                                
                 heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.codon_to_state)), repeat = 2)) if a != b]
             elif self.Model == 'HKY':
                 heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.nt_to_state)), repeat = 2)) if a != b]
@@ -1423,59 +1423,6 @@ class ReCodonGeneconv:
             self.x = np.loadtxt(open(save_file, 'r'))
             self.update_by_x()
 
-##def main(args):
-##    paralog = [args.paralog1, args.paralog2]
-##    #alignment_file = '../MafftAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
-##    alignment_file = './NewPairsAlignment/' + '_'.join(paralog) + '/' + '_'.join(paralog) + '_input.fasta'
-##    newicktree = '../PairsAlignemt/YeastTree.newick'
-##    path = './NewPackageNewRun/'
-##    summary_path = './NewPackageNewRun/'
-##    omega_guess = 0.1
-##
-##    print ('Now calculate MLE for pair', paralog)
-##    
-##    if hasattr(args, 'Force'):
-##        Force = args.Force
-##        Force_hky = None
-##        if Force != None:
-##            path += 'Force_'
-##            Force_hky = {4:0.0}
-##    else:
-##        Force = None
-##        Force_hky = None
-##
-##    test_hky = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force_hky, clock = False)
-##    result_hky = test_hky.get_mle(display = False, derivative = True, em_iterations = 1, method = 'BFGS')
-##    test_hky.get_ExpectedNumGeneconv()
-##    test_hky.get_ExpectedHetDwellTime()
-##    test_hky.get_individual_summary(summary_path = summary_path)
-##    test_hky.save_to_file(path = path)
-##
-##    test2_hky = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force_hky, clock = True)
-##    result2_hky = test2_hky.get_mle(display = False, derivative = True, em_iterations = 1, method = 'BFGS')
-##    test2_hky.get_ExpectedNumGeneconv()
-##    test2_hky.get_ExpectedHetDwellTime()
-##    test2_hky.get_individual_summary(summary_path = summary_path)
-##    test2_hky.save_to_file(path = path)
-##
-##
-##    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False)
-##    x = np.concatenate((test_hky.x_process[:-1], np.log([omega_guess]), test_hky.x_process[-1:], test_hky.x_rates))
-##    test.update_by_x(x)
-##    
-##    result = test.get_mle(display = True, derivative = True, em_iterations = 1, method = 'BFGS')
-##    test.get_ExpectedNumGeneconv()
-##    test.get_ExpectedHetDwellTime()
-##    test.get_individual_summary(summary_path = summary_path)
-##    test.save_to_file(path = path)
-##
-##    test2 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = True)
-##    #x_clock = np.concatenate((test2_hky.x_process[:-1], np.log([omega_guess]), test2_hky.x_process[-1:], test2_hky.x_Lr))
-##    #test2.update_by_x_clock(x_clock)
-##    result = test2.get_mle(display = True, derivative = True, em_iterations = 0, method = 'BFGS')
-##    test2.get_ExpectedNumGeneconv()
-##    test2.get_individual_summary(summary_path = summary_path)
-##    test2.save_to_file(path = path)
     
 
 if __name__ == '__main__':
@@ -1483,17 +1430,8 @@ if __name__ == '__main__':
     Force = None
     alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
     newicktree = '../test/YeastTree.newick'
-#     if args.force:
-#         if args.model == 'MG94':
-#             Force = {5:0.0}
-#         elif args.model == 'HKY':
-#             Force = {4:0.0}
-#     else:
-#         Force = None
     Force = None
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    test.loglikelihood_and_gradient()
-    print(test.ll)
     test.get_mle(True, True, 0, 'BFGS')
     test.get_individual_summary(summary_path = '../test/Summary/')
     test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
