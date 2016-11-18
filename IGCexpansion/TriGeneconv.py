@@ -631,23 +631,24 @@ class TriGeneconv:
         
 if __name__ == '__main__':
 
-    alignment_file = './data/ADH_intron_input.fasta'
-    newicktree = './data/ADH1Class_tree.newick'
-    save_path = './save/'
+    alignment_file = '../../TriGeneconv/data/ADH_intron_input.fasta'
+    newicktree = '../../TriGeneconv/data/ADH1Class_tree.newick'
+    save_path = '../../TriGeneconv/save/'
     paralog = ['ADH1A', 'ADH1B', 'ADH1C']
-    paralog = [paralog[0]]
+    #paralog = [paralog[0]]
     oldest_paralog = 'ADH1C'
-    Dis = 'None'
+    Dis = 'Free'
     Dir = False
-    gBGC = True
+    gBGC = False
     Force = False
+    print(oldest_paralog)
 
-    for oldest_paralog in paralog:
-        test = TriGeneconv( newicktree, alignment_file, save_path, oldest_paralog, Force = False, Dis = Dis, Dir = Dir, gBGC = gBGC)
-        test.update_by_x()
-        print test._loglikelihood()
-        test.get_mle(True, True)
-        test.get_individual_summary()
+    #for oldest_paralog in paralog:
+    test = TriGeneconv( newicktree, alignment_file, save_path, oldest_paralog, Force = False, Dis = Dis, Dir = Dir, gBGC = gBGC)
+    test.update_by_x()
+    print test._loglikelihood()
+    test.get_mle(True, True)
+    test.get_individual_summary()
 
     
     self = test
