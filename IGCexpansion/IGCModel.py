@@ -4,8 +4,8 @@
 import numpy as np
 
 class IGCModel:
+    supported = ['One rate', 'Most general', 'Symmetric general']          # supported IGC parameterization
     def __init__(self, x_IGC, n_ortholog, parameterization):
-        self.supported = ['One rate', 'Most general', 'Symmetric general']          # supported IGC parameterization
         self.pm        = parameterization      # name of parameterization
         self.x_IGC     = x_IGC                 # an array of log() values
         self.n_orlg    = n_ortholog            # total number of ortholog groups
@@ -44,6 +44,9 @@ class IGCModel:
         # x_IGC in this case should be in linear order of
         # t_{1,2}, t_{1, 3}, ..., t_{1, n}, t_{2, 3}, ... t_{2, n}, ..., t{n - 1, n}
         IGC_array = []
+
+    def __str__(self): # overide for print function
+        return 'IGC Model parameterization: ' + self.pm + '\n' + 'IGC parameters: ' + str(np.exp(self.x_IGC))
             
 
 if __name__ == '__main__':

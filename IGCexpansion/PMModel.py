@@ -5,8 +5,8 @@ import numpy as np
 
 
 class PMModel:
+    supported = ['HKY']                         # supported models
     def __init__(self, model_name, x_pm):
-        self.supported = ['HKY']                # supported models
         self.name         = model_name          # name of supported models
         self.x_pm         = x_pm                # an array of log() values
 
@@ -56,6 +56,10 @@ class PMModel:
         assert(len(self.x_pm) == len(new_x_pm))
         self.x_pm = new_x_pm
         self.init_Q()
+
+    def __str__(self): # overide for print function
+        return 'Point mutation model: ' + self.name + '\n' + \
+               'Point mutation parameters: ' + ' '.join([item + ' '+ str(self.parameters[item]) for item in self.parameters])
 
 if __name__ == '__main__':
     test = PMModel('HKY', np.log([0.3, 0.5, 0.2, 9.5]))
