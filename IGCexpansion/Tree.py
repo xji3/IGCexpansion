@@ -5,6 +5,7 @@ from Bio import Phylo
 import networkx as nx
 import os
 import numpy as np
+from copy import deepcopy
 
 class Tree:
     def __init__(self, tree_newick, DupLosList):
@@ -19,6 +20,11 @@ class Tree:
         self.node_to_num  = None        # dictionary used for translating tree info from self.edge_to_blen to self.tree
         self.num_to_node  = None        # dictionary used for translating tree info from self.tree to self.edge_to_blen
 
+        self.node_to_conf = dict()      # A dictionary store configurations on each node
+        # Speciation node starts with N, Duplication node with D, Loss node with L
+        self.dup_events   = dict()      # A dictionary stores duplication events: ortholog group in key gives birth to the two ortholog groups in the content list
+
+        self.n_orlg       = 0           # number of ortholog groups
         self.get_tree()
 
 
@@ -61,6 +67,8 @@ class Tree:
             rate = np.ones(len(tree_row))
             )
 
+        # TODO: need to change process part
+
     def add_duplos_nodes(self):
         assert(os.path.isfile(self.duploslist))
         with open(self.duploslist, 'rb') as f:
@@ -68,17 +76,17 @@ class Tree:
                 items = line.split()
                 if items:
                     branch = items[0]
-                    father_node_name, child_node_name = branch.split('_')
+                    first_ = branch.find('_')
+                    father_node_name = branch[:first_]
+                    child_node_name = branch[(first_ + 1):]
                     for add_node in items[1:]:
                         self.add_node(father_node_name, child_node_name, add_node)
                         father_node_name = add_node
                     
     def add_node(self, father_node_name, child_node_name, add_node):
-        hit_clades = list(self.phylo_tree.find_clades(child_node_name))
-        assert(len(hit_clades) == 1)
-        child_clade = hit_clades[0]
+        child_clade = self.find_clade(child_node_name)
 
-        father_clade = self.phylo_tree.get_path(child_clade)[-2]
+        father_clade = self.find_parent_clade(child_node_name)
         assert(father_clade.name == father_node_name)
 
         new_clade = Phylo.BaseTree.Clade(name = add_node, clades = [child_clade])
@@ -102,17 +110,144 @@ class Tree:
         for edge_it in range(len(self.edge_list)):
             self.edge_to_blen[self.edge_list[edge_it]] = x_rates[edge_it] 
 
-        self.update_tree()        
+        self.update_tree()
 
+
+    def find_clade(self, clade_name):
+        hit_clades = list(self.phylo_tree.find_clades(clade_name))
+        assert(len(hit_clades) == 1)
+        return hit_clades[0]
+
+    def find_parent_clade(self, clade_name):
+        child_clade = self.find_clade(clade_name)
+        path = self.phylo_tree.get_path(child_clade)
+        if len(path) > 1:
+            father_clade = path[-2]
+        else:
+            father_clade = self.phylo_tree.root
+
+        return father_clade
+
+
+    def get_node_to_conf(self):
+        self.init_root_conf()
+
+        
+    def init_root_conf(self):
+        self.node_to_conf[self.phylo_tree.root.name] = [[0, 1]]
+        self.n_orlg = 1
+    
+    def get_configurations_for_path(self, terminal_node_name):
+        terminal_clade = self.find_clade(terminal_node_name)
+        path = self.phylo_tree.get_path(terminal_clade)
+        for clade in path:
+            if clade.name in self.node_to_conf:
+                continue
+            elif self.is_duplication_node(clade.name):
+                self.get_configuration_for_duplication_node(clade.name, 0)
+            elif self.is_deletion_node(clade.name):
+                self.get_configuration_for_deletion_node(clade.name, 0)
+            elif self.is_speciation_node(clade.name):
+                self.get_configuration_for_speciation_node(clade.name)
+            elif self.is_terminal_node(clade.name):
+                self.get_configuration_for_terminal_node(clade.name)
+            else:
+                print 'The node cannot be recognised!'
+
+    def is_duplication_node(self, node_name):
+        return node_name[0] == 'D' and str.isdigit(node_name[1:])
+
+    def is_deletion_node(self, node_name):
+        return node_name[0] == 'L' and str.isdigit(node_name[1:])
+
+    def is_speciation_node(self, node_name):
+        return node_name[0] == 'N' and str.isdigit(node_name[1:])
+
+    def is_terminal_node(self, node_name):
+        return node_name in [clade.name for clade in self.phylo_tree.get_terminals()]
+        
+    def get_configuration_for_terminal_node(self, node_name):
+        # A terminal node copies its configuration from its parent node
+        self.copy_configuration_from_parent(node_name)
+
+    def copy_configuration_from_parent(self, node_name):
+        parent_clade = self.find_parent_clade(node_name)
+        self.node_to_conf[node_name] = deepcopy(self.node_to_conf[parent_clade.name])
+
+    def get_configuration_for_speciation_node(self, node_name):
+        # A speciation node copies its configuration from its parent node
+        self.copy_configuration_from_parent(node_name)
+
+    def is_configurations_same_size(self):
+        return len(set([len(self.node_to_conf[node]) for node in self.node_to_conf])) == 1
+
+    def get_configuration_for_duplication_node(self, node_name, pos):
+        parent_clade = self.find_parent_clade(node_name)
+        assert(parent_clade.name in self.node_to_conf)
+        old_configuration = self.node_to_conf[parent_clade.name]
+        old_orlg = old_configuration[pos][0]
+        assert(self.node_to_conf[parent_clade.name][pos][1]) # only extent lineage can give birth
+        assert(self.is_configurations_same_size())
+
+        # Step 1, replace old ortholog group with two new groups
+        new_orlg_1 = self.n_orlg
+        new_orlg_2 = self.n_orlg + 1
+        self.n_orlg += 2
+        self.dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
+
+        # Step 2, update all other configurations
+        # They should be of same size as old_configuration
+        for node in self.node_to_conf:
+            self.node_to_conf[node].insert(pos, deepcopy(self.node_to_conf[node][pos])) # duplicate the parent position
+        
+        # insert current node's configuration
+        new_configuration = deepcopy(old_configuration)
+        new_configuration[pos][0] = new_orlg_1
+        new_configuration[pos + 1][0] = new_orlg_2
+        self.node_to_conf[node_name] = new_configuration
+
+    def get_configuration_for_deletion_node(self, node_name, pos):
+        parent_clade = self.find_parent_clade(node_name)
+        assert(parent_clade.name in self.node_to_conf)
+        new_configuration = deepcopy(self.node_to_conf[parent_clade.name])
+        assert(new_configuration[pos][1])  # the paralog should be alive before deletion
+        new_configuration[pos][1] = 0
+        self.node_to_conf[node_name] = new_configuration
+        
+
+    
 if __name__ == '__main__':
     tree_newick = '../test/PrimateTest.newick'
     DupLosList = '../test/PrimateTestDupLost.txt'
     tree = Phylo.read( tree_newick, "newick")
     test = Tree(tree_newick, DupLosList)
+    Phylo.draw_ascii(test.phylo_tree)
     self = test
     father_node_name = 'N1'
     child_node_name = 'N3'
-    Phylo.draw_ascii(self.phylo_tree)
     test.unpack_x_rates(np.log([0.1] * len(test.edge_list)))
     print test.edge_to_blen
     print
+
+    test.init_root_conf()
+    terminal_node_name = 'Chinese_Tree_Shrew'
+    terminal_clade = self.find_clade(terminal_node_name)
+    path = self.phylo_tree.get_path(terminal_clade)
+    print path, test.is_duplication_node(path[0].name)
+
+    print test.node_to_conf
+
+##    test.get_configuration_for_duplication_node('D0', 0)
+##    print test.node_to_conf, test.dup_events
+##
+##    test.get_configuration_for_duplication_node('D5', 1)
+##    print test.node_to_conf, test.dup_events
+##
+##    test.get_configuration_for_deletion_node('L0', 1)
+##    print test.node_to_conf, test.dup_events
+
+    test.get_configurations_for_path('Chinese_Tree_Shrew')
+    print test.node_to_conf, test.dup_events
+
+    test.get_configurations_for_path('Macaque')
+    print test.node_to_conf, test.dup_events
