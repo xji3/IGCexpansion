@@ -30,6 +30,8 @@ class PMModel:
         kappa = np.exp(self.x_pm[3])
         self.parameters['kappa'] = kappa
 
+        # In order of
+        # ACGT   A=0, C=1, G=2, T=3
         Qbasic = np.array([
             [0, 1.0, kappa, 1.0],
             [1.0, 0, 1.0, kappa],

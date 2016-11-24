@@ -1432,7 +1432,8 @@ if __name__ == '__main__':
     newicktree = '../test/YeastTree.newick'
     Force = None
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    test.get_mle(True, True, 0, 'BFGS')
-    test.get_individual_summary(summary_path = '../test/Summary/')
-    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
+    self = test
+##    test.get_mle(True, True, 0, 'BFGS')
+##    test.get_individual_summary(summary_path = '../test/Summary/')
+##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 

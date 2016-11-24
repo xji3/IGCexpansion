@@ -128,31 +128,32 @@ class Tree:
 
         return father_clade
 
-
-    def get_node_to_conf(self):
-        self.init_root_conf()
-
-        
+       
     def init_root_conf(self):
         self.node_to_conf[self.phylo_tree.root.name] = [[0, 1]]
         self.n_orlg = 1
     
-    def get_configurations_for_path(self, terminal_node_name):
+    def get_configurations_for_path(self, terminal_node_name, node_to_pos):
         terminal_clade = self.find_clade(terminal_node_name)
         path = self.phylo_tree.get_path(terminal_clade)
         for clade in path:
             if clade.name in self.node_to_conf:
                 continue
             elif self.is_duplication_node(clade.name):
-                self.get_configuration_for_duplication_node(clade.name, 0)
+                self.get_configuration_for_duplication_node(clade.name, node_to_pos[clade.name])
             elif self.is_deletion_node(clade.name):
-                self.get_configuration_for_deletion_node(clade.name, 0)
+                self.get_configuration_for_deletion_node(clade.name, node_to_pos[clade.name])
             elif self.is_speciation_node(clade.name):
                 self.get_configuration_for_speciation_node(clade.name)
             elif self.is_terminal_node(clade.name):
                 self.get_configuration_for_terminal_node(clade.name)
             else:
                 print 'The node cannot be recognised!'
+
+    def get_configurations(self, terminal_node_list, node_to_pos):
+        self.init_root_conf()
+        for node in terminal_node_list:
+            self.get_configurations_for_path(node, node_to_pos)
 
     def is_duplication_node(self, node_name):
         return node_name[0] == 'D' and str.isdigit(node_name[1:])
@@ -181,13 +182,19 @@ class Tree:
     def is_configurations_same_size(self):
         return len(set([len(self.node_to_conf[node]) for node in self.node_to_conf])) == 1
 
-    def get_configuration_for_duplication_node(self, node_name, pos):
+    def get_configuration_for_duplication_node(self, node_name, orlg_pos): # this is simplified version
+        # There are cases this function cannot handle
+        # For example, this duplication tree: ((3, 4)D2, (1, 2)D1)N0
         parent_clade = self.find_parent_clade(node_name)
         assert(parent_clade.name in self.node_to_conf)
         old_configuration = self.node_to_conf[parent_clade.name]
-        old_orlg = old_configuration[pos][0]
-        assert(self.node_to_conf[parent_clade.name][pos][1]) # only extent lineage can give birth
+        ortho_group_to_pos = self.divide_configuration(old_configuration)
+        old_orlg = sorted(ortho_group_to_pos['extent'].keys())[orlg_pos]
+        
         assert(self.is_configurations_same_size())
+        assert(len(ortho_group_to_pos['extent'][old_orlg]) == 1) # now only deal with case that the ortholog group occupies only one position
+        pos = ortho_group_to_pos['extent'][old_orlg][0]
+        assert(self.node_to_conf[parent_clade.name][pos][1]) # only extent lineage can give birth
 
         # Step 1, replace old ortholog group with two new groups
         new_orlg_1 = self.n_orlg
@@ -206,14 +213,33 @@ class Tree:
         new_configuration[pos + 1][0] = new_orlg_2
         self.node_to_conf[node_name] = new_configuration
 
-    def get_configuration_for_deletion_node(self, node_name, pos):
+    def get_configuration_for_deletion_node(self, node_name, orlg_pos):
         parent_clade = self.find_parent_clade(node_name)
         assert(parent_clade.name in self.node_to_conf)
-        new_configuration = deepcopy(self.node_to_conf[parent_clade.name])
-        assert(new_configuration[pos][1])  # the paralog should be alive before deletion
-        new_configuration[pos][1] = 0
+        new_configuration = deepcopy(self.node_to_conf[parent_clade.name])        
+        ortho_group_to_pos = self.divide_configuration(new_configuration)
+        deleted_orlg = sorted(ortho_group_to_pos['extent'].keys())[orlg_pos]
+        for pos in ortho_group_to_pos['extent'][deleted_orlg]:
+            assert(new_configuration[pos][1])  # the paralog should be alive before deletion
+            new_configuration[pos][1] = 0
         self.node_to_conf[node_name] = new_configuration
-        
+
+    def divide_configuration(self, configuration):
+        ortho_group_to_pos = dict(extent = {}, distinct = [])
+        # extent positions that represent same paralog (by the same ortholog group number) have to be in the same state
+        # distinct positions don't change states, thus only track positions
+        for pos in range(len(configuration)):
+            if configuration[pos][1] == 1: # extent
+                ortho_group = configuration[pos][0]
+                if ortho_group in ortho_group_to_pos['extent']:
+                    ortho_group_to_pos['extent'][ortho_group].append(pos)
+                else:
+                    ortho_group_to_pos['extent'][ortho_group] = [pos]
+            elif configuration[pos][1] == 0: # distinct
+                ortho_group_to_pos['distinct'].append(pos)
+
+        return ortho_group_to_pos        
+
 
     
 if __name__ == '__main__':
@@ -223,31 +249,42 @@ if __name__ == '__main__':
     test = Tree(tree_newick, DupLosList)
     Phylo.draw_ascii(test.phylo_tree)
     self = test
-    father_node_name = 'N1'
-    child_node_name = 'N3'
-    test.unpack_x_rates(np.log([0.1] * len(test.edge_list)))
-    print test.edge_to_blen
-    print
-
-    test.init_root_conf()
-    terminal_node_name = 'Chinese_Tree_Shrew'
-    terminal_clade = self.find_clade(terminal_node_name)
-    path = self.phylo_tree.get_path(terminal_clade)
-    print path, test.is_duplication_node(path[0].name)
-
-    print test.node_to_conf
-
-##    test.get_configuration_for_duplication_node('D0', 0)
+##    father_node_name = 'N1'
+##    child_node_name = 'N3'
+##    test.unpack_x_rates(np.log([0.1] * len(test.edge_list)))
+##    print test.edge_to_blen
+##    print
+##
+##    test.init_root_conf()
+##    terminal_node_name = 'Chinese_Tree_Shrew'
+##    terminal_clade = self.find_clade(terminal_node_name)
+##    path = self.phylo_tree.get_path(terminal_clade)
+##    print path, test.is_duplication_node(path[0].name)
+##
+##    print test.node_to_conf
+##
+####    test.get_configuration_for_duplication_node('D0', 0)
+####    print test.node_to_conf, test.dup_events
+####
+####    test.get_configuration_for_duplication_node('D5', 1)
+####    print test.node_to_conf, test.dup_events
+####
+####    test.get_configuration_for_deletion_node('L0', 1)
+####    print test.node_to_conf, test.dup_events
+##
+    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
+##
+##    test.get_configurations_for_path('Chinese_Tree_Shrew', node_to_pos)
 ##    print test.node_to_conf, test.dup_events
 ##
-##    test.get_configuration_for_duplication_node('D5', 1)
-##    print test.node_to_conf, test.dup_events
-##
-##    test.get_configuration_for_deletion_node('L0', 1)
+##    test.get_configurations_for_path('Macaque', node_to_pos)
 ##    print test.node_to_conf, test.dup_events
 
-    test.get_configurations_for_path('Chinese_Tree_Shrew')
-    print test.node_to_conf, test.dup_events
+    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
+    test.get_configurations(terminal_node_list, node_to_pos)
+    print test.dup_events
+    for i in test.node_to_conf:
+        if i in terminal_node_list:
+            print i, test.node_to_conf[i]
 
-    test.get_configurations_for_path('Macaque')
-    print test.node_to_conf, test.dup_events
+ 
