@@ -9,22 +9,22 @@ from copy import deepcopy
 
 class Tree:
     def __init__(self, tree_newick, DupLosList):
-        self.newicktree   = tree_newick   # newick tree file location
-        self.duploslist   = DupLosList    # duplication loss nodes file location
+        self.newicktree         = tree_newick   # newick tree file location
+        self.duploslist         = DupLosList    # duplication loss nodes file location
         # Tree topology related variable
         # The tree for this project is fixed, but keep the read-in feature anyway
-        self.phylo_tree   = None        # Phylo tree structure
-        self.tree_json    = None        # store the tree dictionary used for json likelihood package parsing
-        self.edge_to_blen = None        # dictionary store the unpacked tree branch length information {(node_from, node_to):blen}
-        self.edge_list    = None        # kept all edges in the same order with x_rates
-        self.node_to_num  = None        # dictionary used for translating tree info from self.edge_to_blen to self.tree
-        self.num_to_node  = None        # dictionary used for translating tree info from self.tree to self.edge_to_blen
+        self.phylo_tree         = None        # Phylo tree structure
+        self.tree_json          = None        # store the tree dictionary used for json likelihood package parsing
+        self.edge_to_blen       = None        # dictionary store the unpacked tree branch length information {(node_from, node_to):blen}
+        self.edge_list          = None        # kept all edges in the same order with x_rates
+        self.node_to_num        = None        # dictionary used for translating tree info from self.edge_to_blen to self.tree
+        self.num_to_node        = None        # dictionary used for translating tree info from self.tree to self.edge_to_blen
 
-        self.node_to_conf = dict()      # A dictionary store configurations on each node
+        self.node_to_conf       = dict()      # A dictionary store configurations on each node
         # Speciation node starts with N, Duplication node with D, Loss node with L
-        self.dup_events   = dict()      # A dictionary stores duplication events: ortholog group in key gives birth to the two ortholog groups in the content list
+        self.dup_events         = dict()      # A dictionary stores duplication events: ortholog group in key gives birth to the two ortholog groups in the content list
 
-        self.n_orlg       = 0           # number of ortholog groups
+        self.n_orlg             = 0           # number of ortholog groups
         self.get_tree()
 
 
@@ -34,7 +34,12 @@ class Tree:
         self.phylo_tree = tree.as_phyloxml(rooted = 'True')
         self.add_duplos_nodes()
         #set node number for nonterminal nodes and specify root node
-        
+
+        self.get_tree_json()
+        # get process function is implemented in Func.py
+
+
+    def get_tree_json(self):
         tree_nx = Phylo.to_networkx(self.phylo_tree)
 
         triples = [(u.name, v.name, d['weight']) for (u, v, d) in tree_nx.edges(data = True)] # data = True to have the blen as 'weight'
@@ -66,7 +71,7 @@ class Tree:
             edge_rate_scaling_factors = np.ones(len(tree_row))
             )
 
-        # TODO: need to change process part
+        
     def get_tree_process(self, conf_list):
         tree_process = []
         for edge in self.edge_list:
@@ -101,12 +106,13 @@ class Tree:
         father_clade.clades.append(new_clade)
 
     def update_tree(self):
-        for i in range(len(self.tree_json['rate'])):
-            node1 = self.num_to_node[self.tree_json['row'][i]]
-            node2 = self.num_to_node[self.tree_json['col'][i]]
-            self.tree_json['rate'][i] = self.edge_to_blen[(node1, node2)]
+        for i in range(len(self.edge_list)):
+            node1 = self.num_to_node[self.tree_json['row_nodes'][i]]
+            node2 = self.num_to_node[self.tree_json['column_nodes'][i]]
+            self.tree_json['edge_rate_scaling_factors'][i] = self.edge_to_blen[(node1, node2)]
 
     def unpack_x_rates(self, log_x_rates, Force_rates = None):  # TODO: Change it to fit general tree structure rather than cherry tree
+        assert(len(log_x_rates) == len(self.edge_list))
         x_rates = np.exp(log_x_rates)
 
         if Force_rates != None:
@@ -253,6 +259,7 @@ if __name__ == '__main__':
     tree_newick = '../test/PrimateTest.newick'
     DupLosList = '../test/PrimateTestDupLost.txt'
     tree = Phylo.read( tree_newick, "newick")
+    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
     test = Tree(tree_newick, DupLosList)
     Phylo.draw_ascii(test.phylo_tree)
     self = test
@@ -287,7 +294,6 @@ if __name__ == '__main__':
 ##    test.get_configurations_for_path('Macaque', node_to_pos)
 ##    print test.node_to_conf, test.dup_events
 
-    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
     test.get_configurations(terminal_node_list, node_to_pos)
     print test.dup_events
     for i in test.node_to_conf:

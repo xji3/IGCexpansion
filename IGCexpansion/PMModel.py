@@ -59,6 +59,16 @@ class PMModel:
         self.x_pm = new_x_pm
         self.init_Q()
 
+    def get_stationary_distn(self, state):
+        if self.name == 'HKY':
+            return self.get_HKY_stationary_distn(state)
+
+    def get_HKY_stationary_distn(self, state):
+        assert(-1 < state < 4)
+        # 0:A, 1:C, 2:G, 3:T
+        return self.parameters['pi'][state]
+        
+
     def __str__(self): # overide for print function
         return 'Point mutation model: ' + self.name + '\n' + \
                'Point mutation parameters: ' + ' '.join([item + ' '+ str(self.parameters[item]) for item in self.parameters])

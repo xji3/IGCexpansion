@@ -64,6 +64,7 @@ def get_process_definitions(tree, jsmodel):
     conf_list = count_process(tree.node_to_conf)
     process_definitions = []
     for conf in conf_list:
+        #print conf
         process = jsmodel.get_process_definition(conf)
         process_definitions.append(process)
     return process_definitions, conf_list
