@@ -7,6 +7,7 @@ import os
 
 class Data:
     def __init__(self, alignment_file, gene_to_orlg_file):
+        self.nsites             = None               # Number of sites in the alignment
         self.alignment_file     = alignment_file     # Multiple sequence alignment file location
         self.gene_to_orlg_file  = gene_to_orlg_file  # Gene ortholog mapping info file location
 
@@ -31,6 +32,11 @@ class Data:
         assert(os.path.isfile(self.alignment_file))
         seq_dict = SeqIO.to_dict(SeqIO.parse( self.alignment_file, "fasta" ))
         self.name_to_seq = {name:str(seq_dict[name].seq) for name in seq_dict.keys()}
+
+        assert(self.is_alignment)
+
+    def is_alignment(self): # test if all sequences are of same length
+        return len(set([len(self.name_to_seq[name]) for name in self.name_to_seq])) == 1
  
 
 

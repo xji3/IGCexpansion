@@ -5,6 +5,7 @@
 from Data import Data
 from Tree import Tree
 from JSModel import JSModel
+import numpy as np
 
 
 def get_iid_observations(data, tree, nsites, data_type = 'nt'):
@@ -46,7 +47,27 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
         iid_observations.append(observations)
 
     return observable_nodes, observable_axes, iid_observations
+
+
+def count_process(node_to_conf):
+    conf_list = []
+    for node in node_to_conf:
+        if node_to_conf[node] in conf_list:
+            continue
+        else:
+            conf_list.append(node_to_conf[node])
+
+    return conf_list
     
+def get_process_definitions(tree, jsmodel):
+    assert(isinstance(tree, Tree) and isinstance(jsmodel, JSModel))
+    conf_list = count_process(tree.node_to_conf)
+    process_definitions = []
+    for conf in conf_list:
+        process = jsmodel.get_process_definition(conf)
+        process_definitions.append(process)
+    return process_definitions, conf_list
+
 
 
 if __name__ == '__main__':
@@ -67,6 +88,14 @@ if __name__ == '__main__':
         if i in terminal_node_list:
             print i, tree.node_to_conf[i]
 
+    pm_model = 'HKY'
+    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
+    n_orlg = tree.n_orlg
+    IGC_pm = 'One rate'
+    n_js = 5
+    jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    
+
 
 
 # function get_iid_observations()
@@ -76,4 +105,9 @@ if __name__ == '__main__':
     observable_nodes, observable_axes, iid_observations = get_iid_observations(data, tree, nsites, data_type)
 
         
+# function get_process_definitions
+    process_definitions, conf_list = get_process_definitions(tree, jsmodel)
 
+# test tree.get_tree_process(conf_list):
+    tree.get_tree_process(conf_list)
+    print tree.tree_json

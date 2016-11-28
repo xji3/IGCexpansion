@@ -57,18 +57,25 @@ class Tree:
         # Now setup self.tree dictionary
         tree_row = [self.node_to_num[na] for na, nb in edge_list]
         tree_col = [self.node_to_num[nb] for na, nb in edge_list]
-        tree_process = [1 if e[0] == 'N0' and e[1] == 'N1' else 2 for e in edge_list]
         self.edge_list = edge_list
 
         self.tree_json = dict(
-            row = tree_row,
-            col = tree_col,
-            process = tree_process,
-            rate = np.ones(len(tree_row))
+            row_nodes = tree_row,
+            column_nodes = tree_col,
+            #process = tree_process,
+            edge_rate_scaling_factors = np.ones(len(tree_row))
             )
 
         # TODO: need to change process part
+    def get_tree_process(self, conf_list):
+        tree_process = []
+        for edge in self.edge_list:
+            parent_node, child_node = edge
+            conf = self.node_to_conf[parent_node]
+            tree_process.append(conf_list.index(conf))
+        self.tree_json['edge_processes'] = tree_process
 
+            
     def add_duplos_nodes(self):
         assert(os.path.isfile(self.duploslist))
         with open(self.duploslist, 'rb') as f:

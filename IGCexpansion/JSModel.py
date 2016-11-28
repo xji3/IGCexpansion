@@ -7,6 +7,7 @@ from IGCModel import IGCModel
 from PMModel import PMModel
 import numpy as np
 import itertools
+from copy import deepcopy
 
 class JSModel:
     def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm):
@@ -64,7 +65,7 @@ class JSModel:
         return len(configuration) == self.n_js and\
                all([len(single_conf) == 2 for single_conf in configuration]) and \
                all([single_conf[1] == 0 or single_conf[1] == 1 for single_conf in configuration]) and\
-               all([ -1 < configuration[i][0] < self.n_orlg for i in range(n_js)])
+               all([ -1 < configuration[i][0] < self.n_orlg for i in range(self.n_js)])
 
     def divide_configuration(self, configuration):
         assert(self.is_configuration(configuration))
@@ -93,7 +94,8 @@ class JSModel:
         ortho_group_to_pos = self.divide_configuration(configuration)
         for ortho_group in ortho_group_to_pos['extent'].keys():
             pos_list = ortho_group_to_pos['extent'][ortho_group]
-            indicator = indicator and len(set([state[pos] for pos in pos_list])) == 1
+            indicator = indicator and len(set([state[pos] for pos in pos_list])) == 1 \
+                        and len(set([self.state_space_shape[pos] for pos in pos_list])) == 1
 
         for pos in range(self.n_js):
             indicator = indicator and -1 < state[pos] < self.state_space_shape[pos]
@@ -102,15 +104,21 @@ class JSModel:
     def is_transition_compatible(self, transition, configuration):
         assert(len(transition) == 2) # transition should contain two states
         state_from, state_to = transition
-        indicator = True
-        indicator = indicator and self.is_state_compatible(state_from, configuration)\
+        if state_from == state_to:
+            return False
+        indicator = self.is_state_compatible(state_from, configuration)\
                     and self.is_state_compatible(state_to, configuration)
+
+        if not indicator:
+            return False
         # Two states should only differ at one ortholog group
         pos_list = [i for i in range(self.n_js) if state_from[i] != state_to[i]]
         indicator = indicator and len(set([state_from[i] for i in pos_list])) == 1\
                     and len(set([configuration[i][0] for i in pos_list if configuration[i][1] == 1])) == 1\
                     and state_from[pos_list[0]] != state_to[pos_list[0]]
 
+        if not indicator:
+            return False
         # Distinct lineage should not change state
         ortho_group_to_pos = self.divide_configuration(configuration)
         for pos in ortho_group_to_pos['distinct']:
@@ -142,11 +150,23 @@ class JSModel:
 
         return q_ij + t_IGC
 
-    def get_js_transition_rates(self, configuration):
+    def get_js_transition_rates_BF(self, configuration):  # Brute force way for test purpose
         for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
             for state_to in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
                 if self.is_transition_compatible([state_from, state_to], configuration):
                     yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration)
+
+    def get_js_transition_rates(self, configuration):
+        ortho_group_to_pos = self.divide_configuration(configuration)
+        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+            for orlg in ortho_group_to_pos['extent']:
+                state_to = list(deepcopy(state_from))
+                for nt in range(self.state_space_shape[ortho_group_to_pos['extent'][orlg][0]]):
+                    for pos in ortho_group_to_pos['extent'][orlg]:
+                        state_to[pos] = nt                            
+                        if self.is_transition_compatible([state_from, state_to], configuration):
+                            yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration)
+
 
     def get_process_definition(self, configuration):
         row_states = []
@@ -191,7 +211,7 @@ if __name__ == '__main__':
     print test.cal_js_transition_rate(transition, test_configuration)
 
     test_configuration_2p = [(0, 1), (0, 1), (1, 1), (1, 1), (0, 1)]
-    process_definition = test.get_process_definition(test_configuration_2p)
+    process_definition = test.get_process_definition(test_configuration)
     print len(process_definition['row_states'])
     #transition = [[0, 0, 0, 0, 0], [1, 1, 1, 1, 0]]
     #test.cal_js_transition_rate(transition, test_configuration_2p)
