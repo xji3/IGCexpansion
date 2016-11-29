@@ -9,6 +9,7 @@ class PMModel:
     def __init__(self, model_name, x_pm):
         self.name         = model_name          # name of supported models
         self.x_pm         = x_pm                # an array of log() values
+        self.data_type    = None                # used for get_iid_observation function in Func.py
 
         self.Q_mut        = None                # Point mutation Q matrix
         self.parameters   = dict()              # a dictionary to store all model parameters
@@ -19,6 +20,7 @@ class PMModel:
         assert(self.name in self.supported) # check if PM model is implemented
         if self.name == 'HKY':
             self.init_HKY_Q()
+            self.data_type = 'nt'
 
     def init_HKY_Q(self):
         # This function initialize Q matrix for HKY85 point mutation model

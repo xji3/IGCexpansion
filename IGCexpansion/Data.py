@@ -34,6 +34,7 @@ class Data:
         self.name_to_seq = {name:str(seq_dict[name].seq) for name in seq_dict.keys()}
 
         assert(self.is_alignment)
+        self.nsites = len(self.name_to_seq[self.name_to_seq.keys()[0]])
 
     def is_alignment(self): # test if all sequences are of same length
         return len(set([len(self.name_to_seq[name]) for name in self.name_to_seq])) == 1

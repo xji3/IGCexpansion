@@ -1,7 +1,9 @@
 # A separate file for JSLikelihood
+# Uses Alex Griffing's JsonCTMCTree package for likelihood and gradient calculation
 # Xiang Ji
 # xji3@ncsu.edu
 
+import jsonctmctree.ll, jsonctmctree.interface
 from Data import Data
 from Tree import Tree
 from JSModel import JSModel
@@ -14,12 +16,15 @@ class JSGeneconv:
                  n_js, x_js, pm_model, n_orlg, IGC_pm,    # JSModel input
                  node_to_pos, terminal_node_list,         # Configuration input
                  root_by_dup = False):   # JSModel input
+
+        
         self.tree = Tree(tree_newick, DupLosList)
         self.data = Data(alignment_file, gene_to_orlg_file)
         self.jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
         self.node_to_pos = node_to_pos
         self.terminal_node_list = terminal_node_list
         self.root_by_dup = root_by_dup
+        
         if self.root_by_dup:
             self.x = np.concatenate((np.log([0.1] * len(self.tree.edge_list)), x_js))
         else:
@@ -27,6 +32,7 @@ class JSGeneconv:
 
         self.tree.get_configurations(self.terminal_node_list, self.node_to_pos)
         assert(self.jsmodel.n_orlg == self.tree.n_orlg)  # make sure n_orlg got updated
+        self.ll   = None    # used to store log likelihood
         
     def unpack_x(self, x):
         self.x = x
@@ -66,13 +72,52 @@ class JSGeneconv:
         state_space_shape = self.jsmodel.state_space_shape
         process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
         self.tree.get_tree_process(conf_list)
+        if not self.root_by_dup:
+            prior_feasible_states, distn = self.jsmodel.get_prior(self.tree.node_to_conf['N0'])
+        else:
+            print 'This case is not implemented yet. Check get_scene function in JSGeneconv class.'
+
+        observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, self.data.nsites, self.jsmodel.PMModel.data_type)
         scene = dict(
             node_count = len(self.tree.node_to_num),
             process_count = len(process_definitions),
             state_space_shape = state_space_shape,
             tree = self.tree.tree_json,
-            
+            root_prior = {'states':prior_feasible_states,
+                          'probabilities':distn},
+            process_definitions = process_definitions,
+            observed_data = {
+                'nodes':observable_nodes,
+                'variables':observable_axes,
+                'iid_observations':iid_observations
+                }
             )
+        return scene
+
+    def _loglikelihood(self, edge_derivative = False):
+        scene = self.get_scene()
+        log_likelihood_request = {'property':'snnlogl'}
+        derivatives_request = {'property':'sdnderi'}
+        if edge_derivative:
+            requests = [log_likelihood_request, derivatives_request]
+        else:
+            requests = [log_likelihood_request]
+        j_in = {
+            'scene' : scene,
+            'requests' : requests
+            }
+        j_out = jsonctmctree.interface.process_json_in(j_in)
+
+        status = j_out['status']
+    
+        ll = j_out['responses'][0]
+        self.ll = ll
+        if edge_derivative:
+            edge_derivs = j_out['responses'][1]
+        else:
+            edge_derivs = []
+
+        return ll, edge_derivs
 
     
         
@@ -105,9 +150,10 @@ if __name__ == '__main__':
     self = test
     x = np.concatenate((np.log([0.2] * (len(test.tree.edge_list) - 1)), x_js))
     test.unpack_x(x)
-    process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
+    #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
     
     conf_list = count_process(test.tree.node_to_conf)
     configuration = conf_list[0]
 #    process = jsmodel.get_process_definition(configuration)
-    
+
+    print test._loglikelihood(False)
