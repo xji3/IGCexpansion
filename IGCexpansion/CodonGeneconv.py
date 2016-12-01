@@ -1433,7 +1433,16 @@ if __name__ == '__main__':
     Force = None
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
     self = test
-    test.get_mle(True, True, 0, 'BFGS')
+##    test.get_mle(True, True, 0, 'BFGS')
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 
+    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
+    scene = test.get_scene()
+    test.get_mle(True, True, 0, 'BFGS')
+
+##    for i in range(len(scene['process_definitions'][1]['row_states'])):
+##        print (scene['process_definitions'][1]['row_states'][i],\
+##              scene['process_definitions'][1]['column_states'][i],\
+##              scene['process_definitions'][1]['transition_rates'][i])
+##    

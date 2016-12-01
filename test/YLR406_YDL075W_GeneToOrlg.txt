@@ -1,0 +1,13 @@
+bayanus__YLR406C	1
+bayanus__YDL075W	2
+cerevisiae__YLR406C	1
+cerevisiae__YDL075W	2
+kudriavzevii__YLR406C	1
+kudriavzevii__YDL075W	2
+mikatae__YLR406C	1
+mikatae__YDL075W	2
+paradoxus__YLR406C	1
+paradoxus__YDL075W	2
+castellii__YLR406C	1
+castellii__YDL075W	2
+kluyveri__YLR406C	0

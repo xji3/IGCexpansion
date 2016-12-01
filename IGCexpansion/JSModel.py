@@ -60,6 +60,7 @@ class JSModel:
             print 'The point mutation model has not been implemented.'
         self.PMModel = PMModel(self.pm_model, self.x_pm)
         self.IGCModel = IGCModel(self.x_IGC, self.n_orlg, self.IGC_pm)
+        assert( len(set(self.state_space_shape)) == 1) # now consider only same state space model
 ##        print(self.PMModel)
 ##        print(self.IGCModel)
         
@@ -175,8 +176,8 @@ class JSModel:
         column_states = []
         transition_rates = []
         for row_state, col_state, transition_rate in self.get_js_transition_rates(configuration):
-            row_states.append(row_state)
-            column_states.append(col_state)
+            row_states.append(deepcopy(row_state))
+            column_states.append(deepcopy(col_state))
             transition_rates.append(transition_rate)
         process_definition = dict(
             row_states = row_states,
@@ -188,14 +189,15 @@ class JSModel:
         # assign prior feasible states and its distribution with given configuration
         ortho_group_to_pos = self.divide_configuration(configuration)
         assert( not ortho_group_to_pos['distinct']) # don't allow distinct lineages at root for now
+        assert( len(ortho_group_to_pos['extent']) < 3) # root is on either outgroup lineage or is the first duplication node
+        
         prior_feasible_states = []
         distn = []
-        for state in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
-            if self.is_state_compatible(state, configuration):
-                prior_feasible_states.append(state)
-                for orlg in ortho_group_to_pos['extent']:
-                    stationary_list = [self.PMModel.get_stationary_distn(state[ortho_group_to_pos['extent'][orlg][0]]) for orlg in ortho_group_to_pos['extent']]
-                    distn.append(reduce(mul, stationary_list))
+        for nt in range(self.state_space_shape[0]):
+            js_state = [nt] * self.n_js
+            if self.is_state_compatible(js_state, configuration):
+                prior_feasible_states.append(js_state)
+                distn.append(self.PMModel.get_stationary_distn(nt))
 
         distn = np.array(distn) / sum(distn)
         return prior_feasible_states, distn
@@ -229,10 +231,19 @@ if __name__ == '__main__':
     print test.cal_js_transition_rate(transition, test_configuration)
 
     test_configuration_2p = [(0, 1), (0, 1), (1, 1), (1, 1), (0, 1)]
-    process_definition = test.get_process_definition(test_configuration)
-    print len(process_definition['row_states'])
+#    process_definition = test.get_process_definition(test_configuration)
+#    print len(process_definition['row_states'])
     #transition = [[0, 0, 0, 0, 0], [1, 1, 1, 1, 0]]
     #test.cal_js_transition_rate(transition, test_configuration_2p)
-    prior_feasible_states, distn = test.get_prior(test_configuration_2p)
+#    prior_feasible_states, distn = test.get_prior(test_configuration_2p)
 
-    
+
+    pm_model = 'HKY'
+    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
+    n_orlg = 3
+    IGC_pm = 'One rate'
+    n_js = 2
+    test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    self = test
+    process_definition = test.get_process_definition([[1, 1], [2, 1]])
+#    print test.get_js_transition_rates([[1, 1], [2, 1]])

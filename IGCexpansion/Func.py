@@ -93,7 +93,7 @@ if __name__ == '__main__':
     x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
     n_orlg = tree.n_orlg
     IGC_pm = 'One rate'
-    n_js = 5
+    n_js = 9
     jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
     
 

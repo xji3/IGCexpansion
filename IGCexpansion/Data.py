@@ -48,3 +48,18 @@ if __name__ == '__main__':
     test = Data(alignment_file, gene_to_orlg_file)
     self = test
     print test.gene_to_orlg, test.name_to_seq
+
+    gene_to_orlg_file = '../test/YLR406_YDL075W_GeneToOrlg.txt'
+    alignment_file = '../test/YLR406C_YDL075W_alignment.fasta'
+    
+    test = Data(alignment_file, gene_to_orlg_file)
+    self = test
+    #print test.gene_to_orlg, test.name_to_seq
+
+    gene_to_orlg_file = '../test/Trigeneconv_GeneToOrlg.txt'
+    alignment_file = '../test/Trigeneconv_ADH_intron_input.fasta'
+    
+    test = Data(alignment_file, gene_to_orlg_file)
+    self = test
+    print test.gene_to_orlg
+

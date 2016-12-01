@@ -1,0 +1,16 @@
+Human__ADH1B	3
+Baboon__ADH1A	0
+Human__ADH1A	2
+Chimpanzee__ADH1B	3
+Chimpanzee__ADH1C	4
+Chimpanzee__ADH1A	2
+Gorilla__ADH1A	2
+Orangutan__ADH1A	2
+Orangutan__ADH1B	3
+Gorilla__ADH1B	3
+Orangutan__ADH1C	4
+Gorilla__ADH1C	4
+Human__ADH1C	4
+Bonobo__ADH1B	3
+Bonobo__ADH1C	4
+Bonobo__ADH1A	2

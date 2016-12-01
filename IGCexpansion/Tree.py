@@ -300,4 +300,26 @@ if __name__ == '__main__':
         if i in terminal_node_list:
             print i, test.node_to_conf[i]
 
- 
+
+    tree_newick = '../test/YeastTree.newick'
+    DupLosList = '../test/YeastTestDupLost.txt'
+    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+    test = Tree(tree_newick, DupLosList)
+    Phylo.draw_ascii(test.phylo_tree)
+    node_to_pos = {'D1':0}
+    test.get_configurations(terminal_node_list, node_to_pos)
+
+    for i in test.node_to_conf:
+        if i in terminal_node_list:
+            print i, test.node_to_conf[i]
+
+
+    tree_newick = '../test/Trigeneconv_ADH1Class_tree.newick'
+    DupLosList = '../test/Trigeneconv_ADH_DupLost.txt'
+    tree = Phylo.read( tree_newick, "newick")
+    terminal_node_list = ['Baboon', 'Orangutan', 'Gorilla', 'Bonobo', 'Chimpanzee', 'Human']
+    test = Tree(tree_newick, DupLosList)
+    node_to_pos = {'D1':0, 'D2':0}
+    test.get_configurations(terminal_node_list, node_to_pos)
+    Phylo.draw_ascii(test.phylo_tree)
+    self = test
