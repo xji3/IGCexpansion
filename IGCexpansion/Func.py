@@ -14,7 +14,7 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
     if data_type == 'nt':
         obs_to_state = {nt:'ACGT'.index(nt) for nt in 'ACGT'}
 
-    observable_names = data.name_to_seq.keys()
+    observable_names = data.gene_to_orlg.keys()  # don't have to use all sequences
     name_node_axes = []
     visited_terminal_nodes = []
     for name in observable_names:
@@ -41,8 +41,10 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
         for name in observed_names:
             if name == 'distinct':
                 observation = -1
+            elif data.name_to_seq[name][site] == 'n' or data.name_to_seq[name][site] == '-':
+                observation = -1
             else:
-                observation = obs_to_state[data.name_to_seq[name][site]]
+                observation = obs_to_state[data.name_to_seq[name][site].upper()]
             observations.append(observation)
         iid_observations.append(observations)
 

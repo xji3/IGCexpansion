@@ -9,6 +9,8 @@ import numpy as np
 import itertools
 from copy import deepcopy
 from operator import mul
+from scipy.sparse import lil_matrix
+import scipy.sparse.linalg
 
 class JSModel:
     def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm):
@@ -103,6 +105,9 @@ class JSModel:
         for pos in range(self.n_js):
             indicator = indicator and -1 < state[pos] < self.state_space_shape[pos]
         return indicator
+
+    def is_state(self, state):
+        return all([-1 < state[i] < self.state_space_shape[i] for i in range(n_js)]) and len(state) == self.n_js    
 
     def is_transition_compatible(self, transition, configuration):
         assert(len(transition) == 2) # transition should contain two states
@@ -202,7 +207,28 @@ class JSModel:
         distn = np.array(distn) / sum(distn)
         return prior_feasible_states, distn
 
-        
+    def translate_js_to_num(self, state):
+        assert(self.is_state(state))
+        multiplier = 1
+        res = state[-1]
+        for i in range(1, self.n_js):
+            multiplier = multiplier * self.state_space_shape[-i]
+            res += state[-(i + 1)] * multiplier
+        return res
+
+    def get_sparse_Q(self, configuration):
+        process_definition = self.get_process_definition(configuration)
+        Q_size = reduce(mul, self.state_space_shape)  # multiply all elements in a list
+        # use Example 1's way off constructing sparse matrix
+        # https://docs.scipy.org/doc/scipy-0.18.1/reference/sparse.html
+        Q_sparse = lil_matrix((Q_size, Q_size))
+        for i in range(len(process_definition['row_states'])):
+            row_state = self.translate_js_to_num(process_definition['row_states'][i])
+            col_state = self.translate_js_to_num(process_definition['column_states'][i])
+            rate = process_definition['transition_rates'][i]
+            Q_sparse[row_state, col_state] = rate
+
+        return Q_sparse
         
 
 
@@ -240,10 +266,40 @@ if __name__ == '__main__':
 
     pm_model = 'HKY'
     x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
-    n_orlg = 3
+    n_orlg = 4
     IGC_pm = 'One rate'
-    n_js = 2
-    test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    n_js = 3
+    test_3 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
     self = test
-    process_definition = test.get_process_definition([[1, 1], [2, 1]])
+#    process_definition = test.get_process_definition([[1, 1], [2, 1]])
 #    print test.get_js_transition_rates([[1, 1], [2, 1]])
+
+    # Now start testing on Ghost lineage Q matrix assignment
+    Q_sparse_extent = test_3.get_sparse_Q([[1, 1], [2, 1], [3, 1]])
+    Q_sparse_ghost = test_3.get_sparse_Q([[1, 1], [2, 0], [3, 1]])
+
+    t = 0.01
+    #print(scipy.sparse.linalg.expm(Q_sparse_extent * t))
+    Qt_extent = scipy.linalg.expm(Q_sparse_extent.toarray() * t)
+    Qt_ghost = scipy.linalg.expm(Q_sparse_ghost.toarray() * t)
+
+    n_js = 2
+    test_2 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    Q_sparse_ghost_equivalent = test_2.get_sparse_Q([[1, 1], [3, 1]])
+    Qt_ghost_equivalent = scipy.linalg.expm(Q_sparse_ghost_equivalent.toarray() *t)
+
+    for i in range(len(Qt_extent[0])):
+        print i, Qt_extent[0][i], Qt_ghost[0][i]
+
+    print Qt_ghost_equivalent[0]
+
+
+
+
+
+
+
+
+
+    
+    
