@@ -202,7 +202,7 @@ class Tree:
         assert(parent_clade.name in self.node_to_conf)
         old_configuration = self.node_to_conf[parent_clade.name]
         ortho_group_to_pos = self.divide_configuration(old_configuration)
-        old_orlg = sorted(ortho_group_to_pos['extent'].keys())[orlg_pos]
+        old_orlg = ortho_group_to_pos['loc'][orlg_pos]
         
         assert(self.is_configurations_same_size())
         assert(len(ortho_group_to_pos['extent'][old_orlg]) == 1) # now only deal with case that the ortholog group occupies only one position
@@ -231,14 +231,14 @@ class Tree:
         assert(parent_clade.name in self.node_to_conf)
         new_configuration = deepcopy(self.node_to_conf[parent_clade.name])        
         ortho_group_to_pos = self.divide_configuration(new_configuration)
-        deleted_orlg = sorted(ortho_group_to_pos['extent'].keys())[orlg_pos]
+        deleted_orlg = ortho_group_to_pos['loc'][orlg_pos]
         for pos in ortho_group_to_pos['extent'][deleted_orlg]:
             assert(new_configuration[pos][1])  # the paralog should be alive before deletion
             new_configuration[pos][1] = 0
         self.node_to_conf[node_name] = new_configuration
 
     def divide_configuration(self, configuration):
-        ortho_group_to_pos = dict(extent = {}, distinct = [])
+        ortho_group_to_pos = dict(extent = {}, distinct = [], loc = [])
         # extent positions that represent same paralog (by the same ortholog group number) have to be in the same state
         # distinct positions don't change states, thus only track positions
         for pos in range(len(configuration)):
@@ -248,6 +248,7 @@ class Tree:
                     ortho_group_to_pos['extent'][ortho_group].append(pos)
                 else:
                     ortho_group_to_pos['extent'][ortho_group] = [pos]
+                    ortho_group_to_pos['loc'].append(ortho_group)
             elif configuration[pos][1] == 0: # distinct
                 ortho_group_to_pos['distinct'].append(pos)
 
