@@ -7,12 +7,13 @@ import numpy as np
 class PMModel:
     supported = ['HKY']                         # supported models
     def __init__(self, model_name, x_pm):
-        self.name         = model_name          # name of supported models
-        self.x_pm         = x_pm                # an array of log() values
-        self.data_type    = None                # used for get_iid_observation function in Func.py
+        self.name           = model_name          # name of supported models
+        self.x_pm           = x_pm                # an array of log() values
+        self.data_type      = None                # used for get_iid_observation function in Func.py
 
-        self.Q_mut        = None                # Point mutation Q matrix
-        self.parameters   = dict()              # a dictionary to store all model parameters
+        self.Q_mut          = None                # Point mutation Q matrix
+        self.parameters     = dict()              # a dictionary to store all model parameters
+        self.parameter_list = None
         self.init_Q()
 
 
@@ -31,6 +32,7 @@ class PMModel:
         self.unpack_frequency()
         kappa = np.exp(self.x_pm[3])
         self.parameters['kappa'] = kappa
+        self.parameter_list.append('kappa')
 
         # In order of
         # ACGT   A=0, C=1, G=2, T=3
@@ -39,9 +41,9 @@ class PMModel:
             [1.0, 0, 1.0, kappa],
             [kappa, 1.0, 0, 1.0],
             [1.0, kappa, 1.0, 0],
-            ]) * np.array(self.parameters['pi'])
+            ]) * np.array([self.parameters['Pi_' + nt] for nt in 'ACGT'])
         # assume PM at stationary
-        stationary_distn = [ self.parameters['pi']['ACGT'.index(nt)] for nt in 'ACGT' ]
+        stationary_distn = [ self.parameters['Pi_' + nt] for nt in 'ACGT' ]
         stationary_distn = np.array(stationary_distn) / sum(stationary_distn)
         expected_rate = np.dot(stationary_distn, Qbasic.sum(axis = 1))
         self.Q_mut = Qbasic / expected_rate
@@ -54,7 +56,12 @@ class PMModel:
         pi_c = (1 - x_process[0]) * x_process[2]
         pi_g = x_process[0] * (1 - x_process[1])
         pi_t = (1 - x_process[0]) * (1 - x_process[2])
-        self.parameters['pi'] = [pi_a, pi_c, pi_g, pi_t]        
+        self.parameters['Pi_A'] = pi_a
+        self.parameters['Pi_C'] = pi_c
+        self.parameters['Pi_G'] = pi_g
+        self.parameters['Pi_T'] = pi_t
+        self.parameter_list = ['Pi_A', 'Pi_C', 'Pi_G', 'Pi_T']
+        
 
     def update_by_x_pm(self, new_x_pm):
         assert(len(self.x_pm) == len(new_x_pm))

@@ -6,11 +6,13 @@ import numpy as np
 class IGCModel:
     supported = ['One rate', 'Most general', 'Symmetric general']          # supported IGC parameterization
     def __init__(self, x_IGC, n_ortholog, parameterization):
-        self.pm        = parameterization      # name of parameterization
-        self.x_IGC     = x_IGC                 # an array of log() values
-        self.n_orlg    = n_ortholog            # total number of ortholog groups
+        self.pm             = parameterization      # name of parameterization
+        self.x_IGC          = x_IGC                 # an array of log() values
+        self.n_orlg         = n_ortholog            # total number of ortholog groups
 
-        self.Q_IGC     = None                  # IGC process matrix of size
+        self.Q_IGC          = None                  # IGC process matrix of size
+        self.parameters     = dict()                # a dictionary used to store all IGC parameters
+        self.parameter_list = None
 
         self.init_Q()
 
@@ -27,8 +29,10 @@ class IGCModel:
         assert(len(self.x_IGC) == 1)  # check x_IGC length first
         self.Q_IGC = np.ones((self.n_orlg, self.n_orlg), dtype = np.floating) * np.exp(self.x_IGC[0])
         np.fill_diagonal(self.Q_IGC, 0.0)
+        self.parameters['Tau'] = np.exp(self.x_IGC[0])
 
     def init_most_general_Q(self):
+        # TODO: finish self.parameters in this case
         assert(len(self.x_IGC) == self.n_orlg * (self.n_orlg - 1))
         # x_IGC in this case should be in linear order of
         # t_{1,2}, t_{1, 3}, ..., t_{1, n}, t_{2, 1}, ... t_{2, n}, ..., t{n, n-1}

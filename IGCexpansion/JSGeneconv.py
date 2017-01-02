@@ -230,6 +230,31 @@ class JSGeneconv:
     def initialize_by_save(self):
         self.x = np.loadtxt(open(self.save_file, 'r'))
         self.unpack_x(self.x)
+
+    def get_summary(self):
+        summary_mat = []
+        label = []
+        for par in self.jsmodel.PMModel.parameters:
+            label.append(par)
+            summary_mat.append(self.jsmodel.PMModel.parameters[par])
+
+        for par in self.jsmodel.IGCModel.parameters:
+            label.append(par)
+            summary_mat.append(self.jsmodel.IGCModel.parameters[par])
+        
+        for edge in self.tree.edge_list:
+            summary_mat.append(self.tree.edge_to_blen[edge])
+            label.append('__'.join(edge))
+
+        return summary_mat, label
+
+    def get_individual_summary(self, summary_file):
+        summary, label = self.get_summary()
+        summary = np.matrix(summary)
+        footer = ' '.join(label)  # row labels
+
+        np.savetxt(open(summary_file, 'w+'), summary.T, delimiter = ' ', footer = footer)
+
         
                     
         
@@ -350,7 +375,7 @@ if __name__ == '__main__':
     data_type = test.jsmodel.PMModel.data_type
     
     observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
-    
+    test.get_individual_summary('../test/Summary/ADH1_test_summary.txt')
 #    print test._loglikelihood()
 #    test.get_mle()
 
