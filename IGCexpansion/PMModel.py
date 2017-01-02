@@ -75,7 +75,7 @@ class PMModel:
     def get_HKY_stationary_distn(self, state):
         assert(-1 < state < 4)
         # 0:A, 1:C, 2:G, 3:T
-        return self.parameters['pi'][state]
+        return self.parameters['Pi_' + 'ACGT'[state]]
         
 
     def __str__(self): # overide for print function
