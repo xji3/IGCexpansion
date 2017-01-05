@@ -25,11 +25,17 @@ class IGCModel:
         if self.pm == 'Symmetric general':
             self.init_sym_general_Q()
 
+    def update_by_x_IGC(self, new_x_IGC):
+        assert(len(self.x_IGC) == len(new_x_IGC))
+        self.x_IGC = new_x_IGC
+        self.init_Q()
+    
     def init_one_rate_Q(self):
         assert(len(self.x_IGC) == 1)  # check x_IGC length first
         self.Q_IGC = np.ones((self.n_orlg, self.n_orlg), dtype = np.floating) * np.exp(self.x_IGC[0])
         np.fill_diagonal(self.Q_IGC, 0.0)
         self.parameters['Tau'] = np.exp(self.x_IGC[0])
+        self.parameter_list = ['Tau']
 
     def init_most_general_Q(self):
         # TODO: finish self.parameters in this case

@@ -54,6 +54,11 @@ class JSModel:
         self.x_js = x_js
         assert(num_x_pm + num_x_IGC == len(self.x_js))
 
+    def update_by_x_js(self, new_x_js):
+        self.unpack_x_js(new_x_js)
+        self.PMModel.update_by_x_pm(self.x_pm)
+        self.IGCModel.update_by_x_IGC(self.x_IGC)
+
     def init_models(self):
         self.unpack_x_js(self.x_js)
         if self.pm_model == 'HKY':
@@ -63,6 +68,8 @@ class JSModel:
         self.PMModel = PMModel(self.pm_model, self.x_pm)
         self.IGCModel = IGCModel(self.x_IGC, self.n_orlg, self.IGC_pm)
         assert( len(set(self.state_space_shape)) == 1) # now consider only same state space model
+        self.update_by_x_js(self.x_js)
+        
 ##        print(self.PMModel)
 ##        print(self.IGCModel)
         

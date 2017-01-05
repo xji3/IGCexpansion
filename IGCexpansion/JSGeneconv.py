@@ -53,7 +53,7 @@ class JSGeneconv:
             x_rate = x[:(len(self.tree.edge_list) - 1)]
             x_js   = x[(len(self.tree.edge_list) - 1):]
         self.unpack_x_rates(x_rate)
-        self.jsmodel.unpack_x_js(x_js)
+        self.jsmodel.update_by_x_js(x_js)
 
     def unpack_x_rates(self, x_rate):
         if self.root_by_dup:
@@ -178,6 +178,8 @@ class JSGeneconv:
             print ('Edge derivatives = ', x_rate_derivs)
             print ('other derivatives:', other_derivs)
             print ('Current x array = ', self.x)
+            print ('Tau value = ', self.jsmodel.IGCModel.parameters['Tau'])
+            print ('PM parameters = ', self.jsmodel.PMModel.parameters)
             
         return f, g
 
@@ -230,15 +232,15 @@ class JSGeneconv:
     def initialize_by_save(self):
         self.x = np.loadtxt(open(self.save_file, 'r'))
         self.unpack_x(self.x)
-
+        
     def get_summary(self):
         summary_mat = []
         label = []
-        for par in self.jsmodel.PMModel.parameters:
+        for par in self.jsmodel.PMModel.parameter_list:
             label.append(par)
             summary_mat.append(self.jsmodel.PMModel.parameters[par])
 
-        for par in self.jsmodel.IGCModel.parameters:
+        for par in self.jsmodel.IGCModel.parameter_list:
             label.append(par)
             summary_mat.append(self.jsmodel.IGCModel.parameters[par])
         
@@ -254,8 +256,6 @@ class JSGeneconv:
         footer = ' '.join(label)  # row labels
 
         np.savetxt(open(summary_file, 'w+'), summary.T, delimiter = ' ', footer = footer)
-
-        
                     
         
 
@@ -375,7 +375,7 @@ if __name__ == '__main__':
     data_type = test.jsmodel.PMModel.data_type
     
     observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
-    test.get_individual_summary('../test/Summary/ADH1_test_summary.txt')
+    
 #    print test._loglikelihood()
 #    test.get_mle()
 
