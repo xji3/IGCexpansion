@@ -20,6 +20,7 @@ class PMModel:
     def init_Q(self):
         assert(self.name in self.supported) # check if PM model is implemented
         if self.name == 'HKY':
+            self.parameter_list = ['Pi_A', 'Pi_C', 'Pi_G', 'Pi_T', 'kappa']
             self.init_HKY_Q()
             self.data_type = 'nt'
 
@@ -32,7 +33,6 @@ class PMModel:
         self.unpack_frequency()
         kappa = np.exp(self.x_pm[3])
         self.parameters['kappa'] = kappa
-        self.parameter_list.append('kappa')
 
         # In order of
         # ACGT   A=0, C=1, G=2, T=3
@@ -48,7 +48,6 @@ class PMModel:
         expected_rate = np.dot(stationary_distn, Qbasic.sum(axis = 1))
         self.Q_mut = Qbasic / expected_rate
 
-               
 
     def unpack_frequency(self):
         x_process = np.exp(self.x_pm[:3])
@@ -60,7 +59,6 @@ class PMModel:
         self.parameters['Pi_C'] = pi_c
         self.parameters['Pi_G'] = pi_g
         self.parameters['Pi_T'] = pi_t
-        self.parameter_list = ['Pi_A', 'Pi_C', 'Pi_G', 'Pi_T']
         
 
     def update_by_x_pm(self, new_x_pm):

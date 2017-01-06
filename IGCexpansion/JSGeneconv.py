@@ -20,7 +20,8 @@ class JSGeneconv:
                  n_js, x_js, pm_model, n_orlg, IGC_pm,    # JSModel input
                  node_to_pos, terminal_node_list,         # Configuration input
                  save_file,                               # Auto save file
-                 root_by_dup = False):   # JSModel input
+                 root_by_dup = False,                     # JSModel input
+                 nsites = None):  
 
         
         self.tree = Tree(tree_newick, DupLosList)
@@ -35,23 +36,25 @@ class JSGeneconv:
             print ('Loaded paramters from ' + self.save_file)
         else:            
             if self.root_by_dup:
-                self.x = np.concatenate((np.log([0.1] * len(self.tree.edge_list)), x_js))
+                self.x = np.concatenate((x_js, np.log([0.01] * len(self.tree.edge_list))))
             else:
-                self.x = np.concatenate((np.log([0.1] * (len(self.tree.edge_list) - 1)), x_js))
+                self.x = np.concatenate((x_js, np.log([0.01] * (len(self.tree.edge_list) - 1))))
 
         self.tree.get_configurations(self.terminal_node_list, self.node_to_pos)
         assert(self.jsmodel.n_orlg == self.tree.n_orlg)  # make sure n_orlg got updated
         self.ll   = None    # used to store log likelihood
         self.auto_save = 0  # used to control auto save frequency
+
+        self.nsites = nsites
         
     def unpack_x(self, x):
         self.x = x
         if self.root_by_dup:
-            x_rate = x[:len(self.tree.edge_list)]
-            x_js   = x[len(self.tree.edge_list):]
+            x_rate = x[-len(self.tree.edge_list):]
+            x_js   = x[:(-len(self.tree.edge_list))]
         else:
-            x_rate = x[:(len(self.tree.edge_list) - 1)]
-            x_js   = x[(len(self.tree.edge_list) - 1):]
+            x_rate = x[-(len(self.tree.edge_list) - 1):]
+            x_js   = x[:-(len(self.tree.edge_list) - 1)]
         self.unpack_x_rates(x_rate)
         self.jsmodel.update_by_x_js(x_js)
 
@@ -78,7 +81,7 @@ class JSGeneconv:
                     rate_iter += 1
             self.tree.unpack_x_rates(translated_rate)
 
-    def get_scene(self, nsites = None):
+    def get_scene(self):
         state_space_shape = self.jsmodel.state_space_shape
         process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
         self.tree.get_tree_process(conf_list)
@@ -87,10 +90,10 @@ class JSGeneconv:
         else:
             print 'This case is not implemented yet. Check get_scene function in JSGeneconv class.'
 
-        if nsites is None:
+        if self.nsites is None:
             observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, self.data.nsites, self.jsmodel.PMModel.data_type)
         else:
-            observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, nsites, self.jsmodel.PMModel.data_type)
+            observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, self.nsites, self.jsmodel.PMModel.data_type)
         scene = dict(
             node_count = len(self.tree.node_to_num),
             process_count = len(process_definitions),
@@ -107,11 +110,8 @@ class JSGeneconv:
             )
         return scene
 
-    def _loglikelihood(self, nsites = None, edge_derivative = False):
-        if nsites is None:
-            scene = self.get_scene()
-        else:
-            scene = self.get_scene(nsites)
+    def _loglikelihood(self, edge_derivative = False):
+        scene = self.get_scene()
         log_likelihood_request = {'property':'snnlogl'}
         derivatives_request = {'property':'sdnderi'}
         if edge_derivative:
@@ -136,10 +136,10 @@ class JSGeneconv:
         return ll, edge_derivs
 
     
-    def loglikelihood_and_gradient(self, nsites = None, display = False):
+    def loglikelihood_and_gradient(self, display = False):
         delta = 1e-8
         x = deepcopy(self.x)
-        ll, edge_derivs = self._loglikelihood(nsites = nsites, edge_derivative = True)
+        ll, edge_derivs = self._loglikelihood(edge_derivative = True)
         if self.root_by_dup:
             x_rate_derivs = {self.tree.edge_list[i]:edge_derivs[i] for i in range(len(edge_derivs))}
         else:
@@ -164,7 +164,7 @@ class JSGeneconv:
             x_plus_delta = np.array(self.x)
             x_plus_delta[i] += delta
             self.unpack_x(x_plus_delta)
-            ll_delta, _ = self._loglikelihood(nsites, False)
+            ll_delta, _ = self._loglikelihood(False)
             d_estimate = (ll_delta - ll) / delta
             other_derivs.append(d_estimate)
             # restore self.x
@@ -172,14 +172,15 @@ class JSGeneconv:
         other_derivs = np.array(other_derivs)
         self.ll = ll
         f = -ll
-        g = -np.concatenate((x_rate_derivs, other_derivs))
+        g = -np.concatenate((other_derivs, x_rate_derivs))
         if display:
             print ('log likelihood = ', ll)
             print ('Edge derivatives = ', x_rate_derivs)
             print ('other derivatives:', other_derivs)
-            print ('Current x array = ', self.x)
+            print ('Current exp x array = ', np.exp(self.x))
             print ('Tau value = ', self.jsmodel.IGCModel.parameters['Tau'])
             print ('PM parameters = ', self.jsmodel.PMModel.parameters)
+            print ('Edge lengths = ', self.tree.edge_to_blen)
             
         return f, g
 
@@ -206,16 +207,17 @@ class JSGeneconv:
         if derivative:
             f = partial(self.objective_and_gradient, display)
         else:
-            f = partial(self.objective_wo_derivative, display)
+            f = partial(self.objective_wo_gradient, display)
 
         guess_x = self.x
-        if self.root_by_dup:
-            bnds  = [(None, None)] * len(self.tree.edge_list)
-        else:
-            bnds  = [(None, None)] * (len(self.tree.edge_list) - 1)
+        bnds = [(None, -0.001)] * 3
+        bnds.extend([(None, None)] * (len(self.x) - 3))
+##        if self.root_by_dup:
+##            bnds  = [(None, None)] * len(self.tree.edge_list)
+##        else:
+##            bnds  = [(None, None)] * (len(self.tree.edge_list) - 1)
 
-        bnds.extend([(None, -0.001)] * 3)
-        bnds.extend([(None, None)] * (len(self.jsmodel.x_js) - 3))
+
 
         if derivative:
             result = scipy.optimize.minimize(f, guess_x, jac = True, method = 'L-BFGS-B', bounds = bnds)
@@ -339,8 +341,9 @@ if __name__ == '__main__':
     ###########Class 1 ADH Genes
 #######################
     gene_to_orlg_file = '../test/ADH1GeneToOrlg.txt'
-    alignment_file = '../../ADH1Genes/Alignment/Intron_5_all/Intron_5_all_Mafft_gap_removed.fasta'
-    save_file = '../test/save/ADH1_intron_5_save.txt'
+    #alignment_file = '../../ADH1Genes/Alignment/Intron_5_all/Intron_5_all_Mafft_gap_removed.fasta'
+    alignment_file = '../../ADH1Genes/Alignment/Concatenated_all_exon.fasta'
+    save_file = '../test/save/ADH1_all_exon_save.txt'
     
     data = Data(alignment_file, gene_to_orlg_file)
     
@@ -353,14 +356,15 @@ if __name__ == '__main__':
     tree.get_configurations(terminal_node_list, node_to_pos)
 
     pm_model = 'HKY'
-    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
+    x_js = np.log([0.5, 0.5, 0.5, 9.5, 4.9])
     n_orlg = 9
     IGC_pm = 'One rate'
     n_js = 5
     jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    nsites = 5
 
     test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
-                      node_to_pos, terminal_node_list, save_file)
+                      node_to_pos, terminal_node_list, save_file, nsites = nsites)
     self = test
     #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
     
@@ -372,12 +376,13 @@ if __name__ == '__main__':
     data = test.data
     tree = test.tree
     nsites = test.data.nsites
+    
     data_type = test.jsmodel.PMModel.data_type
     
     observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
     
 #    print test._loglikelihood()
-#    test.get_mle()
+    test.get_mle(True, True)
 
 
 
