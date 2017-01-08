@@ -2,7 +2,7 @@
 # Uses Alex Griffing's JsonCTMCTree package for likelihood and gradient calculation
 # Xiang Ji
 # xji3@ncsu.edu
-
+from __future__ import print_function
 import jsonctmctree.ll, jsonctmctree.interface
 from Data import Data
 from Tree import Tree
@@ -20,16 +20,16 @@ class JSGeneconv:
                  n_js, x_js, pm_model, n_orlg, IGC_pm,    # JSModel input
                  node_to_pos, terminal_node_list,         # Configuration input
                  save_file,                               # Auto save file
-                 root_by_dup = False,                     # JSModel input
+#                root_by_dup = False,                     # JSModel input
                  nsites = None):  
 
         
-        self.tree = Tree(tree_newick, DupLosList)
+        self.tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
         self.data = Data(alignment_file, gene_to_orlg_file)
         self.jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
         self.node_to_pos = node_to_pos
         self.terminal_node_list = terminal_node_list
-        self.root_by_dup = root_by_dup
+        self.root_by_dup = self.tree.is_duplication_node(self.tree.phylo_tree.root.name)
         self.save_file = save_file
         if os.path.isfile(self.save_file):
             self.initialize_by_save()
@@ -40,7 +40,6 @@ class JSGeneconv:
             else:
                 self.x = np.concatenate((x_js, np.log([0.01] * (len(self.tree.edge_list) - 1))))
 
-        self.tree.get_configurations(self.terminal_node_list, self.node_to_pos)
         assert(self.jsmodel.n_orlg == self.tree.n_orlg)  # make sure n_orlg got updated
         self.ll   = None    # used to store log likelihood
         self.auto_save = 0  # used to control auto save frequency
@@ -81,15 +80,38 @@ class JSGeneconv:
                     rate_iter += 1
             self.tree.unpack_x_rates(translated_rate)
 
+    def get_prior(self):
+        configuration = self.tree.node_to_conf[self.tree.phylo_tree.root.name]
+        # assign prior feasible states and its distribution with given configuration
+        if self.tree.phylo_tree.root.name in self.tree.node_to_dup:
+            assert(self.root_by_dup)
+            new_orlgs = self.tree.node_to_dup[self.tree.phylo_tree.root.name]
+            for i in range(len(configuration)):
+                if configuration[i][0] in new_orlgs:
+                    configuration[i][0] = new_orlgs[0]
+            
+        ortho_group_to_pos = self.jsmodel.divide_configuration(configuration)
+        assert( not ortho_group_to_pos['distinct']) # don't allow distinct lineages at root for now
+        assert( len(ortho_group_to_pos['extent']) < 3) # root is on either outgroup lineage or is the first duplication node
+        
+        prior_feasible_states = []
+        distn = []
+        for nt in range(self.jsmodel.state_space_shape[0]):
+            js_state = [nt] * self.jsmodel.n_js
+            if self.jsmodel.is_state_compatible(js_state, configuration):
+                prior_feasible_states.append(js_state)
+                distn.append(self.jsmodel.PMModel.get_stationary_distn(nt))
+
+        distn = np.array(distn) / sum(distn)
+        return prior_feasible_states, distn
+    
     def get_scene(self):
         state_space_shape = self.jsmodel.state_space_shape
         process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
         self.tree.get_tree_process(conf_list)
-        if not self.root_by_dup:
-            prior_feasible_states, distn = self.jsmodel.get_prior(self.tree.node_to_conf['N0'])
-        else:
-            print 'This case is not implemented yet. Check get_scene function in JSGeneconv class.'
 
+        prior_feasible_states, distn = self.get_prior()
+        
         if self.nsites is None:
             observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, self.data.nsites, self.jsmodel.PMModel.data_type)
         else:
@@ -141,7 +163,7 @@ class JSGeneconv:
         x = deepcopy(self.x)
         ll, edge_derivs = self._loglikelihood(edge_derivative = True)
         if self.root_by_dup:
-            x_rate_derivs = {self.tree.edge_list[i]:edge_derivs[i] for i in range(len(edge_derivs))}
+            x_rate_derivs = edge_derivs
         else:
             two_rate_derivs = [[edge_derivs[i], self.tree.edge_list[i]] for i in range(len(edge_derivs)) if 'N0' in self.tree.edge_list[i]]
             assert(len(two_rate_derivs) == 2)  # should be exactly two branches
@@ -181,6 +203,7 @@ class JSGeneconv:
             print ('Tau value = ', self.jsmodel.IGCModel.parameters['Tau'])
             print ('PM parameters = ', self.jsmodel.PMModel.parameters)
             print ('Edge lengths = ', self.tree.edge_to_blen)
+            print ()
             
         return f, g
 
@@ -196,6 +219,7 @@ class JSGeneconv:
     def objective_wo_gradient(self, display, x):
         self.unpack_x(x)
         ll = self._loglikelihood()[0]
+        self.ll = ll
         if display:
             print ('log likelihood = ', ll)
             print ('Current x array = ', self.x)
@@ -224,6 +248,7 @@ class JSGeneconv:
         else:
             result = scipy.optimize.minimize(f, guess_x, jac = False, method = 'L-BFGS-B', bounds = bnds)
 
+        self.save_x()
         print(result)
         return result
 
@@ -274,98 +299,53 @@ if __name__ == '__main__':
 ##    DupLosList = '../test/YeastTestDupLost.txt'
 ##    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
 ##    node_to_pos = {'D1':0}
+##    save_file = '../test/save/HKY_YLR406C_YDL075W_nonclock_save.txt'
 ##
 ##    pm_model = 'HKY'
-##    x_js = np.log([ 0.49978115,   0.60208772,   0.41240341,  10.35588244,   8.01054376])
+##    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])
 ##    n_orlg = 3
 ##    IGC_pm = 'One rate'
 ##    n_js = 2
 ##
 ##    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
-##                      node_to_pos, terminal_node_list)
+##                      node_to_pos, terminal_node_list, save_file)
 ##
 ##    self = test
 ###    print test.get_scene(100)
 ##    print test._loglikelihood(edge_derivative = True)
 ##    print test.loglikelihood_and_gradient()
 ##    test.get_mle()
-##
+
 
 
 ###########################
 ####    ###########Class 1 ADH Genes
 ###########################
-##    gene_to_orlg_file = '../test/Trigeneconv_GeneToOrlg.txt'
-##    alignment_file = '../test/Trigeneconv_ADH_intron_input.fasta'
-##    
-##    data = Data(alignment_file, gene_to_orlg_file)
-##    
-##    tree_newick = '../test/Trigeneconv_ADH1Class_tree.newick'
-##    DupLosList = '../test/Trigeneconv_ADH_DupLost.txt'
-##    tree = Tree(tree_newick, DupLosList)
-##
-##    node_to_pos = {'D1':0, 'D2':0}
-##    terminal_node_list = ['Baboon', 'Orangutan', 'Gorilla', 'Bonobo', 'Chimpanzee', 'Human']
-##    tree.get_configurations(terminal_node_list, node_to_pos)
-##
-##    pm_model = 'HKY'
-##    x_js = np.log([ 0.49978115,   0.60208772,   0.41240341,  10.35588244,   8.01054376])
-##    n_orlg = 5
-##    IGC_pm = 'One rate'
-##    n_js = 3
-##    jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
-##
-##    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
-##                      node_to_pos, terminal_node_list)
-##    self = test
-##    x = np.concatenate((np.log([0.2] * (len(test.tree.edge_list) - 1)), x_js))
-##    test.unpack_x(x)
-##    #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
-##    
-##    conf_list = count_process(test.tree.node_to_conf)
-##    configuration = conf_list[0]
-###    process = jsmodel.get_process_definition(configuration)
-##
-##    edge_derivative = False
-##    data = test.data
-##    tree = test.tree
-##    nsites = test.data.nsites
-##    data_type = test.jsmodel.PMModel.data_type
-##    
-##    observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
-##    print test._loglikelihood()
-##    #test.get_mle()
-
-
-#######################
-    ###########Class 1 ADH Genes
-#######################
-    gene_to_orlg_file = '../test/ADH1GeneToOrlg.txt'
-    #alignment_file = '../../ADH1Genes/Alignment/Intron_5_all/Intron_5_all_Mafft_gap_removed.fasta'
-    alignment_file = '../../ADH1Genes/Alignment/Concatenated_all_exon.fasta'
-    save_file = '../test/save/ADH1_all_exon_save.txt'
+    gene_to_orlg_file = '../test/Trigeneconv_GeneToOrlg.txt'
+    alignment_file = '../test/Trigeneconv_ADH_intron_input.fasta'
     
     data = Data(alignment_file, gene_to_orlg_file)
     
-    tree_newick = '../test/PrimateTest.newick'
-    DupLosList = '../test/PrimateTestDupLost.txt'
-    tree = Tree(tree_newick, DupLosList)
+    tree_newick = '../test/Trigeneconv_ADH1Class_tree.newick'
+    DupLosList = '../test/Trigeneconv_ADH_DupLost.txt'
+    save_file = '../test/save/Trigeneconv_ADH_HKY_save.txt'
 
-    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
-    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
-    tree.get_configurations(terminal_node_list, node_to_pos)
+    node_to_pos = {'D1':0, 'D2':0}
+    terminal_node_list = ['Baboon', 'Orangutan', 'Gorilla', 'Bonobo', 'Chimpanzee', 'Human']
+    #tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
 
     pm_model = 'HKY'
-    x_js = np.log([0.5, 0.5, 0.5, 9.5, 4.9])
-    n_orlg = 9
+    x_js = np.log([ 0.49978115,   0.60208772,   0.41240341,  10.35588244,   8.01054376])
+    n_orlg = 5
     IGC_pm = 'One rate'
-    n_js = 5
+    n_js = 3
     jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
-    nsites = 5
 
     test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
-                      node_to_pos, terminal_node_list, save_file, nsites = nsites)
+                      node_to_pos, terminal_node_list, save_file)
     self = test
+##    x = np.concatenate((x_js, np.log([0.2] * (len(test.tree.edge_list) ))))
+##    test.unpack_x(x)
     #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
     
     conf_list = count_process(test.tree.node_to_conf)
@@ -376,13 +356,59 @@ if __name__ == '__main__':
     data = test.data
     tree = test.tree
     nsites = test.data.nsites
-    
     data_type = test.jsmodel.PMModel.data_type
     
     observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
-    
-#    print test._loglikelihood()
-    test.get_mle(True, True)
+    print (test._loglikelihood())
+    test.get_mle()
+
+
+#######################
+    ###########Class 1 ADH Genes
+#######################
+##    gene_to_orlg_file = '../test/ADH1GeneToOrlg.txt'
+##    #alignment_file = '../../ADH1Genes/Alignment/Intron_5_all/Intron_5_all_Mafft_gap_removed.fasta'
+##    alignment_file = '../../ADH1Genes/Alignment/Concatenated_all_exon.fasta'
+##    save_file = '../test/save/ADH1_all_exon_save.txt'
+##    
+##    data = Data(alignment_file, gene_to_orlg_file)
+##    
+##    tree_newick = '../test/PrimateTest.newick'
+##    DupLosList = '../test/PrimateTestDupLost.txt'
+##    tree = Tree(tree_newick, DupLosList)
+##
+##    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
+##    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
+##    tree.get_configurations(terminal_node_list, node_to_pos)
+##
+##    pm_model = 'HKY'
+##    x_js = np.log([0.5, 0.5, 0.5, 9.5, 4.9])
+##    n_orlg = 9
+##    IGC_pm = 'One rate'
+##    n_js = 5
+##    jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+##    nsites = 5
+##
+##    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
+##                      node_to_pos, terminal_node_list, save_file, nsites = nsites)
+##    self = test
+##    #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
+##    
+##    conf_list = count_process(test.tree.node_to_conf)
+##    configuration = conf_list[0]
+###    process = jsmodel.get_process_definition(configuration)
+##
+##    edge_derivative = False
+##    data = test.data
+##    tree = test.tree
+##    nsites = test.data.nsites
+##    
+##    data_type = test.jsmodel.PMModel.data_type
+##    
+##    observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
+##    
+###    print test._loglikelihood()
+##    test.get_mle(True, True)
 
 
 

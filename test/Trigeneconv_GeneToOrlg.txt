@@ -1,5 +1,7 @@
 Human__ADH1B	3
-Baboon__ADH1A	0
+Baboon__ADH1A	2
+Baboon__ADH1B	3
+Baboon__ADH1C	4
 Human__ADH1A	2
 Chimpanzee__ADH1B	3
 Chimpanzee__ADH1C	4

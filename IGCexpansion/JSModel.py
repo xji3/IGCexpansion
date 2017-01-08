@@ -197,22 +197,7 @@ class JSModel:
             transition_rates = transition_rates)
         return process_definition
 
-    def get_prior(self, configuration):
-        # assign prior feasible states and its distribution with given configuration
-        ortho_group_to_pos = self.divide_configuration(configuration)
-        assert( not ortho_group_to_pos['distinct']) # don't allow distinct lineages at root for now
-        assert( len(ortho_group_to_pos['extent']) < 3) # root is on either outgroup lineage or is the first duplication node
-        
-        prior_feasible_states = []
-        distn = []
-        for nt in range(self.state_space_shape[0]):
-            js_state = [nt] * self.n_js
-            if self.is_state_compatible(js_state, configuration):
-                prior_feasible_states.append(js_state)
-                distn.append(self.PMModel.get_stationary_distn(nt))
 
-        distn = np.array(distn) / sum(distn)
-        return prior_feasible_states, distn
 
     def translate_js_to_num(self, state):
         assert(self.is_state(state))

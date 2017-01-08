@@ -8,7 +8,7 @@ import numpy as np
 from copy import deepcopy
 
 class Tree:
-    def __init__(self, tree_newick, DupLosList):
+    def __init__(self, tree_newick, DupLosList, terminal_node_list, node_to_pos):
         self.newicktree         = tree_newick   # newick tree file location
         self.duploslist         = DupLosList    # duplication loss nodes file location
         # Tree topology related variable
@@ -19,11 +19,16 @@ class Tree:
         self.edge_list          = None        # kept all edges in the same order with x_rates
         self.node_to_num        = None        # dictionary used for translating tree info from self.edge_to_blen to self.tree
         self.num_to_node        = None        # dictionary used for translating tree info from self.tree to self.edge_to_blen
+        self.node_to_dup        = dict()      # used to keep which orlg numbers are new duplicates on each duplication node
 
+        # info for configurations
+        self.terminal_node_list = terminal_node_list
+        self.node_to_pos        = node_to_pos
         self.node_to_conf       = dict()      # A dictionary store configurations on each node
+
         # Speciation node starts with N, Duplication node with D, Loss node with L
         self.dup_events         = dict()      # A dictionary stores duplication events: ortholog group in key gives birth to the two ortholog groups in the content list
-
+        
         self.n_orlg             = 0           # number of ortholog groups
         self.get_tree()
 
@@ -37,6 +42,21 @@ class Tree:
 
         self.get_tree_json()
         # get process function is implemented in Func.py
+
+        # get node_to_conf
+        self.get_configurations()
+
+        # if 'Root' node is added as root node
+        # there must be a duplication node directly after it and the Root node has no outgroup
+        # delete the Root node after all configuration
+        if self.phylo_tree.root.name == 'Root':
+            assert(len(self.phylo_tree.root.clades) == 1)
+            print 'Now remove root node and start with first duplication node'
+            self.node_to_conf.pop(self.phylo_tree.root.name)
+            self.root_with_duplication(self.phylo_tree.root.clades[0].name)
+            
+        # Warning:
+        # cannot remove root node if it has multiple paralogs
 
 
     def get_tree_json(self):
@@ -91,9 +111,14 @@ class Tree:
                     first_ = branch.find('_')
                     father_node_name = branch[:first_]
                     child_node_name = branch[(first_ + 1):]
+                    if father_node_name == 'Root' and self.phylo_tree.root.name != 'Root':
+                        self.add_root()
                     for add_node in items[1:]:
                         self.add_node(father_node_name, child_node_name, add_node)
                         father_node_name = add_node
+
+
+            
                     
     def add_node(self, father_node_name, child_node_name, add_node):
         child_clade = self.find_clade(child_node_name)
@@ -105,6 +130,22 @@ class Tree:
         father_clade.clades.remove(child_clade)
         father_clade.clades.append(new_clade)
 
+    def add_root(self, add_node = 'Root'):
+        new_clade = Phylo.BaseTree.Clade(name = add_node, clades = [self.phylo_tree.root])
+        self.phylo_tree.root = new_clade
+
+    def root_with_duplication(self, node_name): # This function is restricted to change root location
+        assert(self.is_duplication_node(node_name))
+        duplication_clade = self.find_clade(node_name)
+        assert(duplication_clade in self.phylo_tree.root.clades)
+        if len(self.phylo_tree.root.clades) == 2:
+            duplication_clade.clades.extend([clade for clade in self.phylo_tree.root.clades if clade.name != node_name])
+        self.phylo_tree.root = duplication_clade
+
+        # update json tree
+        self.get_tree_json()
+
+        
     def update_tree(self):
         for i in range(len(self.edge_list)):
             node1 = self.num_to_node[self.tree_json['row_nodes'][i]]
@@ -163,10 +204,10 @@ class Tree:
             else:
                 print 'The node cannot be recognised!'
 
-    def get_configurations(self, terminal_node_list, node_to_pos):
+    def get_configurations(self):
         self.init_root_conf()
-        for node in terminal_node_list:
-            self.get_configurations_for_path(node, node_to_pos)
+        for node in self.terminal_node_list:
+            self.get_configurations_for_path(node, self.node_to_pos)
 
     def is_duplication_node(self, node_name):
         return node_name[0] == 'D' and str.isdigit(node_name[1:])
@@ -214,6 +255,7 @@ class Tree:
         new_orlg_2 = self.n_orlg + 1
         self.n_orlg += 2
         self.dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
+        self.node_to_dup[node_name] = [new_orlg_1, new_orlg_2]
 
         # Step 2, update all other configurations
         # They should be of same size as old_configuration
@@ -257,70 +299,77 @@ class Tree:
 
     
 if __name__ == '__main__':
-    tree_newick = '../test/PrimateTest.newick'
-    DupLosList = '../test/PrimateTestDupLost.txt'
-    tree = Phylo.read( tree_newick, "newick")
-    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
-    test = Tree(tree_newick, DupLosList)
-    Phylo.draw_ascii(test.phylo_tree)
-    self = test
-##    father_node_name = 'N1'
-##    child_node_name = 'N3'
-##    test.unpack_x_rates(np.log([0.1] * len(test.edge_list)))
-##    print test.edge_to_blen
-##    print
-##
-##    test.init_root_conf()
-##    terminal_node_name = 'Chinese_Tree_Shrew'
-##    terminal_clade = self.find_clade(terminal_node_name)
-##    path = self.phylo_tree.get_path(terminal_clade)
-##    print path, test.is_duplication_node(path[0].name)
-##
-##    print test.node_to_conf
-##
-####    test.get_configuration_for_duplication_node('D0', 0)
+##    tree_newick = '../test/PrimateTest.newick'
+##    DupLosList = '../test/PrimateTestDupLost.txt'
+##    tree = Phylo.read( tree_newick, "newick")
+##    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
+##    test = Tree(tree_newick, DupLosList)
+##    Phylo.draw_ascii(test.phylo_tree)
+##    self = test
+####    father_node_name = 'N1'
+####    child_node_name = 'N3'
+####    test.unpack_x_rates(np.log([0.1] * len(test.edge_list)))
+####    print test.edge_to_blen
+####    print
+####
+####    test.init_root_conf()
+####    terminal_node_name = 'Chinese_Tree_Shrew'
+####    terminal_clade = self.find_clade(terminal_node_name)
+####    path = self.phylo_tree.get_path(terminal_clade)
+####    print path, test.is_duplication_node(path[0].name)
+####
+####    print test.node_to_conf
+####
+######    test.get_configuration_for_duplication_node('D0', 0)
+######    print test.node_to_conf, test.dup_events
+######
+######    test.get_configuration_for_duplication_node('D5', 1)
+######    print test.node_to_conf, test.dup_events
+######
+######    test.get_configuration_for_deletion_node('L0', 1)
+######    print test.node_to_conf, test.dup_events
+####
+##    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
+####
+####    test.get_configurations_for_path('Chinese_Tree_Shrew', node_to_pos)
 ####    print test.node_to_conf, test.dup_events
 ####
-####    test.get_configuration_for_duplication_node('D5', 1)
-####    print test.node_to_conf, test.dup_events
-####
-####    test.get_configuration_for_deletion_node('L0', 1)
+####    test.get_configurations_for_path('Macaque', node_to_pos)
 ####    print test.node_to_conf, test.dup_events
 ##
-    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
+##    test.get_configurations(terminal_node_list, node_to_pos)
+##    print test.dup_events
+##    for i in test.node_to_conf:
+##        if i in terminal_node_list:
+##            print i, test.node_to_conf[i]
 ##
-##    test.get_configurations_for_path('Chinese_Tree_Shrew', node_to_pos)
-##    print test.node_to_conf, test.dup_events
 ##
-##    test.get_configurations_for_path('Macaque', node_to_pos)
-##    print test.node_to_conf, test.dup_events
-
-    test.get_configurations(terminal_node_list, node_to_pos)
-    print test.dup_events
-    for i in test.node_to_conf:
-        if i in terminal_node_list:
-            print i, test.node_to_conf[i]
-
-
-    tree_newick = '../test/YeastTree.newick'
-    DupLosList = '../test/YeastTestDupLost.txt'
-    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
-    test = Tree(tree_newick, DupLosList)
-    Phylo.draw_ascii(test.phylo_tree)
-    node_to_pos = {'D1':0}
-    test.get_configurations(terminal_node_list, node_to_pos)
-
-    for i in test.node_to_conf:
-        if i in terminal_node_list:
-            print i, test.node_to_conf[i]
+##    tree_newick = '../test/YeastTree.newick'
+##    DupLosList = '../test/YeastTestDupLost.txt'
+##    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+##    test = Tree(tree_newick, DupLosList)
+##    Phylo.draw_ascii(test.phylo_tree)
+##    node_to_pos = {'D1':0}
+##    test.get_configurations(terminal_node_list, node_to_pos)
+##
+##    for i in test.node_to_conf:
+##        if i in terminal_node_list:
+##            print i, test.node_to_conf[i]
 
 
     tree_newick = '../test/Trigeneconv_ADH1Class_tree.newick'
     DupLosList = '../test/Trigeneconv_ADH_DupLost.txt'
-    tree = Phylo.read( tree_newick, "newick")
     terminal_node_list = ['Baboon', 'Orangutan', 'Gorilla', 'Bonobo', 'Chimpanzee', 'Human']
-    test = Tree(tree_newick, DupLosList)
     node_to_pos = {'D1':0, 'D2':0}
-    test.get_configurations(terminal_node_list, node_to_pos)
+    
+    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+    
     Phylo.draw_ascii(test.phylo_tree)
     self = test
+    for node in test.node_to_conf:
+        print node, test.node_to_conf[node]
+
+##    test.root_with_duplication('D1')
+##    Phylo.draw_ascii(test.phylo_tree)
+##    for node in test.node_to_conf:
+##        print node, test.node_to_conf[node]
