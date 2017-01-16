@@ -14,7 +14,10 @@ import scipy
 import scipy.optimize
 import os
 
+from TriGeneconv import *
+
 class JSGeneconv:
+    auto_save_step = 2
     def __init__(self, alignment_file, gene_to_orlg_file, # Data input
                  tree_newick, DupLosList,                 # Tree input
                  n_js, x_js, pm_model, n_orlg, IGC_pm,    # JSModel input
@@ -81,7 +84,7 @@ class JSGeneconv:
             self.tree.unpack_x_rates(translated_rate)
 
     def get_prior(self):
-        configuration = self.tree.node_to_conf[self.tree.phylo_tree.root.name]
+        configuration = deepcopy(self.tree.node_to_conf[self.tree.phylo_tree.root.name])
         # assign prior feasible states and its distribution with given configuration
         if self.tree.phylo_tree.root.name in self.tree.node_to_dup:
             assert(self.root_by_dup)
@@ -211,7 +214,7 @@ class JSGeneconv:
         self.unpack_x(x)
         f, g = self.loglikelihood_and_gradient(display = display)
         self.auto_save += 1
-        if self.auto_save == 5:
+        if self.auto_save == JSGeneconv.auto_save_step:
             self.save_x()
             self.auto_save = 0
         return f, g
@@ -261,8 +264,9 @@ class JSGeneconv:
         self.unpack_x(self.x)
         
     def get_summary(self):
-        summary_mat = []
-        label = []
+        summary_mat = [self.ll]
+        label = ['ll']
+        
         for par in self.jsmodel.PMModel.parameter_list:
             label.append(par)
             summary_mat.append(self.jsmodel.PMModel.parameters[par])
@@ -339,11 +343,29 @@ if __name__ == '__main__':
     n_orlg = 5
     IGC_pm = 'One rate'
     n_js = 3
+    nsites = None
+
     jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
 
     test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
-                      node_to_pos, terminal_node_list, save_file)
+                      node_to_pos, terminal_node_list, save_file, nsites = nsites)
     self = test
+    x_process = [-0.67216797,  -0.40212794,  -1.04889601,   1.20207224, -0.60249277]
+    x_rates = np.log([0.00030354302771, # D1_D2, N0_N1
+                      0.0613673848999,  # D2_N0, N1_N2
+                      0.010962330683,   # N0_N1, N2_N3
+                      0.0348850389125,  # N0_Ba, N2_Ba
+                      0.0131843207937,  # N1_Or, N3_Or
+                      0.00784978378118, # N1_N2, N3_N4
+                      0.00297723023713, # N2_N3, N4_N5
+                      0.00496736099364, # N2_Go, N4_Go
+                      0.000933915293812,# N3_Bo, N5_Bo
+                      8.05308221277e-07,# N3_N4, N5_N6
+                      0.00656242294756, # N4_Hu, N6_Hu
+                      0.00105781666618  # N4_Ch, N6_Ch
+                      ])
+    x_tri = np.concatenate((x_process, x_rates))
+    test.unpack_x(x_tri)
 ##    x = np.concatenate((x_js, np.log([0.2] * (len(test.tree.edge_list) ))))
 ##    test.unpack_x(x)
     #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
@@ -355,12 +377,92 @@ if __name__ == '__main__':
     edge_derivative = False
     data = test.data
     tree = test.tree
-    nsites = test.data.nsites
     data_type = test.jsmodel.PMModel.data_type
     
     observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
     print (test._loglikelihood())
-    test.get_mle()
+    #test.get_mle()
+
+
+######from TriGeneconv.py
+    alignment_file = '../../TriGeneconv/data/ADH_intron_input.fasta'
+    newicktree = '../../TriGeneconv/data/ADH1Class_tree.newick'
+    save_path = '../../TriGeneconv/save/'
+    paralog = ['ADH1A', 'ADH1B', 'ADH1C']
+    #paralog = [paralog[0]]
+    oldest_paralog = 'ADH1A'
+    Dis = 'None'
+    Dir = False
+    gBGC = False
+    Force = False
+    print(oldest_paralog)
+
+    #for oldest_paralog in paralog:
+    test_tri = TriGeneconv( newicktree, alignment_file, save_path, oldest_paralog, Force = False, Dis = Dis, Dir = Dir, gBGC = gBGC)#, nnsites = nsites)
+##    x_rates = np.log([0.00030354302771, # N0_N1
+##                      0.0348850389125,   # N2_Ba
+##                      0.0613673848999,   # N1_N2
+##                      0.0131843207937,    # N3_Or
+##                      0.010962330683,   # N2_N3
+##                      0.00496736099364,  # N4_Go
+##                      0.00784978378118,  # N3_N4
+##                      0.000933915293812,  # N5_Bo
+##                      0.00297723023713,  # N4_N5
+##                      0.00656242294756,  # N6_Hu
+##                      8.05308221277e-07,  # N5_N6
+##                      0.00105781666618]) # N6_Ch
+##    x = np.concatenate((x_process, x_rates))
+##    test_tri.update_by_x(x)
+    print (test_tri._loglikelihood())
+    test_tri.get_mle(True, True)
+#    test.get_individual_summary()
+
+
+##    a = test.get_scene()
+##    b = test_tri.get_scene()
+##
+##    process_a = a['process_definitions'][1]
+##    process_b = b['process_definitions'][1]
+##
+##    process_a_dict = {str(list(process_a['row_states'][i]) + list(process_a['column_states'][i])):process_a['transition_rates'][i] for i in range(len(process_a['row_states']))}
+##    process_b_dict = {str(list(process_b['row_states'][i]) + list(process_b['column_states'][i])):process_b['transition_rates'][i] for i in range(len(process_b['row_states']))}
+##
+##    print(process_a_dict == process_b_dict)
+##
+##    process_a = a['process_definitions'][0]
+##    process_b = b['process_definitions'][2]
+##
+##    process_a_dict = {str(list(process_a['row_states'][i]) + list(process_a['column_states'][i])):process_a['transition_rates'][i] for i in range(len(process_a['row_states']))}
+##    process_b_dict = {str(list(process_b['row_states'][i]) + list(process_b['column_states'][i])):process_b['transition_rates'][i] for i in range(len(process_b['row_states']))}
+##
+##    print(process_a_dict == process_b_dict)
+##
+##    tree_b_dict = {'_'.join([str(b['tree']['row_nodes'][i]), str(b['tree']['column_nodes'][i])]):b['tree']['edge_rate_scaling_factors'][i] for i in range(len(b['tree']['row_nodes']))}
+##
+##    for it in range(len(a['tree']['row_nodes'])):
+##        row_node_name = test.tree.num_to_node[a['tree']['row_nodes'][it]]
+##        col_node_name = test.tree.num_to_node[a['tree']['column_nodes'][it]]
+##        if row_node_name[0] == 'D':
+##            translated_row_name = 'N' + str(int(row_node_name[1:]) - 1)
+##        elif row_node_name[0] == 'N':
+##            translated_row_name = 'N' + str(int(row_node_name[1:]) + 2)
+##        else:
+##            print('check')
+##
+##        if col_node_name[0] == 'D':
+##            translated_col_name = 'N' + str(int(col_node_name[1:]) - 1)
+##        elif col_node_name[0] == 'N':
+##            translated_col_name = 'N' + str(int(col_node_name[1:]) + 2)
+##        else:
+##            translated_col_name = col_node_name[:2] + '_'
+##
+##        tr_row_num = test_tri.node_to_num[translated_row_name]
+##        tr_col_num = test_tri.node_to_num[translated_col_name]
+##        tr_rate = tree_b_dict[str(tr_row_num) + '_' + str(tr_col_num)]
+##
+##        print(row_node_name, col_node_name, a['tree']['edge_rate_scaling_factors'][it],
+##              tr_rate, a['tree']['edge_rate_scaling_factors'][it] == tr_rate,
+##              test_tri.edge_to_blen[(translated_row_name, translated_col_name)])
 
 
 #######################

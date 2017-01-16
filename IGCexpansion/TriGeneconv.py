@@ -637,7 +637,7 @@ if __name__ == '__main__':
     paralog = ['ADH1A', 'ADH1B', 'ADH1C']
     #paralog = [paralog[0]]
     oldest_paralog = 'ADH1C'
-    Dis = 'Free'
+    Dis = 'None'
     Dir = False
     gBGC = False
     Force = False
