@@ -6,6 +6,7 @@ from Data import Data
 from Tree import Tree
 from JSModel import JSModel
 import numpy as np
+from copy import deepcopy
 
 
 def get_iid_observations(data, tree, nsites, data_type = 'nt'):
@@ -57,7 +58,7 @@ def count_process(node_to_conf):
         if node_to_conf[node] in conf_list:
             continue
         else:
-            conf_list.append(node_to_conf[node])
+            conf_list.append(deepcopy(node_to_conf[node]))
 
     return conf_list
     

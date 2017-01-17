@@ -13,11 +13,12 @@ from scipy.sparse import lil_matrix
 import scipy.sparse.linalg
 
 class JSModel:
-    def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm):
+    def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, force = None):
         self.n_js   = n_js            # number of contemporaneous paralog states considered on each branch
         self.x_js   = x_js            # one concatenated vector to store all rate matrix parameters
         self.x_pm   = None            # x_pm vector for PMModel
         self.x_IGC  = None            # x_IGC vector for IGCModel
+        self.force  = force           # parameter value constraint
 
         self.pm_model = pm_model      # name of point mutation model
         self.IGC_pm   = IGC_pm        # IGC parameterization
@@ -59,14 +60,51 @@ class JSModel:
         self.PMModel.update_by_x_pm(self.x_pm)
         self.IGCModel.update_by_x_IGC(self.x_IGC)
 
+    def divide_force(self):
+        if self.force == None:
+            return None, None
+        # first, check if the models are supported
+        assert(self.pm_model in PMModel.supported)
+        assert(self.IGC_pm in IGCModel.supported)
+        if self.pm_model == 'HKY':
+            num_x_pm = 4
+        else:
+            print 'The point mutation model is not supported.'
+            num_x_pm = 0
+
+        if self.IGC_pm == 'One rate':
+            num_x_IGC = 1
+        elif self.IGC_pm == 'Most general':
+            num_x_IGC = self.n_orlg * (self.n_orlg - 1)
+        else:
+            print 'The IGC parameterization has not been implemented.'
+            num_x_IGC = 0
+
+        pm_force = dict()
+        IGC_force = dict()
+        for key in self.force:
+            if key < num_x_pm:
+                pm_force[key] = self.force[key]
+            else:
+                IGC_force[key - num_x_pm] = self.force[key]
+
+        if not pm_force.keys():
+            pm_force = None
+        if not IGC_force.keys():
+            IGC_force = None
+
+        return pm_force, IGC_force
+
     def init_models(self):
         self.unpack_x_js(self.x_js)
         if self.pm_model == 'HKY':
             self.state_space_shape = [4 for i in range(self.n_js)]
         else:
             print 'The point mutation model has not been implemented.'
-        self.PMModel = PMModel(self.pm_model, self.x_pm)
-        self.IGCModel = IGCModel(self.x_IGC, self.n_orlg, self.IGC_pm)
+
+        pm_force, IGC_force = self.divide_force()
+        self.PMModel = PMModel(self.pm_model, self.x_pm, pm_force)
+        self.IGCModel = IGCModel(self.x_IGC, self.n_orlg, self.IGC_pm, IGC_force)
         assert( len(set(self.state_space_shape)) == 1) # now consider only same state space model
         self.update_by_x_js(self.x_js)
         
@@ -276,15 +314,15 @@ if __name__ == '__main__':
     Qt_ghost = scipy.linalg.expm(Q_sparse_ghost.toarray() * t)
 
     n_js = 2
-    test_2 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    test_2 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm, {3:0.0, 4:0.0})
     Q_sparse_ghost_equivalent = test_2.get_sparse_Q([[1, 1], [3, 1]])
     Qt_ghost_equivalent = scipy.linalg.expm(Q_sparse_ghost_equivalent.toarray() *t)
 
-    for i in range(len(Qt_extent[0])):
-        print i, Qt_extent[0][i], Qt_ghost[0][i]
-
-    print Qt_ghost_equivalent[0]
-
+##    for i in range(len(Qt_extent[0])):
+##        print i, Qt_extent[0][i], Qt_ghost[0][i]
+##
+##    print Qt_ghost_equivalent[0]
+##
 
 
 

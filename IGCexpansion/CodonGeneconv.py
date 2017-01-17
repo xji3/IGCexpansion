@@ -1431,14 +1431,15 @@ if __name__ == '__main__':
     alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
     newicktree = '../test/YeastTree.newick'
     Force = None
-    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    self = test
 ##    test.get_mle(True, True, 0, 'BFGS')
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
     scene = test.get_scene()
+    test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
+    self = test
+    print (test._loglikelihood2())
     test.get_mle(True, True, 0, 'BFGS')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):

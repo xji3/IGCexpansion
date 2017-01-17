@@ -24,16 +24,18 @@ class JSGeneconv:
                  node_to_pos, terminal_node_list,         # Configuration input
                  save_file,                               # Auto save file
 #                root_by_dup = False,                     # JSModel input
+                 force = None,                            # Parameter value constraint
                  nsites = None):  
 
         
         self.tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
         self.data = Data(alignment_file, gene_to_orlg_file)
-        self.jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+        self.jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm, force)
         self.node_to_pos = node_to_pos
         self.terminal_node_list = terminal_node_list
         self.root_by_dup = self.tree.is_duplication_node(self.tree.phylo_tree.root.name)
         self.save_file = save_file
+        self.force = force
         if os.path.isfile(self.save_file):
             self.initialize_by_save()
             print ('Loaded paramters from ' + self.save_file)
@@ -48,8 +50,10 @@ class JSGeneconv:
         self.auto_save = 0  # used to control auto save frequency
 
         self.nsites = nsites
-        
+
+            
     def unpack_x(self, x):
+        assert(len(x) == len(self.x)) # length must match
         self.x = x
         if self.root_by_dup:
             x_rate = x[-len(self.tree.edge_list):]
@@ -186,14 +190,18 @@ class JSGeneconv:
         other_derivs = []
 
         for i in range(m):
-            x_plus_delta = np.array(self.x)
-            x_plus_delta[i] += delta
-            self.unpack_x(x_plus_delta)
-            ll_delta, _ = self._loglikelihood(False)
-            d_estimate = (ll_delta - ll) / delta
-            other_derivs.append(d_estimate)
-            # restore self.x
-            self.unpack_x(x)
+            if self.force == None or not i in self.force:
+                x_plus_delta = np.array(self.x)
+                x_plus_delta[i] += delta
+                self.unpack_x(x_plus_delta)
+                ll_delta, _ = self._loglikelihood(False)
+                d_estimate = (ll_delta - ll) / delta
+                other_derivs.append(d_estimate)
+                # restore self.x
+                self.unpack_x(x)
+            else:
+                other_derivs.append(0.0)
+                
         other_derivs = np.array(other_derivs)
         self.ll = ll
         f = -ll
@@ -339,33 +347,35 @@ if __name__ == '__main__':
     #tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
 
     pm_model = 'HKY'
-    x_js = np.log([ 0.49978115,   0.60208772,   0.41240341,  10.35588244,   8.01054376])
+    x_js = np.log([ 0.49978115,   0.60208772,   0.41240341,  5.35588244,   2.01054376])
     n_orlg = 5
     IGC_pm = 'One rate'
     n_js = 3
     nsites = None
 
     jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    #force = {4:0.0}
+    force = None
 
     test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
-                      node_to_pos, terminal_node_list, save_file, nsites = nsites)
+                      node_to_pos, terminal_node_list, save_file, nsites = nsites, force = force)
     self = test
-    x_process = [-0.67216797,  -0.40212794,  -1.04889601,   1.20207224, -0.60249277]
-    x_rates = np.log([0.00030354302771, # D1_D2, N0_N1
-                      0.0613673848999,  # D2_N0, N1_N2
-                      0.010962330683,   # N0_N1, N2_N3
-                      0.0348850389125,  # N0_Ba, N2_Ba
-                      0.0131843207937,  # N1_Or, N3_Or
-                      0.00784978378118, # N1_N2, N3_N4
-                      0.00297723023713, # N2_N3, N4_N5
-                      0.00496736099364, # N2_Go, N4_Go
-                      0.000933915293812,# N3_Bo, N5_Bo
-                      8.05308221277e-07,# N3_N4, N5_N6
-                      0.00656242294756, # N4_Hu, N6_Hu
-                      0.00105781666618  # N4_Ch, N6_Ch
-                      ])
-    x_tri = np.concatenate((x_process, x_rates))
-    test.unpack_x(x_tri)
+##    x_process = [-0.67216797,  -0.40212794,  -1.04889601,   1.20207224, -0.60249277]
+##    x_rates = np.log([0.00030354302771, # D1_D2, N0_N1
+##                      0.0613673848999,  # D2_N0, N1_N2
+##                      0.010962330683,   # N0_N1, N2_N3
+##                      0.0348850389125,  # N0_Ba, N2_Ba
+##                      0.0131843207937,  # N1_Or, N3_Or
+##                      0.00784978378118, # N1_N2, N3_N4
+##                      0.00297723023713, # N2_N3, N4_N5
+##                      0.00496736099364, # N2_Go, N4_Go
+##                      0.000933915293812,# N3_Bo, N5_Bo
+##                      8.05308221277e-07,# N3_N4, N5_N6
+##                      0.00656242294756, # N4_Hu, N6_Hu
+##                      0.00105781666618  # N4_Ch, N6_Ch
+##                      ])
+##    x_tri = np.concatenate((x_process, x_rates))
+##    test.unpack_x(x_tri)
 ##    x = np.concatenate((x_js, np.log([0.2] * (len(test.tree.edge_list) ))))
 ##    test.unpack_x(x)
     #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
@@ -381,7 +391,7 @@ if __name__ == '__main__':
     
     observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
     print (test._loglikelihood())
-    #test.get_mle()
+    test.get_mle()
 
 
 ######from TriGeneconv.py
@@ -394,7 +404,7 @@ if __name__ == '__main__':
     Dis = 'None'
     Dir = False
     gBGC = False
-    Force = False
+    Force = {4:0.0}
     print(oldest_paralog)
 
     #for oldest_paralog in paralog:
