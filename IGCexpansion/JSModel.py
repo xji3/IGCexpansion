@@ -11,6 +11,7 @@ from copy import deepcopy
 from operator import mul
 from scipy.sparse import lil_matrix
 import scipy.sparse.linalg
+from Common import *
 
 class JSModel:
     def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, force = None):
@@ -117,23 +118,7 @@ class JSModel:
                all([single_conf[1] == 0 or single_conf[1] == 1 for single_conf in configuration]) and\
                all([ -1 < configuration[i][0] < self.n_orlg for i in range(self.n_js)])
 
-    def divide_configuration(self, configuration):
-        assert(self.is_configuration(configuration))
-        ortho_group_to_pos = dict(extent = {}, distinct = [])
-        # extent positions that represent same paralog (by the same ortholog group number) have to be in the same state
-        # distinct positions don't change states, thus only track positions
-        for pos in range(self.n_js):
-            if configuration[pos][1] == 1: # extent
-                ortho_group = configuration[pos][0]
-                if ortho_group in ortho_group_to_pos['extent']:
-                    ortho_group_to_pos['extent'][ortho_group].append(pos)
-                else:
-                    ortho_group_to_pos['extent'][ortho_group] = [pos]
-            elif configuration[pos][1] == 0: # distinct
-                ortho_group_to_pos['distinct'].append(pos)
-
-        return ortho_group_to_pos
-            
+          
             
     def is_state_compatible(self, state, configuration):
         assert(self.is_configuration(configuration)) # it has to be a right configuration first
@@ -141,7 +126,7 @@ class JSModel:
         # The length of state should be self.n_js
         indicator = (len(state) == self.n_js)
 
-        ortho_group_to_pos = self.divide_configuration(configuration)
+        ortho_group_to_pos = divide_configuration(configuration)
         for ortho_group in ortho_group_to_pos['extent'].keys():
             pos_list = ortho_group_to_pos['extent'][ortho_group]
             indicator = indicator and len(set([state[pos] for pos in pos_list])) == 1 \
@@ -173,14 +158,14 @@ class JSModel:
         if not indicator:
             return False
         # Distinct lineage should not change state
-        ortho_group_to_pos = self.divide_configuration(configuration)
+        ortho_group_to_pos = divide_configuration(configuration)
         for pos in ortho_group_to_pos['distinct']:
             indicator = indicator and state_from[pos] == state_to[pos]
         return indicator
 
-    def cal_js_transition_rate(self, transition, configuration):
-        # this function should only be called for allowed transitions
-        # this step may be redundant, but it doesnot cost much
+    def cal_js_transition_rate(self, transition, configuration, proportion = False):
+        # this function should only be called for allowable transitions
+        # this step may be redundant, but it doesnot cost much computational time
         assert(self.is_transition_compatible(transition, configuration))
 
         # now need to find the position
@@ -191,7 +176,7 @@ class JSModel:
         q_ij = self.PMModel.Q_mut[state_from[pos_list[0]], state_to[pos_list[0]]]
 
         # Now get IGC rates from IGC Model
-        ortho_group_to_pos = self.divide_configuration(configuration)
+        ortho_group_to_pos = divide_configuration(configuration)
         IGC_ortho_groups = [ortho_group for ortho_group in ortho_group_to_pos['extent'] \
                             if state_from[ortho_group_to_pos['extent'][ortho_group][0]] == \
                             state_to[pos_list[0]]]
@@ -201,7 +186,40 @@ class JSModel:
             for ortho_group in IGC_ortho_groups:
                 t_IGC += self.IGCModel.Q_IGC[ortho_group, IGC_to]
 
-        return q_ij + t_IGC
+        if proportion:
+            return t_IGC / (q_ij + t_IGC)
+        else:
+            return q_ij + t_IGC
+
+    def cal_js_directional_transition_proportion(self, transition, configuration, orlg_pair):
+        # this function should only be called for allowable transitions
+        # this step may be redundant, but it doesnot cost much computational time
+        assert(self.is_transition_compatible(transition, configuration))
+        assert(len(orlg_pair) == 2)
+        orlg_from, orlg_to = orlg_pair
+
+        # now need to find the position
+        state_from, state_to = transition
+        pos_list = [i for i in range(self.n_js) if state_from[i] != state_to[i]]
+
+        # get transition rate from Point Mutation Model
+        q_ij = self.PMModel.Q_mut[state_from[pos_list[0]], state_to[pos_list[0]]]
+
+        # Now get IGC rates from IGC Model
+        ortho_group_to_pos = divide_configuration(configuration)
+        IGC_ortho_groups = [ortho_group for ortho_group in ortho_group_to_pos['extent'] \
+                            if state_from[ortho_group_to_pos['extent'][ortho_group][0]] == \
+                            state_to[pos_list[0]]]
+ 
+        t_IGC = 0.0
+        IGC_to = configuration[pos_list[0]][0]
+        if IGC_to == orlg_to and orlg_from in IGC_ortho_groups:
+            for ortho_group in IGC_ortho_groups:
+                t_IGC += self.IGCModel.Q_IGC[ortho_group, IGC_to]
+            dir_IGC = self.IGCModel.Q_IGC[orlg_from, IGC_to]
+            return dir_IGC / (q_ij + t_IGC)
+        else:
+            return 0.0
 
     def get_js_transition_rates_BF(self, configuration):  # Brute force way for test purpose
         for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
@@ -209,8 +227,8 @@ class JSModel:
                 if self.is_transition_compatible([state_from, state_to], configuration):
                     yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration)
 
-    def get_js_transition_rates(self, configuration):
-        ortho_group_to_pos = self.divide_configuration(configuration)
+    def get_js_transition_rates(self, configuration, proportion = False):
+        ortho_group_to_pos = divide_configuration(configuration)
         for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
             for orlg in ortho_group_to_pos['extent']:
                 state_to = list(deepcopy(state_from))
@@ -218,23 +236,58 @@ class JSModel:
                     for pos in ortho_group_to_pos['extent'][orlg]:
                         state_to[pos] = nt                            
                         if self.is_transition_compatible([state_from, state_to], configuration):
-                            yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration)
+                            yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration, proportion)
+
+    def get_js_directional_transition_proportions(self, configuration, orlg_pair):
+        assert(len(orlg_pair) == 2) # consider only pair of orlg
+        assert(all([-1 < orlg < self.n_orlg for orlg in orlg_pair]))
+        ortho_group_to_pos = divide_configuration(configuration)
+        orlg_from, orlg_to = orlg_pair
+        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+            for orlg in ortho_group_to_pos['extent']:
+                state_to = list(deepcopy(state_from))
+                for nt in range(self.state_space_shape[ortho_group_to_pos['extent'][orlg][0]]):
+                    for pos in ortho_group_to_pos['extent'][orlg]:
+                        state_to[pos] = nt                            
+                        if self.is_transition_compatible([state_from, state_to], configuration):
+                            yield state_from, state_to, self.cal_js_directional_transition_proportion([state_from, state_to], configuration, orlg_pair)
 
 
-    def get_process_definition(self, configuration):
+    def get_process_definition(self, configuration, proportion = False):
         row_states = []
         column_states = []
         transition_rates = []
-        for row_state, col_state, transition_rate in self.get_js_transition_rates(configuration):
+        for row_state, col_state, transition_rate in self.get_js_transition_rates(configuration, proportion):
             row_states.append(deepcopy(row_state))
             column_states.append(deepcopy(col_state))
             transition_rates.append(transition_rate)
+
+        if proportion:
+            process_definition = dict(
+                row_states = row_states,
+                column_states = column_states,
+                weights = transition_rates)
+        else:
+            process_definition = dict(
+                row_states = row_states,
+                column_states = column_states,
+                transition_rates = transition_rates)
+        return process_definition
+
+    def get_directional_process_definition(self, configuration, orlg_pair):
+        row_states = []
+        column_states = []
+        transition_rates = []
+        for row_state, col_state, transition_rate in self.get_js_directional_transition_proportions(configuration, orlg_pair):
+            row_states.append(deepcopy(row_state))
+            column_states.append(deepcopy(col_state))
+            transition_rates.append(transition_rate)
+
         process_definition = dict(
             row_states = row_states,
             column_states = column_states,
-            transition_rates = transition_rates)
+            weights = transition_rates)
         return process_definition
-
 
 
     def translate_js_to_num(self, state):
@@ -274,7 +327,7 @@ if __name__ == '__main__':
     test_configuration = [(i/2, 1) for i in range(n_js)]
     print 'test configuration = ', test_configuration
     print test.is_configuration(test_configuration)
-    print test.divide_configuration(test_configuration)
+    print divide_configuration(test_configuration)
     print test.is_state_compatible([2, 2, 3, 3, 1], test_configuration),\
           test.is_state_compatible([2, 2, 2, 3, 1], test_configuration),\
           test.is_state_compatible([2, 2, 4, 4, 1], test_configuration)
@@ -287,8 +340,24 @@ if __name__ == '__main__':
     print test.cal_js_transition_rate(transition, test_configuration)
 
     test_configuration_2p = [(0, 1), (0, 1), (1, 1), (1, 1), (0, 1)]
-#    process_definition = test.get_process_definition(test_configuration)
+    process_definition = test.get_process_definition(test_configuration)
+    process_proportion_definition = test.get_process_definition(test_configuration, True)
+    process_directional_definition = test.get_directional_process_definition(test_configuration, [0,1])
 #    print len(process_definition['row_states'])
+##    for i in range(len(process_definition['row_states'])):
+##        print process_definition['row_states'][i], process_definition['column_states'][i],\
+##              process_definition['transition_rates'][i], process_proportion_definition['weights'][i],\
+##              test.IGCModel.parameters['Tau'] / process_definition['transition_rates'][i]
+
+    for i in range(len(process_definition['row_states'])):
+        print process_definition['row_states'][i], process_definition['column_states'][i],\
+              process_definition['transition_rates'][i], process_proportion_definition['weights'][i]
+        print process_directional_definition['row_states'][i], process_directional_definition['column_states'][i], \
+              process_directional_definition['weights'][i], \
+              process_directional_definition['row_states'][i] == process_definition['row_states'][i]\
+              and  process_directional_definition['column_states'][i] == process_definition['column_states'][i]
+
+
     #transition = [[0, 0, 0, 0, 0], [1, 1, 1, 1, 0]]
     #test.cal_js_transition_rate(transition, test_configuration_2p)
 #    prior_feasible_states, distn = test.get_prior(test_configuration_2p)
@@ -316,13 +385,14 @@ if __name__ == '__main__':
     n_js = 2
     test_2 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm, {3:0.0, 4:0.0})
     Q_sparse_ghost_equivalent = test_2.get_sparse_Q([[1, 1], [3, 1]])
-    Qt_ghost_equivalent = scipy.linalg.expm(Q_sparse_ghost_equivalent.toarray() *t)
-
+    Qt_ghost_equivalent = scipy.linalg.expm(Q_sparse_ghost_equivalent.toarray() * t)
+##
 ##    for i in range(len(Qt_extent[0])):
 ##        print i, Qt_extent[0][i], Qt_ghost[0][i]
 ##
 ##    print Qt_ghost_equivalent[0]
-##
+
+    
 
 
 

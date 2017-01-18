@@ -62,16 +62,25 @@ def count_process(node_to_conf):
 
     return conf_list
     
-def get_process_definitions(tree, jsmodel):
+def get_process_definitions(tree, jsmodel, proportions = False):
     assert(isinstance(tree, Tree) and isinstance(jsmodel, JSModel))
     conf_list = count_process(tree.node_to_conf)
     process_definitions = []
     for conf in conf_list:
         #print conf
-        process = jsmodel.get_process_definition(conf)
+        process = jsmodel.get_process_definition(conf, proportions)
         process_definitions.append(process)
     return process_definitions, conf_list
 
+def get_directional_process_definitions(tree, jsmodel, orlg_pair):
+    assert(isinstance(tree, Tree) and isinstance(jsmodel, JSModel))
+    conf_list = count_process(tree.node_to_conf)
+    process_definitions = []
+    for conf in conf_list:
+        #print conf
+        process = jsmodel.get_directional_process_definition(conf, orlg_pair)
+        process_definitions.append(process)
+    return process_definitions, conf_list
 
 
 if __name__ == '__main__':

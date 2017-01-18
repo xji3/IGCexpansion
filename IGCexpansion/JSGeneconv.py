@@ -13,6 +13,7 @@ from functools import partial
 import scipy
 import scipy.optimize
 import os
+from Common import *
 
 from TriGeneconv import *
 
@@ -46,8 +47,9 @@ class JSGeneconv:
                 self.x = np.concatenate((x_js, np.log([0.01] * (len(self.tree.edge_list) - 1))))
 
         assert(self.jsmodel.n_orlg == self.tree.n_orlg)  # make sure n_orlg got updated
-        self.ll   = None    # used to store log likelihood
-        self.auto_save = 0  # used to control auto save frequency
+        self.ll   = None              # used to store log likelihood
+        self.ExpectedGeneconv = None  # Used to store expectedNumGeneconv
+        self.auto_save = 0            # used to control auto save frequency
 
         self.nsites = nsites
 
@@ -97,7 +99,7 @@ class JSGeneconv:
                 if configuration[i][0] in new_orlgs:
                     configuration[i][0] = new_orlgs[0]
             
-        ortho_group_to_pos = self.jsmodel.divide_configuration(configuration)
+        ortho_group_to_pos = divide_configuration(configuration)
         assert( not ortho_group_to_pos['distinct']) # don't allow distinct lineages at root for now
         assert( len(ortho_group_to_pos['extent']) < 3) # root is on either outgroup lineage or is the first duplication node
         
@@ -138,6 +140,33 @@ class JSGeneconv:
                 }
             )
         return scene
+
+    def get_expectedNumGeneconv(self, display = False):
+        process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
+        requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+        scene = self.get_scene()
+        j_in = {'scene' : scene,
+                'requests':requests}
+        j_out = jsonctmctree.interface.process_json_in(j_in)
+
+        status = j_out['status']
+        self.ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+
+
+        
+    def get_pairDirectionalExpectedNumGeneconv(self, orlg_pair, display = False):
+        process_definitions, conf_list = get_directional_process_definitions(self.tree, self.jsmodel, orlg_pair)
+        requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+        scene = self.get_scene()
+        j_in = {'scene' : scene,
+                'requests':requests}
+        j_out = jsonctmctree.interface.process_json_in(j_in)
+
+        status = j_out['status']
+        pairDirectionalExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+        return pairDirectionalExpectedGeneconv 
+
+
 
     def _loglikelihood(self, edge_derivative = False):
         scene = self.get_scene()
@@ -287,6 +316,11 @@ class JSGeneconv:
             summary_mat.append(self.tree.edge_to_blen[edge])
             label.append('__'.join(edge))
 
+        if not self.ExpectedGeneconv == None:
+            for edge in self.tree.edge_list:
+                label.append('__'.join(edge) + '__numIGC')
+                summary_mat.append(self.ExpectedGeneconv[edge])
+
         return summary_mat, label
 
     def get_individual_summary(self, summary_file):
@@ -391,7 +425,12 @@ if __name__ == '__main__':
     
     observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
     print (test._loglikelihood())
-    test.get_mle()
+    ExpectedGeneconv = test.get_expectedNumGeneconv()
+    pairExGeneconv = test.get_pairDirectionalExpectedNumGeneconv([3, 2])
+    reverse_pairExGeneconv = test.get_pairDirectionalExpectedNumGeneconv([2, 3])
+    print (pairExGeneconv)
+    print (reverse_pairExGeneconv)
+    #test.get_mle()
 
 
 ######from TriGeneconv.py
@@ -424,8 +463,9 @@ if __name__ == '__main__':
 ##    x = np.concatenate((x_process, x_rates))
 ##    test_tri.update_by_x(x)
     print (test_tri._loglikelihood())
-    test_tri.get_mle(True, True)
+    #test_tri.get_mle(True, True)
 #    test.get_individual_summary()
+    
 
 
 ##    a = test.get_scene()

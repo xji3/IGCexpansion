@@ -6,6 +6,7 @@ import networkx as nx
 import os
 import numpy as np
 from copy import deepcopy
+from Common import *
 
 class Tree:
     def __init__(self, tree_newick, DupLosList, terminal_node_list, node_to_pos):
@@ -242,7 +243,7 @@ class Tree:
         parent_clade = self.find_parent_clade(node_name)
         assert(parent_clade.name in self.node_to_conf)
         old_configuration = self.node_to_conf[parent_clade.name]
-        ortho_group_to_pos = self.divide_configuration(old_configuration)
+        ortho_group_to_pos = divide_configuration(old_configuration)
         old_orlg = ortho_group_to_pos['loc'][orlg_pos]
         
         assert(self.is_configurations_same_size())
@@ -272,7 +273,7 @@ class Tree:
         parent_clade = self.find_parent_clade(node_name)
         assert(parent_clade.name in self.node_to_conf)
         new_configuration = deepcopy(self.node_to_conf[parent_clade.name])        
-        ortho_group_to_pos = self.divide_configuration(new_configuration)
+        ortho_group_to_pos = divide_configuration(new_configuration)
         deleted_orlg = ortho_group_to_pos['loc'][orlg_pos]
         for pos in ortho_group_to_pos['extent'][deleted_orlg]:
             assert(new_configuration[pos][1])  # the paralog should be alive before deletion
