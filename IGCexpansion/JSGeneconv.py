@@ -21,7 +21,7 @@ class JSGeneconv:
     auto_save_step = 2
     def __init__(self, alignment_file, gene_to_orlg_file, # Data input
                  tree_newick, DupLosList,                 # Tree input
-                 n_js, x_js, pm_model, n_orlg, IGC_pm,    # JSModel input
+                 x_js, pm_model, IGC_pm,    # JSModel input
                  node_to_pos, terminal_node_list,         # Configuration input
                  save_file,                               # Auto save file
 #                root_by_dup = False,                     # JSModel input
@@ -31,7 +31,7 @@ class JSGeneconv:
         
         self.tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
         self.data = Data(alignment_file, gene_to_orlg_file)
-        self.jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm, force)
+        self.jsmodel = JSModel(self.tree.n_js, x_js, pm_model, self.tree.n_orlg, IGC_pm, force)
         self.node_to_pos = node_to_pos
         self.terminal_node_list = terminal_node_list
         self.root_by_dup = self.tree.is_duplication_node(self.tree.phylo_tree.root.name)
@@ -338,116 +338,120 @@ if __name__ == '__main__':
 #######################
     ###########Yeast
 #######################
-##    gene_to_orlg_file = '../test/YLR406_YDL075W_GeneToOrlg.txt'
-##    alignment_file = '../test/YLR406C_YDL075W_alignment.fasta'
-##
-##    tree_newick = '../test/YeastTree.newick'
-##    DupLosList = '../test/YeastTestDupLost.txt'
-##    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
-##    node_to_pos = {'D1':0}
-##    save_file = '../test/save/HKY_YLR406C_YDL075W_nonclock_save.txt'
-##
-##    pm_model = 'HKY'
-##    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])
-##    n_orlg = 3
-##    IGC_pm = 'One rate'
-##    n_js = 2
-##
-##    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
-##                      node_to_pos, terminal_node_list, save_file)
-##
-##    self = test
-###    print test.get_scene(100)
-##    print test._loglikelihood(edge_derivative = True)
-##    print test.loglikelihood_and_gradient()
-##    test.get_mle()
+    gene_to_orlg_file = '../test/YLR406_YDL075W_GeneToOrlg.txt'
+    alignment_file = '../test/YLR406C_YDL075W_alignment.fasta'
+
+    tree_newick = '../test/YeastTree.newick'
+    DupLosList = '../test/YeastTestDupLost.txt'
+    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+    node_to_pos = {'D1':0}
+    save_file = '../test/save/HKY_YLR406C_YDL075W_nonclock_save.txt'
+    summary_file = '../test/HKY_YLR406C_YDL075W_nonclock_summary.txt'
+
+    pm_model = 'HKY'
+    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])
+    n_orlg = 3
+    IGC_pm = 'One rate'
+    n_js = 2
+
+    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
+                      node_to_pos, terminal_node_list, save_file)
+
+    self = test
+#    print test.get_scene(100)
+    print (test._loglikelihood(edge_derivative = True))
+    print (test.loglikelihood_and_gradient())
+    test.get_mle()
+    test.get_expectedNumGeneconv()
+    print(test.get_pairDirectionalExpectedNumGeneconv([1, 2]))
+    test.get_individual_summary(summary_file)
 
 
 
 ###########################
 ####    ###########Class 1 ADH Genes
 ###########################
-    gene_to_orlg_file = '../test/Trigeneconv_GeneToOrlg.txt'
-    alignment_file = '../test/Trigeneconv_ADH_intron_input.fasta'
-    
-    data = Data(alignment_file, gene_to_orlg_file)
-    
-    tree_newick = '../test/Trigeneconv_ADH1Class_tree.newick'
-    DupLosList = '../test/Trigeneconv_ADH_DupLost.txt'
-    save_file = '../test/save/Trigeneconv_ADH_HKY_save.txt'
-
-    node_to_pos = {'D1':0, 'D2':0}
-    terminal_node_list = ['Baboon', 'Orangutan', 'Gorilla', 'Bonobo', 'Chimpanzee', 'Human']
-    #tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-
-    pm_model = 'HKY'
-    x_js = np.log([ 0.49978115,   0.60208772,   0.41240341,  5.35588244,   2.01054376])
-    n_orlg = 5
-    IGC_pm = 'One rate'
-    n_js = 3
-    nsites = None
-
-    jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
-    #force = {4:0.0}
-    force = None
-
-    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
-                      node_to_pos, terminal_node_list, save_file, nsites = nsites, force = force)
-    self = test
-##    x_process = [-0.67216797,  -0.40212794,  -1.04889601,   1.20207224, -0.60249277]
-##    x_rates = np.log([0.00030354302771, # D1_D2, N0_N1
-##                      0.0613673848999,  # D2_N0, N1_N2
-##                      0.010962330683,   # N0_N1, N2_N3
-##                      0.0348850389125,  # N0_Ba, N2_Ba
-##                      0.0131843207937,  # N1_Or, N3_Or
-##                      0.00784978378118, # N1_N2, N3_N4
-##                      0.00297723023713, # N2_N3, N4_N5
-##                      0.00496736099364, # N2_Go, N4_Go
-##                      0.000933915293812,# N3_Bo, N5_Bo
-##                      8.05308221277e-07,# N3_N4, N5_N6
-##                      0.00656242294756, # N4_Hu, N6_Hu
-##                      0.00105781666618  # N4_Ch, N6_Ch
-##                      ])
-##    x_tri = np.concatenate((x_process, x_rates))
-##    test.unpack_x(x_tri)
-##    x = np.concatenate((x_js, np.log([0.2] * (len(test.tree.edge_list) ))))
-##    test.unpack_x(x)
-    #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
-    
-    conf_list = count_process(test.tree.node_to_conf)
-    configuration = conf_list[0]
-#    process = jsmodel.get_process_definition(configuration)
-
-    edge_derivative = False
-    data = test.data
-    tree = test.tree
-    data_type = test.jsmodel.PMModel.data_type
-    
-    observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
-    print (test._loglikelihood())
-    ExpectedGeneconv = test.get_expectedNumGeneconv()
-    pairExGeneconv = test.get_pairDirectionalExpectedNumGeneconv([3, 2])
-    reverse_pairExGeneconv = test.get_pairDirectionalExpectedNumGeneconv([2, 3])
-    print (pairExGeneconv)
-    print (reverse_pairExGeneconv)
-    #test.get_mle()
-
-
-######from TriGeneconv.py
-    alignment_file = '../../TriGeneconv/data/ADH_intron_input.fasta'
-    newicktree = '../../TriGeneconv/data/ADH1Class_tree.newick'
-    save_path = '../../TriGeneconv/save/'
-    paralog = ['ADH1A', 'ADH1B', 'ADH1C']
-    #paralog = [paralog[0]]
-    oldest_paralog = 'ADH1A'
-    Dis = 'None'
-    Dir = False
-    gBGC = False
-    Force = {4:0.0}
-    print(oldest_paralog)
-
-    #for oldest_paralog in paralog:
-    test_tri = TriGeneconv( newicktree, alignment_file, save_path, oldest_paralog, Force = False, Dis = Dis, Dir = Dir, gBGC = gBGC)#, nnsites = nsites)
+##    gene_to_orlg_file = '../test/Trigeneconv_GeneToOrlg.txt'
+##    alignment_file = '../test/Trigeneconv_ADH_intron_input.fasta'
+##    
+##    data = Data(alignment_file, gene_to_orlg_file)
+##    
+##    tree_newick = '../test/Trigeneconv_ADH1Class_tree.newick'
+##    DupLosList = '../test/Trigeneconv_ADH_DupLost.txt'
+##    save_file = '../test/save/Trigeneconv_ADH_HKY_save.txt'
+##
+##    node_to_pos = {'D1':0, 'D2':0}
+##    terminal_node_list = ['Baboon', 'Orangutan', 'Gorilla', 'Bonobo', 'Chimpanzee', 'Human']
+##    #tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+##
+##    pm_model = 'HKY'
+##    x_js = np.log([ 0.49978115,   0.60208772,   0.41240341,  5.35588244,   2.01054376])
+##    n_orlg = 5
+##    IGC_pm = 'One rate'
+##    n_js = 3
+##    nsites = None
+##
+##    jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+##    #force = {4:0.0}
+##    force = None
+##
+##    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList, n_js, x_js, pm_model, n_orlg, IGC_pm,
+##                      node_to_pos, terminal_node_list, save_file, nsites = nsites, force = force)
+##    self = test
+####    x_process = [-0.67216797,  -0.40212794,  -1.04889601,   1.20207224, -0.60249277]
+####    x_rates = np.log([0.00030354302771, # D1_D2, N0_N1
+####                      0.0613673848999,  # D2_N0, N1_N2
+####                      0.010962330683,   # N0_N1, N2_N3
+####                      0.0348850389125,  # N0_Ba, N2_Ba
+####                      0.0131843207937,  # N1_Or, N3_Or
+####                      0.00784978378118, # N1_N2, N3_N4
+####                      0.00297723023713, # N2_N3, N4_N5
+####                      0.00496736099364, # N2_Go, N4_Go
+####                      0.000933915293812,# N3_Bo, N5_Bo
+####                      8.05308221277e-07,# N3_N4, N5_N6
+####                      0.00656242294756, # N4_Hu, N6_Hu
+####                      0.00105781666618  # N4_Ch, N6_Ch
+####                      ])
+####    x_tri = np.concatenate((x_process, x_rates))
+####    test.unpack_x(x_tri)
+####    x = np.concatenate((x_js, np.log([0.2] * (len(test.tree.edge_list) ))))
+####    test.unpack_x(x)
+##    #process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
+##    
+##    conf_list = count_process(test.tree.node_to_conf)
+##    configuration = conf_list[0]
+###    process = jsmodel.get_process_definition(configuration)
+##
+##    edge_derivative = False
+##    data = test.data
+##    tree = test.tree
+##    data_type = test.jsmodel.PMModel.data_type
+##    
+##    observable_nodes, observable_axes, iid_observations = get_iid_observations(test.data, test.tree, test.data.nsites, test.jsmodel.PMModel.data_type)
+##    print (test._loglikelihood())
+##    ExpectedGeneconv = test.get_expectedNumGeneconv()
+##    pairExGeneconv = test.get_pairDirectionalExpectedNumGeneconv([3, 2])
+##    reverse_pairExGeneconv = test.get_pairDirectionalExpectedNumGeneconv([2, 3])
+##    print (pairExGeneconv)
+##    print (reverse_pairExGeneconv)
+##    #test.get_mle()
+##
+##
+########from TriGeneconv.py
+##    alignment_file = '../../TriGeneconv/data/ADH_intron_input.fasta'
+##    newicktree = '../../TriGeneconv/data/ADH1Class_tree.newick'
+##    save_path = '../../TriGeneconv/save/'
+##    paralog = ['ADH1A', 'ADH1B', 'ADH1C']
+##    #paralog = [paralog[0]]
+##    oldest_paralog = 'ADH1A'
+##    Dis = 'None'
+##    Dir = False
+##    gBGC = False
+##    Force = {4:0.0}
+##    print(oldest_paralog)
+##
+##    #for oldest_paralog in paralog:
+##    test_tri = TriGeneconv( newicktree, alignment_file, save_path, oldest_paralog, Force = False, Dis = Dis, Dir = Dir, gBGC = gBGC)#, nnsites = nsites)
 ##    x_rates = np.log([0.00030354302771, # N0_N1
 ##                      0.0348850389125,   # N2_Ba
 ##                      0.0613673848999,   # N1_N2
@@ -462,7 +466,7 @@ if __name__ == '__main__':
 ##                      0.00105781666618]) # N6_Ch
 ##    x = np.concatenate((x_process, x_rates))
 ##    test_tri.update_by_x(x)
-    print (test_tri._loglikelihood())
+##    print (test_tri._loglikelihood())
     #test_tri.get_mle(True, True)
 #    test.get_individual_summary()
     
