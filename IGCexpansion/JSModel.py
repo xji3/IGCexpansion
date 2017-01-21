@@ -2,7 +2,7 @@
 # JS IGC model = IGC model + Point mutation model
 # Xiang Ji
 # xji3@ncsu.edu
-
+import sys
 from IGCModel import IGCModel
 from PMModel import PMModel
 import numpy as np
@@ -14,7 +14,7 @@ import scipy.sparse.linalg
 from Common import *
 
 class JSModel:
-    def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, force = None):
+    def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, accessible_orlg_pair = None, force = None):
         self.n_js   = n_js            # number of contemporaneous paralog states considered on each branch
         self.x_js   = x_js            # one concatenated vector to store all rate matrix parameters
         self.x_pm   = None            # x_pm vector for PMModel
@@ -29,6 +29,7 @@ class JSModel:
         self.IGCModel = None          # IGCModel class instance for IGC model
 
         self.state_space_shape = None # initialized in init_models() function
+        self.accessible_orlg_pair = accessible_orlg_pair    # input from Tree class for assigning IGCModel.accessible_orlg
 
         self.init_models()
 
@@ -40,13 +41,14 @@ class JSModel:
         if self.pm_model == 'HKY':
             num_x_pm = 4
         else:
-            print 'The point mutation model is not supported.'
-            num_x_pm = 0
+            sys.exit( 'The point mutation model is not supported.')
 
         if self.IGC_pm == 'One rate':
             num_x_IGC = 1
         elif self.IGC_pm == 'Most general':
-            num_x_IGC = self.n_orlg * (self.n_orlg - 1)
+            num_x_IGC = len(self.accessible_orlg_pair) * 2
+        elif self.IGC_pm == 'Symmetric general':
+            num_x_IGC = len(self.accessible_orlg_pair)
         else:
             print 'The IGC parameterization has not been implemented.'
             num_x_IGC = 0
@@ -105,7 +107,7 @@ class JSModel:
 
         pm_force, IGC_force = self.divide_force()
         self.PMModel = PMModel(self.pm_model, self.x_pm, pm_force)
-        self.IGCModel = IGCModel(self.x_IGC, self.n_orlg, self.IGC_pm, IGC_force)
+        self.IGCModel = IGCModel(self.x_IGC, self.n_orlg, self.IGC_pm, self.accessible_orlg_pair, IGC_force)
         assert( len(set(self.state_space_shape)) == 1) # now consider only same state space model
         self.update_by_x_js(self.x_js)
         
@@ -316,83 +318,105 @@ class JSModel:
 
 
 if __name__ == '__main__':
-    pm_model = 'HKY'
-    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
-    n_orlg = 4
-    IGC_pm = 'One rate'
-    n_js = 5
-    test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
-    self = test
-
-    test_configuration = [(i/2, 1) for i in range(n_js)]
-    print 'test configuration = ', test_configuration
-    print test.is_configuration(test_configuration)
-    print divide_configuration(test_configuration)
-    print test.is_state_compatible([2, 2, 3, 3, 1], test_configuration),\
-          test.is_state_compatible([2, 2, 2, 3, 1], test_configuration),\
-          test.is_state_compatible([2, 2, 4, 4, 1], test_configuration)
-
-    transition = ([2, 2, 3, 3, 1], [2, 2, 4, 4, 1])
-    print test.is_transition_compatible(transition, test_configuration)
-    transition = ([2, 2, 3, 3, 1], [2, 2, 0, 0, 1])
-    print test.cal_js_transition_rate(transition, test_configuration)
-    transition = ([2, 2, 3, 3, 1], [2, 2, 2, 2, 1])
-    print test.cal_js_transition_rate(transition, test_configuration)
-
-    test_configuration_2p = [(0, 1), (0, 1), (1, 1), (1, 1), (0, 1)]
-    process_definition = test.get_process_definition(test_configuration)
-    process_proportion_definition = test.get_process_definition(test_configuration, True)
-    process_directional_definition = test.get_directional_process_definition(test_configuration, [0,1])
-#    print len(process_definition['row_states'])
+##    pm_model = 'HKY'
+##    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
+##    n_orlg = 4
+##    IGC_pm = 'One rate'
+##    n_js = 5
+##    test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+##    self = test
+##
+##    test_configuration = [(i/2, 1) for i in range(n_js)]
+##    print 'test configuration = ', test_configuration
+##    print test.is_configuration(test_configuration)
+##    print divide_configuration(test_configuration)
+##    print test.is_state_compatible([2, 2, 3, 3, 1], test_configuration),\
+##          test.is_state_compatible([2, 2, 2, 3, 1], test_configuration),\
+##          test.is_state_compatible([2, 2, 4, 4, 1], test_configuration)
+##
+##    transition = ([2, 2, 3, 3, 1], [2, 2, 4, 4, 1])
+##    print test.is_transition_compatible(transition, test_configuration)
+##    transition = ([2, 2, 3, 3, 1], [2, 2, 0, 0, 1])
+##    print test.cal_js_transition_rate(transition, test_configuration)
+##    transition = ([2, 2, 3, 3, 1], [2, 2, 2, 2, 1])
+##    print test.cal_js_transition_rate(transition, test_configuration)
+##
+##    test_configuration_2p = [(0, 1), (0, 1), (1, 1), (1, 1), (0, 1)]
+##    process_definition = test.get_process_definition(test_configuration)
+##    process_proportion_definition = test.get_process_definition(test_configuration, True)
+##    process_directional_definition = test.get_directional_process_definition(test_configuration, [0,1])
+###    print len(process_definition['row_states'])
+####    for i in range(len(process_definition['row_states'])):
+####        print process_definition['row_states'][i], process_definition['column_states'][i],\
+####              process_definition['transition_rates'][i], process_proportion_definition['weights'][i],\
+####              test.IGCModel.parameters['Tau'] / process_definition['transition_rates'][i]
+##
 ##    for i in range(len(process_definition['row_states'])):
 ##        print process_definition['row_states'][i], process_definition['column_states'][i],\
-##              process_definition['transition_rates'][i], process_proportion_definition['weights'][i],\
-##              test.IGCModel.parameters['Tau'] / process_definition['transition_rates'][i]
+##              process_definition['transition_rates'][i], process_proportion_definition['weights'][i]
+##        print process_directional_definition['row_states'][i], process_directional_definition['column_states'][i], \
+##              process_directional_definition['weights'][i], \
+##              process_directional_definition['row_states'][i] == process_definition['row_states'][i]\
+##              and  process_directional_definition['column_states'][i] == process_definition['column_states'][i]
+##
+##
+##    #transition = [[0, 0, 0, 0, 0], [1, 1, 1, 1, 0]]
+##    #test.cal_js_transition_rate(transition, test_configuration_2p)
+###    prior_feasible_states, distn = test.get_prior(test_configuration_2p)
+##
+##
+##    pm_model = 'HKY'
+##    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
+##    n_orlg = 4
+##    IGC_pm = 'One rate'
+##    n_js = 3
+##    test_3 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+##    self = test
+###    process_definition = test.get_process_definition([[1, 1], [2, 1]])
+###    print test.get_js_transition_rates([[1, 1], [2, 1]])
+##
+##    # Now start testing on Ghost lineage Q matrix assignment
+##    Q_sparse_extent = test_3.get_sparse_Q([[1, 1], [2, 1], [3, 1]])
+##    Q_sparse_ghost = test_3.get_sparse_Q([[1, 1], [2, 0], [3, 1]])
+##
+##    t = 0.01
+##    #print(scipy.sparse.linalg.expm(Q_sparse_extent * t))
+##    Qt_extent = scipy.linalg.expm(Q_sparse_extent.toarray() * t)
+##    Qt_ghost = scipy.linalg.expm(Q_sparse_ghost.toarray() * t)
+##
+##    n_js = 2
+##    test_2 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm, {3:0.0, 4:0.0})
+##    Q_sparse_ghost_equivalent = test_2.get_sparse_Q([[1, 1], [3, 1]])
+##    Qt_ghost_equivalent = scipy.linalg.expm(Q_sparse_ghost_equivalent.toarray() * t)
+####
+####    for i in range(len(Qt_extent[0])):
+####        print i, Qt_extent[0][i], Qt_ghost[0][i]
+####
+####    print Qt_ghost_equivalent[0]
+##
+##    
 
-    for i in range(len(process_definition['row_states'])):
-        print process_definition['row_states'][i], process_definition['column_states'][i],\
-              process_definition['transition_rates'][i], process_proportion_definition['weights'][i]
-        print process_directional_definition['row_states'][i], process_directional_definition['column_states'][i], \
-              process_directional_definition['weights'][i], \
-              process_directional_definition['row_states'][i] == process_definition['row_states'][i]\
-              and  process_directional_definition['column_states'][i] == process_definition['column_states'][i]
+    from Tree import Tree
+    from Common import *
+    from Func import *
+
+    tree_newick = '../test/PrimateTest.newick'
+    DupLosList = '../test/PrimateTestDupLost.txt'
 
 
-    #transition = [[0, 0, 0, 0, 0], [1, 1, 1, 1, 0]]
-    #test.cal_js_transition_rate(transition, test_configuration_2p)
-#    prior_feasible_states, distn = test.get_prior(test_configuration_2p)
+    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
+    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
+    tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+
+    conf_list = count_process(tree.node_to_conf)
+    accessible_orlg_pair = get_accessible_orlg_pair(conf_list)
 
 
     pm_model = 'HKY'
-    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
-    n_orlg = 4
-    IGC_pm = 'One rate'
-    n_js = 3
-    test_3 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    x_js = np.concatenate((np.log([0.3, 0.5, 0.2, 9.5]), np.log(range(2, 2 + len(accessible_orlg_pair) * 2))))
+    IGC_pm = 'Most general'
+    test = JSModel(tree.n_js, x_js, pm_model, tree.n_orlg, IGC_pm, accessible_orlg_pair)
     self = test
-#    process_definition = test.get_process_definition([[1, 1], [2, 1]])
-#    print test.get_js_transition_rates([[1, 1], [2, 1]])
-
-    # Now start testing on Ghost lineage Q matrix assignment
-    Q_sparse_extent = test_3.get_sparse_Q([[1, 1], [2, 1], [3, 1]])
-    Q_sparse_ghost = test_3.get_sparse_Q([[1, 1], [2, 0], [3, 1]])
-
-    t = 0.01
-    #print(scipy.sparse.linalg.expm(Q_sparse_extent * t))
-    Qt_extent = scipy.linalg.expm(Q_sparse_extent.toarray() * t)
-    Qt_ghost = scipy.linalg.expm(Q_sparse_ghost.toarray() * t)
-
-    n_js = 2
-    test_2 = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm, {3:0.0, 4:0.0})
-    Q_sparse_ghost_equivalent = test_2.get_sparse_Q([[1, 1], [3, 1]])
-    Qt_ghost_equivalent = scipy.linalg.expm(Q_sparse_ghost_equivalent.toarray() * t)
-##
-##    for i in range(len(Qt_extent[0])):
-##        print i, Qt_extent[0][i], Qt_ghost[0][i]
-##
-##    print Qt_ghost_equivalent[0]
-
-    
 
 
 

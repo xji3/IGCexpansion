@@ -5,7 +5,7 @@ import numpy as np
 
 class IGCModel:
     supported = ['One rate', 'Most general', 'Symmetric general']          # supported IGC parameterization
-    def __init__(self, x_IGC, n_ortholog, parameterization, force = None):
+    def __init__(self, x_IGC, n_ortholog, parameterization, accessible_orlg_pair = None, force = None):
         self.pm             = parameterization      # name of parameterization
         self.x_IGC          = x_IGC                 # an array of log() values
         self.n_orlg         = n_ortholog            # total number of ortholog groups
@@ -13,7 +13,9 @@ class IGCModel:
 
         self.Q_IGC          = None                  # IGC process matrix of size
         self.parameters     = dict()                # a dictionary used to store all IGC parameters
-        self.parameter_list = None
+        self.parameter_list = list()
+
+        self.accessible_orlg_pair = accessible_orlg_pair   # list of (row, state) indices of accessible orlg_pair in Q_IGC, used for assign/update Q_IGC
 
         self.init_Q()
 
@@ -45,10 +47,10 @@ class IGCModel:
         self.parameter_list = ['Tau']
 
     def init_most_general_Q(self):
-        # TODO: finish self.parameters in this case
-        assert(len(self.x_IGC) == self.n_orlg * (self.n_orlg - 1))
+        assert(self.accessible_orlg_pair)
+        assert(len(self.x_IGC) == 2 * len(self.accessible_orlg_pair) <= self.n_orlg * (self.n_orlg - 1) )
         if not self.force == None:
-            assert(all([-1 < key < self.n_orlg * (self.n_orlg - 1) for key in self.force]))
+            assert(all([-1 < key < len(self.x_IGC) for key in self.force]))
         # x_IGC in this case should be in linear order of
         # t_{1,2}, t_{1, 3}, ..., t_{1, n}, t_{2, 1}, ... t_{2, n}, ..., t{n, n-1}
         IGC_array = []
@@ -58,24 +60,85 @@ class IGCModel:
         if not self.force == None:
             for i in self.force.keys():
                 IGC_rates[i] = self.force[i]
-        for n_it in range(self.n_orlg):
-            row = IGC_rates[n_it * (self.n_orlg - 1) : (n_it + 1) * (self.n_orlg - 1)]            
-            IGC_array.append(np.insert(row, n_it, 0.0))
-        self.Q_IGC = np.array(IGC_array)
 
+        self.Q_IGC = np.zeros((self.n_orlg, self.n_orlg), dtype = float)
+        for idx in range(len(self.accessible_orlg_pair)):
+            i, j = self.accessible_orlg_pair[idx]
+            self.Q_IGC[i, j] = IGC_rates[idx]
+            self.Q_IGC[j, i] = IGC_rates[idx + len(self.accessible_orlg_pair)]
+
+
+        # Now push the rates into self.parameters
+        for idx in range(len(self.accessible_orlg_pair)):
+            i, j = self.accessible_orlg_pair[idx]
+            if not 'Tau_' + str(i) + '->' + str(j) in self.parameter_list:
+                self.parameter_list.append('Tau_' + str(i) + '->' + str(j))
+            self.parameters['Tau_' + str(i) + '->' + str(j)] = self.Q_IGC[i, j]
+            if not 'Tau_' + str(j) + '->' + str(i) in self.parameter_list:
+                self.parameter_list.append('Tau_' + str(j) + '->' + str(i))
+            self.parameters['Tau_' + str(j) + '->' + str(i)] = self.Q_IGC[j, i]
+
+            
     def init_sym_general_Q(self):
-        assert(len(self.x_IGC) == self.n_orlg * (self.n_orlg - 1) / 2)
+        assert(self.accessible_orlg_pair)
+        assert(len(self.x_IGC) == len(self.accessible_orlg_pair) <= self.n_orlg * (self.n_orlg - 1) / 2)
+        if not self.force == None:
+            assert(all([-1 < key < len(self.x_IGC) for key in self.force]))
         # x_IGC in this case should be in linear order of
         # t_{1,2}, t_{1, 3}, ..., t_{1, n}, t_{2, 3}, ... t_{2, n}, ..., t{n - 1, n}
         IGC_array = []
+        IGC_rates = np.exp(self.x_IGC)
+
+        # Now update force constraints
+        if not self.force == None:
+            for i in self.force.keys():
+                IGC_rates[i] = self.force[i]
+
+        self.Q_IGC = np.zeros((self.n_orlg, self.n_orlg), dtype = float)
+        for idx in range(len(self.accessible_orlg_pair)):
+            i, j = self.accessible_orlg_pair[idx]
+            self.Q_IGC[i, j] = self.Q_IGC[j, i] = IGC_rates[idx]
+
+        # Now push the rates into self.parameters
+        for idx in range(len(self.accessible_orlg_pair)):
+            i, j = self.accessible_orlg_pair[idx]
+            if not 'Tau_' + str(i) + '<->' + str(j) in self.parameter_list:
+                self.parameter_list.append('Tau_' + str(i) + '<->' + str(j))
+            self.parameters['Tau_' + str(i) + '<->' + str(j)] = self.Q_IGC[i, j]
+                
+                
+
 
     def __str__(self): # overide for print function
-        return 'IGC Model parameterization: ' + self.pm + '\n' + 'IGC parameters: ' + str(np.exp(self.x_IGC))
+        return 'IGC Model parameterization: ' + self.pm + '\n' + 'IGC parameters: ' + str(np.exp(self.x_IGC)) \
+               + '\n Accessible orlg pairs:' + str(self.accessible_orlg_pair)
             
 
 if __name__ == '__main__':
     test = IGCModel(np.log([4.9]), 7, 'One rate', {0:0.0})
     print test.Q_IGC
-    test = IGCModel(np.log(range(1, 7)), 3, 'Most general', {4:0})
+
+
+    from Tree import Tree
+    from Common import *
+    from Func import *
+
+    tree_newick = '../test/PrimateTest.newick'
+    DupLosList = '../test/PrimateTestDupLost.txt'
+
+
+    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
+    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
+    tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+
+    conf_list = count_process(tree.node_to_conf)
+    accessible_orlg_pair = get_accessible_orlg_pair(conf_list)
+
+    test = IGCModel(np.log(range(1, 1 + len(accessible_orlg_pair))), tree.n_orlg, 'Symmetric general', accessible_orlg_pair)
+    print test.Q_IGC
+    self = test
+
+    x_IGC = np.log(range(2, 2 + len(accessible_orlg_pair) * 2))
+    test = IGCModel(x_IGC, tree.n_orlg, 'Most general', accessible_orlg_pair)
     print test.Q_IGC
     self = test

@@ -7,6 +7,7 @@ from Tree import Tree
 from JSModel import JSModel
 import numpy as np
 from copy import deepcopy
+from Common import *
 
 
 def get_iid_observations(data, tree, nsites, data_type = 'nt'):
@@ -83,19 +84,24 @@ def get_directional_process_definitions(tree, jsmodel, orlg_pair):
     return process_definitions, conf_list
 
 
+        
+
+
 if __name__ == '__main__':
     gene_to_orlg_file = '../test/ADH1GeneToOrlg.txt'
-    alignment_file = '../test/ADH1Alignment_test.txt'
+    alignment_file = '../test/Concatenated_all_exon.fasta'
     
-    data = Data(alignment_file, gene_to_orlg_file)
+    
     
     tree_newick = '../test/PrimateTest.newick'
     DupLosList = '../test/PrimateTestDupLost.txt'
-    tree = Tree(tree_newick, DupLosList)
+
 
     node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
     terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
-    tree.get_configurations(terminal_node_list, node_to_pos)
+    tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+    data = Data(alignment_file, gene_to_orlg_file)
+    
     print tree.dup_events
     for i in tree.node_to_conf:
         if i in terminal_node_list:
@@ -105,22 +111,26 @@ if __name__ == '__main__':
     x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
     n_orlg = tree.n_orlg
     IGC_pm = 'One rate'
-    n_js = 9
+    n_js = tree.n_js
     jsmodel = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+
+    conf_list = count_process(tree.node_to_conf)
+    accessible_orlg_pair = get_accessible_orlg_pair(conf_list)
+    print accessible_orlg_pair, len(accessible_orlg_pair)
     
 
 
 
-# function get_iid_observations()
-    data_type = 'nt'
-    nsites = 5
-    
-    observable_nodes, observable_axes, iid_observations = get_iid_observations(data, tree, nsites, data_type)
-
-        
-# function get_process_definitions
-    process_definitions, conf_list = get_process_definitions(tree, jsmodel)
-
-# test tree.get_tree_process(conf_list):
-    tree.get_tree_process(conf_list)
-    print tree.tree_json
+### function get_iid_observations()
+##    data_type = 'nt'
+##    nsites = 5
+##    
+##    observable_nodes, observable_axes, iid_observations = get_iid_observations(data, tree, nsites, data_type)
+##
+##        
+### function get_process_definitions
+##    process_definitions, conf_list = get_process_definitions(tree, jsmodel)
+##
+### test tree.get_tree_process(conf_list):
+##    tree.get_tree_process(conf_list)
+##    print tree.tree_json

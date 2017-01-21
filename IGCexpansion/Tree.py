@@ -298,19 +298,17 @@ class Tree:
                 self.dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
                 self.node_to_dup[node_name] = [new_orlg_1, new_orlg_2]
 
-                # Step 2, update all other configurations
-                # They should be of same size as old_configuration
-                for node in self.node_to_conf:
-                    old_sub_configuration = [self.node_to_conf[node][i] for i in pos_list]
-                    new_configuration = [self.node_to_conf[node][i] for i in range(min(pos_list))] \
-                                        + old_sub_configuration + old_sub_configuration +\
-                                        [self.node_to_conf[node][i] for i in range(max(pos_list) + 1, len(self.node_to_conf[node]))]
-                    self.node_to_conf[node] = new_configuration                
+                # No need for Step 2: update all other configurations
+                # They should stay of the same size as old_configuration
 
-                # Step 3, insert current node's configuration
-                new_configuration = [old_configuration[i] for i in range(min(pos_list))] \
-                                        + [[new_orlg_1, 1]] * len(pos_list)  + [[new_orlg_2, 1]] * len(pos_list) +\
-                                        [old_configuration[i] for i in range(max(pos_list) + 1, len(old_configuration))]
+                # insert current node's configuration
+                new_configuration = deepcopy(old_configuration)
+                for i in range(len(pos_list)):
+                    pos = pos_list[i]
+                    if i < len(pos_list) / 2:
+                        new_configuration[pos_list[i]][0] = new_orlg_1
+                    else:
+                        new_configuration[pos_list[i]][0] = new_orlg_2
                 self.node_to_conf[node_name] = new_configuration
         elif type(orlg_pos) == list:
             old_orlg_list = [ortho_group_to_pos['loc'][i] for i in orlg_pos]
@@ -432,7 +430,7 @@ if __name__ == '__main__':
                           'Tarsier', 'Marmoset', 'Vervet-AGM',
                           'Olive_Baboon', 'Macaque', 'Gibbon',
                           'Orangutan', 'Gorilla', 'Human']
-    node_to_pos = {'D1':0, 'D2':0, 'D3':0, 'D4':1, 'D5':0}
+    node_to_pos = {'D1':0, 'D2':0, 'D3':0, 'D4':0, 'D5':0}
     test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
 
     Phylo.draw_ascii(test.phylo_tree)

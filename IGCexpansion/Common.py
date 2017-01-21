@@ -1,6 +1,7 @@
 # A file to store common functions that avoid iteratively import itself
 # Xiang Ji
 # xji3@ncsu.edu
+import itertools
 
 def divide_configuration(configuration):
     ortho_group_to_pos = dict(extent = {}, distinct = [], loc = [])
@@ -18,3 +19,11 @@ def divide_configuration(configuration):
             ortho_group_to_pos['distinct'].append(pos)
 
     return ortho_group_to_pos 
+
+def get_accessible_orlg_pair(conf_list):
+    accessible_orlg_pair = list() # only store pair in an upper triangular fashion
+    for conf in conf_list:
+        ortho_group_to_pos = divide_configuration(conf)
+        accessible_orlg_pair.extend(itertools.combinations(sorted(ortho_group_to_pos['loc']), 2))
+
+    return sorted(list(set(accessible_orlg_pair)))
