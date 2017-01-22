@@ -50,9 +50,8 @@ class JSModel:
         elif self.IGC_pm == 'Symmetric general':
             num_x_IGC = len(self.accessible_orlg_pair)
         else:
-            print 'The IGC parameterization has not been implemented.'
-            num_x_IGC = 0
-
+            sys.exit( 'The IGC parameterization has not been implemented.')
+            
         self.x_pm = x_js[:num_x_pm]
         self.x_IGC = x_js[num_x_pm:]
         self.x_js = x_js
@@ -78,10 +77,11 @@ class JSModel:
         if self.IGC_pm == 'One rate':
             num_x_IGC = 1
         elif self.IGC_pm == 'Most general':
-            num_x_IGC = self.n_orlg * (self.n_orlg - 1)
+            num_x_IGC = len(self.accessible_orlg_pair) * 2
+        elif self.IGC_pm == 'Symmetric general':
+            num_x_IGC = len(self.accessible_orlg_pair)
         else:
-            print 'The IGC parameterization has not been implemented.'
-            num_x_IGC = 0
+            sys.exit( 'The IGC parameterization has not been implemented.')
 
         pm_force = dict()
         IGC_force = dict()
