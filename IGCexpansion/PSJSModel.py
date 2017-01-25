@@ -182,12 +182,91 @@ class PSJSModel:
             for state_to in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js * 2):
                 if self.is_transition_compatible((state_from, state_to)):
                     yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, proportion)
+
+    def get_IGC_transition_rates(self, n, proportion = False):
+        # This function is only for checking code, it should not be used in real calculation
+        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js * 2):
+            # Now visit only possible state_to
+            # One single change
+            for i in range(len(state_from)):
+                for nt in range(4):
+                    if nt == state_from[i]:
+                        continue
+                    new_state = list(deepcopy(state_from))
+                    new_state[i] = nt
+                    new_state = tuple(new_state)
+                    yield state_from, new_state, self.cal_IGC_transition_rate((state_from, new_state), n, proportion)
+            
+            # two site changes
+            if state_from[0] != state_from[2] and state_from[1] != state_from[3]:
+                state_to = list(deepcopy(state_from))
+                state_to[0] = state_from[2]
+                state_to[1] = state_from[3]
+                state_to = tuple(state_to)
+                yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, proportion)
+
+                state_to = list(deepcopy(state_from))
+                state_to[2] = state_from[0]
+                state_to[3] = state_from[1]
+                state_to = tuple(state_to)
+                yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, proportion)
+
+
+    def is_compatible_pm_transition(self, transition):
+        # only consider two paralogs for now
+        assert(len(self.state_space_shape) == 4)
+        assert(len(transition) == 2)
+        state_from, state_to = transition
+        assert(len(state_from) == len(state_to) == len(self.state_space_shape))
+        if state_from == state_to:
+            return False
+
+        # state = (ia, ib, ja, jb) with two paralogs i, j and two positions a, b
+        # Now get positions in state that are different in state_from, state_to
+        if state_from[0] != state_from[2] or state_from[1] != state_from[3] \
+           or state_to[0] != state_to[2] or state_to[1] != state_to[3]:
+            return False
         
-    def get_process_definition(self, n, proportion = False):
+        pos_list = [i for i in range(len(state_from) / 2) if state_from[i] != state_to[i]]
+        if len(pos_list) == 1:
+            return True
+        else:
+            return False
+
+    def cal_PM_transition_rate(self, transition):
+        assert(self.is_compatible_pm_transition(transition))
+        state_from, state_to = transition
+        pos_list = [i for i in range(len(state_from) / 2) if state_from[i] != state_to[i]]
+        pos = pos_list[0]
+        return self.PMModel.Q_mut[state_from[pos], state_to[pos]]
+            
+    def get_PM_transition_rates_BF(self):
+        # This function is only for checking code, it should not be used in real calculation
+        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+            state_from = state_from + state_from
+            for state_to in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+                state_to = state_to + state_to
+                if self.is_compatible_pm_transition((state_from, state_to)):
+                    yield state_from, state_to, self.cal_PM_transition_rate((state_from, state_to)) 
+
+    def get_PM_transition_rates(self):
+        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+            state_from = state_from + state_from
+            for i in range(2):
+                for nt in range(4):
+                    if state_from[i] == nt:
+                        continue
+                    state_to = list(deepcopy(state_from))
+                    state_to[i] = state_to[i + 2] = nt
+                    state_to = tuple(state_to)
+                    yield state_from, state_to, self.cal_PM_transition_rate((state_from, state_to))
+                     
+        
+    def get_IGC_process_definition(self, n, proportion = False):
         row_states = []
         column_states = []
         transition_rates = []
-        for row_state, col_state, transition_rate in self.get_IGC_transition_rates_BF(n, proportion):
+        for row_state, col_state, transition_rate in self.get_IGC_transition_rates(n, proportion):
             row_states.append(deepcopy(row_state))
             column_states.append(deepcopy(col_state))
             transition_rates.append(transition_rate)
@@ -202,6 +281,21 @@ class PSJSModel:
                 row_states = row_states,
                 column_states = column_states,
                 transition_rates = transition_rates)
+        return process_definition
+
+    def get_PM_process_definition(self):
+        row_states = []
+        column_states = []
+        transition_rates = []
+        for row_state, col_state, transition_rate in self.get_PM_transition_rates():
+            row_states.append(deepcopy(row_state))
+            column_states.append(deepcopy(col_state))
+            transition_rates.append(transition_rate)
+
+        process_definition = dict(
+            row_states = row_states,
+            column_states = column_states,
+            weights = transition_rates)
         return process_definition
     
     def get_other_pos(self, pos):
@@ -236,7 +330,10 @@ if __name__ == '__main__':
     print IGC_0_not_n, IGC_0_and_n
     print test.is_transition_compatible(transition), test.cal_IGC_transition_rate(transition, n)
     print test.PMModel.Q_mut
-    a = test.get_process_definition(10)
+    a = test.get_IGC_process_definition(10)
+    print len(a['row_states'])
+    b = test.get_PM_process_definition()
+    print len(b['row_states'])
 
 
 
