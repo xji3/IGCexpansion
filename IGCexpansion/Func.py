@@ -48,10 +48,53 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
             else:
                 observation = obs_to_state[data.name_to_seq[name][site].upper()]
             observations.append(observation)
+        
         iid_observations.append(observations)
 
     return observable_nodes, observable_axes, iid_observations
 
+
+def get_PS_iid_observations(data, tree, nsites, n, data_type = 'nt'):
+    assert(isinstance(data, Data) and isinstance(tree, Tree))
+    assert(nsites + n <= data.nsites)
+    # Generate iid_observations from data class and tree class
+    if data_type == 'nt':
+        obs_to_state = {nt:'ACGT'.index(nt) for nt in 'ACGT'}
+
+    observable_names = data.gene_to_orlg.keys()  # don't have to use all sequences
+    name_node_axes = []
+    visited_terminal_nodes = []
+    for name in observable_names:
+        terminal_node, gene_name = name.split('__')
+        orlg = data.gene_to_orlg[name]
+        orlg_to_pos = tree.divide_configuration(tree.node_to_conf[terminal_node])
+        assert(orlg in orlg_to_pos['extent'])
+        for pos in orlg_to_pos['extent'][orlg]:
+            name_node_axes.append([name, tree.node_to_num[terminal_node], pos])
+
+        if not terminal_node in visited_terminal_nodes:
+            for pos in orlg_to_pos['distinct']:
+                name_node_axes.append(['distinct', tree.node_to_num[terminal_node], pos])
+            visited_terminal_nodes.append(terminal_node)
+        
+    name_node_axes = sorted(name_node_axes, key = lambda name:name[1]) # sort by terminal_node
+    observable_nodes = [item[1] for item in name_node_axes]
+    observable_axes  = [item[2] for item in name_node_axes]
+    observed_names   = [item[0] for item in name_node_axes]
+
+    iid_observations = []
+    for site in range(nsites):
+        observations = []
+        for name in observed_names:
+            if name == 'distinct':
+                sys.exit('There should not be distinction!')
+            else:
+                observation = translate_two_nt_to_one_state(data.two_sites_name_to_seq[n][name][site])
+            observations.append(observation)
+        #print observations, observed_names
+        iid_observations.append(observations)
+
+    return observable_nodes, observable_axes, iid_observations
 
 def count_process(node_to_conf):
     conf_list = []
@@ -61,7 +104,7 @@ def count_process(node_to_conf):
         else:
             conf_list.append(deepcopy(node_to_conf[node]))
 
-    return conf_list
+    return sorted(conf_list)
     
 def get_process_definitions(tree, jsmodel, proportions = False):
     assert(isinstance(tree, Tree) and isinstance(jsmodel, JSModel))

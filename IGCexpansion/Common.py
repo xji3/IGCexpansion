@@ -2,6 +2,7 @@
 # Xiang Ji
 # xji3@ncsu.edu
 import itertools
+from math import floor
 
 def divide_configuration(configuration):
     ortho_group_to_pos = dict(extent = {}, distinct = [], loc = [])
@@ -27,3 +28,26 @@ def get_accessible_orlg_pair(conf_list):
         accessible_orlg_pair.extend(itertools.combinations(sorted(ortho_group_to_pos['loc']), 2))
 
     return sorted(list(set(accessible_orlg_pair)))
+
+def translate_two_nt_to_one_state(state):
+    assert(len(state) == 2)
+    assert(all([-1 < i < 4 for i in state]))
+    new_state = 4 * state[0] + state[1]
+    return new_state
+
+def translate_one_state_to_two_nt(state):
+    assert( -1 < state < 16)
+    new_state = (int(floor(state/4)), state % 4)
+    return new_state
+
+def translate_four_nt_to_two_state(state):
+    assert(len(state) == 4)
+    assert(all([-1 < i < 4 for i in state]))
+    return (translate_two_nt_to_one_state(state[:2]), translate_two_nt_to_one_state(state[2:]))
+           
+def translate_two_state_to_four_nt(state):
+    assert(len(state) == 2)
+    assert(all([-1 < i < 16 for i in state]))
+    
+    return translate_one_state_to_two_nt(state[0]) + \
+           translate_one_state_to_two_nt(state[1])

@@ -91,41 +91,29 @@ class PSJSGeneconv:
             self.tree.unpack_x_rates(translated_rate)
 
     def get_prior(self):
-        configuration = deepcopy(self.tree.node_to_conf[self.tree.phylo_tree.root.name])
-        # assign prior feasible states and its distribution with given configuration
-        if self.tree.phylo_tree.root.name in self.tree.node_to_dup:
-            assert(self.root_by_dup)
-            new_orlgs = self.tree.node_to_dup[self.tree.phylo_tree.root.name]
-            for i in range(len(configuration)):
-                if configuration[i][0] in new_orlgs:
-                    configuration[i][0] = new_orlgs[0]
-            
-        ortho_group_to_pos = divide_configuration(configuration)
-        assert( not ortho_group_to_pos['distinct']) # don't allow distinct lineages at root for now
-        assert( len(ortho_group_to_pos['extent']) < 3) # root is on either outgroup lineage or is the first duplication node
-        
         prior_feasible_states = []
         distn = []
-        for nt in range(self.psjsmodel.state_space_shape[0]):
-            js_state = [nt] * self.psjsmodel.n_js
-            if self.psjsmodel.is_state_compatible(js_state, configuration):
-                prior_feasible_states.append(js_state)
-                distn.append(self.psjsmodel.PMModel.get_stationary_distn(nt))
+        for nt_a in range(4): # Only consider nucleotide model
+            for nt_b in range(4):
+                js_state = (nt_a, nt_b, nt_a, nt_b)
+                prior_feasible_states.append(translate_four_nt_to_two_state(js_state))
+                distn.append(self.psjsmodel.PMModel.get_stationary_distn(nt_a) * self.psjsmodel.PMModel.get_stationary_distn(nt_b))
 
         distn = np.array(distn) / sum(distn)
         return prior_feasible_states, distn
     
-    def get_scene(self):
+    def get_scene(self, n):
         state_space_shape = self.psjsmodel.state_space_shape
-        process_definitions, conf_list = get_process_definitions(self.tree, self.psjsmodel)
+        conf_list = count_process(self.tree.node_to_conf)
+        process_definitions = [self.psjsmodel.get_PM_process_definition(), self.psjsmodel.get_IGC_process_definition(n)]
         self.tree.get_tree_process(conf_list)
 
         prior_feasible_states, distn = self.get_prior()
         
         if self.nsites is None:
-            observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, self.data.nsites, self.jsmodel.PMModel.data_type)
+            observable_nodes, observable_axes, iid_observations = get_PS_iid_observations(self.data, self.tree, self.data.nsites - n, n, self.psjsmodel.PMModel.data_type)
         else:
-            observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, self.nsites, self.jsmodel.PMModel.data_type)
+            observable_nodes, observable_axes, iid_observations = get_PS_iid_observations(self.data, self.tree, self.nsites, n, self.psjsmodel.PMModel.data_type)
         scene = dict(
             node_count = len(self.tree.node_to_num),
             process_count = len(process_definitions),
@@ -142,35 +130,9 @@ class PSJSGeneconv:
             )
         return scene
 
-    def get_expectedNumGeneconv(self, display = False):
-        process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
-        requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-        scene = self.get_scene()
-        j_in = {'scene' : scene,
-                'requests':requests}
-        j_out = jsonctmctree.interface.process_json_in(j_in)
 
-        status = j_out['status']
-        self.ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
-
-
-        
-    def get_pairDirectionalExpectedNumGeneconv(self, orlg_pair, display = False):
-        process_definitions, conf_list = get_directional_process_definitions(self.tree, self.jsmodel, orlg_pair)
-        requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-        scene = self.get_scene()
-        j_in = {'scene' : scene,
-                'requests':requests}
-        j_out = jsonctmctree.interface.process_json_in(j_in)
-
-        status = j_out['status']
-        pairDirectionalExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
-        return pairDirectionalExpectedGeneconv 
-
-
-
-    def _loglikelihood(self, edge_derivative = False):
-        scene = self.get_scene()
+    def _loglikelihood(self, n, edge_derivative = False):
+        scene = self.get_scene(n)
         log_likelihood_request = {'property':'snnlogl'}
         derivatives_request = {'property':'sdnderi'}
         if edge_derivative:
@@ -194,11 +156,10 @@ class PSJSGeneconv:
 
         return ll, edge_derivs
 
-    
-    def loglikelihood_and_gradient(self, display = False):
+    def loglikelihood_and_gradient_for_one_n(self, n):
         delta = 1e-8
         x = deepcopy(self.x)
-        ll, edge_derivs = self._loglikelihood(edge_derivative = True)
+        ll, edge_derivs = self._loglikelihood(n, edge_derivative = True)
         if self.root_by_dup:
             x_rate_derivs = edge_derivs
         else:
@@ -224,7 +185,7 @@ class PSJSGeneconv:
                 x_plus_delta = np.array(self.x)
                 x_plus_delta[i] += delta
                 self.unpack_x(x_plus_delta)
-                ll_delta, _ = self._loglikelihood(False)
+                ll_delta, _ = self._loglikelihood(n, False)
                 d_estimate = (ll_delta - ll) / delta
                 other_derivs.append(d_estimate)
                 # restore self.x
@@ -236,36 +197,60 @@ class PSJSGeneconv:
         self.ll = ll
         f = -ll
         g = -np.concatenate((other_derivs, x_rate_derivs))
-        if display:
+        if False:
             print ('log likelihood = ', ll)
             print ('Edge derivatives = ', x_rate_derivs)
             print ('other derivatives:', other_derivs)
             print ('Current exp x array = ', np.exp(self.x))
-            print ('PM parameters = ' + ' '.join([i + ':' + str(self.jsmodel.PMModel.parameters[i]) for i in self.jsmodel.PMModel.parameter_list]))
-            print ('IGC parameters = ' + ' '.join([i + ':' + str(self.jsmodel.IGCModel.parameters[i]) for i in self.jsmodel.IGCModel.parameter_list]))
+            print ('PM parameters = ' + ' '.join([i + ':' + str(self.psjsmodel.PMModel.parameters[i]) for i in self.psjsmodel.PMModel.parameter_list]))
             print ('Edge lengths = ', self.tree.edge_to_blen)
             print ()
             
         return f, g
+    
+    def loglikelihood_and_gradient(self, display = False):
+        sum_f = 0.0
+        sum_g = 0.0
+        inc = 0.05
+        for n in self.data.two_sites_name_to_seq.keys():
+            if (n + 0.0) / len(self.data.two_sites_name_to_seq) > inc and display:
+                print(str(floor(inc * 100)) + '% finished,  n =', n)
+                inc += 0.1
+            f, g = self.loglikelihood_and_gradient_for_one_n(n)
+            sum_f += f
+            sum_g += g
+            
+        if display:
+            print ('Sum log likelihood = ', sum_f)
+            print ('All derivatives = ', sum_g)
+            print ('Current exp x array = ', np.exp(self.x))
+            print ('PM parameters = ' + ' '.join([i + ':' + str(self.psjsmodel.PMModel.parameters[i]) for i in self.psjsmodel.PMModel.parameter_list]))
+            print ('Edge lengths = ', self.tree.edge_to_blen)
+            print ()
+            
+        return sum_f, sum_g
 
     def objective_and_gradient(self,display, x):
         self.unpack_x(x)
         f, g = self.loglikelihood_and_gradient(display = display)
         self.auto_save += 1
-        if self.auto_save == JSGeneconv.auto_save_step:
+        if self.auto_save == PSJSGeneconv.auto_save_step:
             self.save_x()
             self.auto_save = 0
         return f, g
 
     def objective_wo_gradient(self, display, x):
         self.unpack_x(x)
-        ll = self._loglikelihood()[0]
-        self.ll = ll
+        sum_f = 0.0
+        for n in self.data.two_sites_name_to_seq.keys():
+            f, g = self._loglikelihood(n, False)
+            sum_f += f
+
         if display:
-            print ('log likelihood = ', ll)
+            print ('log likelihood = ', sum_f)
             print ('Current x array = ', self.x)
 
-        return -ll
+        return -sum_f
             
     def get_mle(self, display = True, derivative = True):
         self.unpack_x(self.x)  # do one more update first
@@ -352,10 +337,19 @@ if __name__ == '__main__':
     pm_model = 'HKY'
     x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   0.3, 1.0 / 30.0 ])
     IGC_pm = 'One rate'
+    n = 100
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
                       node_to_pos, terminal_node_list, save_file)
     self = test
     print(test.tree.n_js, test.tree.n_orlg)
+    b = test.get_scene(n)
+    test.unpack_x([-2.30258509, -0.35667494, -2.30258509,  1.47152722, -1.2039728 ,
+       -3.40119738, -4.60517019, -4.60517019, -4.60517019, -4.60517019,
+       -4.60517019, -4.60517019, -4.60517019, -4.60517019, -4.60517019,
+       -4.60517019, -4.60517019, -4.60517019])
+    #print(test.loglikelihood_and_gradient_for_one_n(n))
+    test.get_mle()
+
 
 
 

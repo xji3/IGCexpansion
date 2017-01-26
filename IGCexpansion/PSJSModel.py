@@ -93,7 +93,7 @@ class PSJSModel:
     def init_models(self):
         self.unpack_x_js(self.x_js)
         if self.pm_model == 'HKY':
-            self.state_space_shape = [4 for i in range(self.n_js * 2)]
+            self.state_space_shape = [16 for i in range(self.n_js)]
         else:
             sys.exit('The point mutation model has not been implemented.')
 
@@ -105,10 +105,10 @@ class PSJSModel:
 
     def is_transition_compatible(self, transition):
         # only consider two paralogs for now
-        assert(len(self.state_space_shape) == 4)
+        assert(len(self.state_space_shape) == self.n_js)
         assert(len(transition) == 2)
         state_from, state_to = transition
-        assert(len(state_from) == len(state_to) == len(self.state_space_shape))
+        assert(len(state_from) == len(state_to) == 2 * len(self.state_space_shape))
         if state_from == state_to:
             return False
 
@@ -178,14 +178,14 @@ class PSJSModel:
     
     def get_IGC_transition_rates_BF(self, n, proportion = False):
         # This function is only for checking code, it should not be used in real calculation
-        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js * 2):
-            for state_to in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js * 2):
+        for state_from in itertools.product(range(4), repeat = self.n_js * 2):
+            for state_to in itertools.product(range(4), repeat = self.n_js * 2):
                 if self.is_transition_compatible((state_from, state_to)):
                     yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, proportion)
 
     def get_IGC_transition_rates(self, n, proportion = False):
         # This function is only for checking code, it should not be used in real calculation
-        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js * 2):
+        for state_from in itertools.product(range(4), repeat = self.n_js * 2):
             # Now visit only possible state_to
             # One single change
             for i in range(len(state_from)):
@@ -214,10 +214,10 @@ class PSJSModel:
 
     def is_compatible_pm_transition(self, transition):
         # only consider two paralogs for now
-        assert(len(self.state_space_shape) == 4)
+        assert(len(self.state_space_shape) == 2)
         assert(len(transition) == 2)
         state_from, state_to = transition
-        assert(len(state_from) == len(state_to) == len(self.state_space_shape))
+        assert(len(state_from) == len(state_to) == 2 * len(self.state_space_shape))
         if state_from == state_to:
             return False
 
@@ -242,15 +242,15 @@ class PSJSModel:
             
     def get_PM_transition_rates_BF(self):
         # This function is only for checking code, it should not be used in real calculation
-        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+        for state_from in itertools.product(range(4), repeat = self.n_js):
             state_from = state_from + state_from
-            for state_to in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+            for state_to in itertools.product(range(4), repeat = self.n_js):
                 state_to = state_to + state_to
                 if self.is_compatible_pm_transition((state_from, state_to)):
                     yield state_from, state_to, self.cal_PM_transition_rate((state_from, state_to)) 
 
     def get_PM_transition_rates(self):
-        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+        for state_from in itertools.product(range(4), repeat = self.n_js):
             state_from = state_from + state_from
             for i in range(2):
                 for nt in range(4):
@@ -267,8 +267,8 @@ class PSJSModel:
         column_states = []
         transition_rates = []
         for row_state, col_state, transition_rate in self.get_IGC_transition_rates(n, proportion):
-            row_states.append(deepcopy(row_state))
-            column_states.append(deepcopy(col_state))
+            row_states.append(translate_four_nt_to_two_state(row_state))
+            column_states.append(translate_four_nt_to_two_state(col_state))
             transition_rates.append(transition_rate)
 
         if proportion:
@@ -288,14 +288,14 @@ class PSJSModel:
         column_states = []
         transition_rates = []
         for row_state, col_state, transition_rate in self.get_PM_transition_rates():
-            row_states.append(deepcopy(row_state))
-            column_states.append(deepcopy(col_state))
+            row_states.append(translate_four_nt_to_two_state(row_state))
+            column_states.append(translate_four_nt_to_two_state(col_state))
             transition_rates.append(transition_rate)
 
         process_definition = dict(
             row_states = row_states,
             column_states = column_states,
-            weights = transition_rates)
+            transition_rates = transition_rates)
         return process_definition
     
     def get_other_pos(self, pos):

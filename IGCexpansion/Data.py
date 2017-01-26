@@ -37,7 +37,7 @@ class Data:
         assert(self.is_alignment)
         self.nsites = len(self.name_to_seq[self.name_to_seq.keys()[0]])
         if two_sites:
-            for space in range(0, self.nsites - 1):
+            for space in range(1, self.nsites):
                 self.two_sites_name_to_seq[space] = self.get_two_sites_states(space)
 
     def is_alignment(self): # test if all sequences are of same length
@@ -45,17 +45,17 @@ class Data:
  
 
     def get_two_sites_states(self, space, data_type = 'nt'):
-        # space = 0 represents neighboring sites
+        # space = 1 represents neighboring sites
         if data_type == 'nt':
             obs_to_state = {'ACGT'[nt]:nt for nt in range(4)}
         else:
             sys.exit('The data_type is not supported in Data class.')
 
-        assert(-1 < space < self.nsites - 1)
+        assert(0 < space < self.nsites)
         new_name_to_pair_state = dict()
         for name in self.name_to_seq:
             seq = self.name_to_seq[name]
-            new_name_to_pair_state[name] = [(obs_to_state[seq[i]], obs_to_state[seq[i + space + 1]]) for i in range(len(seq) - space - 1)]
+            new_name_to_pair_state[name] = [(obs_to_state[seq[i]], obs_to_state[seq[i + space]]) for i in range(len(seq) - space)]
 
         return new_name_to_pair_state
             
