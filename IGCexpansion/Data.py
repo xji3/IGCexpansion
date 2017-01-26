@@ -6,10 +6,11 @@ from Bio import SeqIO
 import os, sys
 
 class Data:
-    def __init__(self, alignment_file, gene_to_orlg_file, two_sites = False):
+    def __init__(self, alignment_file, gene_to_orlg_file, two_sites = False, space_list = None):
         self.nsites             = None               # Number of sites in the alignment
         self.alignment_file     = alignment_file     # Multiple sequence alignment file location
         self.gene_to_orlg_file  = gene_to_orlg_file  # Gene ortholog mapping info file location
+        self.space_list         = space_list
 
         self.name_to_seq        = None               # dictionary used to store sequence
         # name should be species name + gene name
@@ -37,8 +38,12 @@ class Data:
         assert(self.is_alignment)
         self.nsites = len(self.name_to_seq[self.name_to_seq.keys()[0]])
         if two_sites:
-            for space in range(1, self.nsites):
-                self.two_sites_name_to_seq[space] = self.get_two_sites_states(space)
+            if self.space_list == None:
+                for space in range(1, self.nsites):
+                    self.two_sites_name_to_seq[space] = self.get_two_sites_states(space)
+            else:
+                for space in self.space_list:
+                    self.two_sites_name_to_seq[space] = self.get_two_sites_states(space)
 
     def is_alignment(self): # test if all sequences are of same length
         return len(set([len(self.name_to_seq[name]) for name in self.name_to_seq])) == 1
@@ -51,7 +56,8 @@ class Data:
         else:
             sys.exit('The data_type is not supported in Data class.')
 
-        assert(0 < space < self.nsites)
+        if not 0 < space < self.nsites:
+            sys.exit('Change space please. Maximum = ' + str(self.nsites))
         new_name_to_pair_state = dict()
         for name in self.name_to_seq:
             seq = self.name_to_seq[name]

@@ -20,17 +20,19 @@ from TriGeneconv import *
 class PSJSGeneconv:
     auto_save_step = 2
     def __init__(self, alignment_file, gene_to_orlg_file, # Data input
+                 
                  tree_newick, DupLosList,                 # Tree input
                  x_js, pm_model, IGC_pm,                  # JSModel input
                  node_to_pos, terminal_node_list,         # Configuration input
                  save_file,                               # Auto save file
 #                root_by_dup = False,                     # JSModel input
                  force = None,                            # Parameter value constraint
-                 nsites = None):  
+                 nsites = None, space_list = None
+                 ):  
 
         
         self.tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-        self.data = Data(alignment_file, gene_to_orlg_file, two_sites = True)
+        self.data = Data(alignment_file, gene_to_orlg_file, two_sites = True, space_list = space_list)
         
         self.psjsmodel = PSJSModel(x_js, pm_model, self.tree.n_orlg, IGC_pm, force)
         self.node_to_pos = node_to_pos
@@ -212,10 +214,11 @@ class PSJSGeneconv:
         sum_f = 0.0
         sum_g = 0.0
         inc = 0.05
-        for n in self.data.two_sites_name_to_seq.keys():
-            if (n + 0.0) / len(self.data.two_sites_name_to_seq) > inc and display:
+        for it in range(len(self.data.two_sites_name_to_seq.keys())):
+            n = sorted(self.data.two_sites_name_to_seq.keys())[it]
+            if (it + 0.0) / len(self.data.two_sites_name_to_seq) > inc and display:
                 print(str(floor(inc * 100)) + '% finished,  n =', n)
-                inc += 0.1
+                inc += 0.2
             f, g = self.loglikelihood_and_gradient_for_one_n(n)
             sum_f += f
             sum_g += g
@@ -324,25 +327,24 @@ if __name__ == '__main__':
 #######################
     ###########Yeast
 #######################
-    gene_to_orlg_file = '../test/YLR406_YDL075W_GeneToOrlg.txt'
-    alignment_file = '../test/YLR406C_YDL075W_alignment.fasta'
+    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
+    alignment_file = '../test/YDR418W_YEL054C_MG94_geo_10.0_Sim_8.fasta'
 
     tree_newick = '../test/YeastTree.newick'
     DupLosList = '../test/YeastTestDupLost.txt'
     terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
     node_to_pos = {'D1':0}
-    save_file = '../test/save/PSJS_HKY_YLR406C_YDL075W_nonclock_save.txt'
-    summary_file = '../test/PSJS_HKY_YLR406C_YDL075W_nonclock_summary.txt'
+    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
+    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
 
     pm_model = 'HKY'
-    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   0.3, 1.0 / 30.0 ])
+    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
     IGC_pm = 'One rate'
-    n = 100
+    space_list = range(1, 330, 20)
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
-                      node_to_pos, terminal_node_list, save_file)
+                      node_to_pos, terminal_node_list, save_file, space_list = space_list)
     self = test
     print(test.tree.n_js, test.tree.n_orlg)
-    b = test.get_scene(n)
     test.unpack_x([-2.30258509, -0.35667494, -2.30258509,  1.47152722, -1.2039728 ,
        -3.40119738, -4.60517019, -4.60517019, -4.60517019, -4.60517019,
        -4.60517019, -4.60517019, -4.60517019, -4.60517019, -4.60517019,
