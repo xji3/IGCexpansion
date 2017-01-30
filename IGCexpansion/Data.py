@@ -17,6 +17,7 @@ class Data:
         self.gene_to_orlg       = dict()             # dictionary used to store gene ortholog group info
         self.two_sites_name_to_seq = dict()          # For new two sites model
         self.seq_index          = seq_index          # An index of the positions in the MSA (for cases where indels are removed or unconsidered)
+        self.idx_to_pos         = dict()
 
         self.get_gene_to_orlg()
         self.get_data(two_sites)
@@ -41,6 +42,7 @@ class Data:
         if self.seq_index == None:
             self.seq_index = range(self.nsites)
         assert(len(self.seq_index) == self.nsites)
+        self.idx_to_pos = {self.seq_index[i]:i for i in range(len(self.seq_index))}
         # and the seq_index has to be increasing order
         assert(all(earlier <= later for earlier, later in zip(self.seq_index, self.seq_index[1:])))
         
@@ -78,7 +80,7 @@ class Data:
             ps_state_list = []
             for idx in self.seq_index:
                 if idx + space in self.seq_index:
-                    ps_state_list.append((obs_to_state[seq[idx]], obs_to_state[seq[idx + space]]))
+                    ps_state_list.append((obs_to_state[seq[self.idx_to_pos[idx]]], obs_to_state[seq[self.idx_to_pos[idx + space]]]))
             new_name_to_pair_state[name] = ps_state_list
 
         return new_name_to_pair_state
