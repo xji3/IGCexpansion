@@ -342,38 +342,37 @@ if __name__ == '__main__':
 #######################
     ###########Yeast
 #######################
-    gene_to_orlg_file = '../test/YLR406_YDL075W_GeneToOrlg.txt'
-    alignment_file = '../test/YLR406C_YDL075W_alignment.fasta'
+    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
+    alignment_file = '../test/YDR418W_YEL054C_MG94_geo_10.0_Sim_8.fasta'
 
     tree_newick = '../test/YeastTree.newick'
     DupLosList = '../test/YeastTestDupLost.txt'
     terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
     node_to_pos = {'D1':0}
-    save_file = '../test/save/HKY_YLR406C_YDL075W_nonclock_save.txt'
-    summary_file = '../test/HKY_YLR406C_YDL075W_nonclock_summary.txt'
+    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_One_rate_save.txt'
+    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'
 
     pm_model = 'HKY'
     x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])
     IGC_pm = 'One rate'
     test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
                       node_to_pos, terminal_node_list, save_file)
+    test.get_mle()
     self = test
     print(test.tree.n_js, test.tree.n_orlg)
 
     pm_model = 'HKY'
     x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376, 1.5456])
     IGC_pm = 'Most general'
+    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_Most_general_save.txt'
     summary_file = '../test/HKY_YLR406C_YDL075W_nonclock_dir_summary.txt'
 
-    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
+    test_2 = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
                       node_to_pos, terminal_node_list, save_file)
 
-    self = test
+    self = test_2
 #    print test.get_scene(100)
-    print (test._loglikelihood(edge_derivative = True))
-    print (test.loglikelihood_and_gradient())
-    a = test.get_scene()
-    #test.get_mle()
+    test_2.get_mle()
     #test.get_expectedNumGeneconv()
     #print(test.get_pairDirectionalExpectedNumGeneconv([1, 2]))
     #test.get_individual_summary(summary_file)

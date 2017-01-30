@@ -344,13 +344,8 @@ if __name__ == '__main__':
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
                       node_to_pos, terminal_node_list, save_file, space_list = space_list)
     self = test
-    print(test.tree.n_js, test.tree.n_orlg)
-    test.unpack_x([-2.30258509, -0.35667494, -2.30258509,  1.47152722, -1.2039728 ,
-       -3.40119738, -4.60517019, -4.60517019, -4.60517019, -4.60517019,
-       -4.60517019, -4.60517019, -4.60517019, -4.60517019, -4.60517019,
-       -4.60517019, -4.60517019, -4.60517019])
     #print(test.loglikelihood_and_gradient_for_one_n(n))
-    test.get_mle()
+    #test.get_mle()
 
 
 
