@@ -20,7 +20,7 @@ from TriGeneconv import *
 class PSJSGeneconv:
     auto_save_step = 2
     def __init__(self, alignment_file, gene_to_orlg_file, # Data input
-                 
+                 seq_index_file,                          # Data input                 
                  tree_newick, DupLosList,                 # Tree input
                  x_js, pm_model, IGC_pm,                  # JSModel input
                  node_to_pos, terminal_node_list,         # Configuration input
@@ -32,8 +32,7 @@ class PSJSGeneconv:
 
         
         self.tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-        self.data = Data(alignment_file, gene_to_orlg_file, two_sites = True, space_list = space_list)
-        
+        self.data = Data(alignment_file, gene_to_orlg_file, seq_index_file = seq_index_file, two_sites = True, space_list = space_list)        
         self.psjsmodel = PSJSModel(x_js, pm_model, self.tree.n_orlg, IGC_pm, force)
         self.node_to_pos = node_to_pos
         self.terminal_node_list = terminal_node_list
@@ -113,9 +112,10 @@ class PSJSGeneconv:
         prior_feasible_states, distn = self.get_prior()
         
         if self.nsites is None:
-            observable_nodes, observable_axes, iid_observations = get_PS_iid_observations(self.data, self.tree, self.data.nsites - n, n, self.psjsmodel.PMModel.data_type)
+            observable_nodes, observable_axes, iid_observations = get_PS_iid_observations(self.data, self.tree, len(self.data.space_idx_pairs[n]), n, self.psjsmodel.PMModel.data_type)
         else:
-            observable_nodes, observable_axes, iid_observations = get_PS_iid_observations(self.data, self.tree, self.nsites, n, self.psjsmodel.PMModel.data_type)
+            used_n = min([len(self.data.space_idx_pairs[n]), self.nsites])
+            observable_nodes, observable_axes, iid_observations = get_PS_iid_observations(self.data, self.tree, used_n, n, self.psjsmodel.PMModel.data_type)
         scene = dict(
             node_count = len(self.tree.node_to_num),
             process_count = len(process_definitions),
@@ -150,7 +150,6 @@ class PSJSGeneconv:
         status = j_out['status']
     
         ll = j_out['responses'][0]
-        self.ll = ll
         if edge_derivative:
             edge_derivs = j_out['responses'][1]
         else:
@@ -196,7 +195,6 @@ class PSJSGeneconv:
                 other_derivs.append(0.0)
                 
         other_derivs = np.array(other_derivs)
-        self.ll = ll
         f = -ll
         g = -np.concatenate((other_derivs, x_rate_derivs))
         if False:
@@ -222,7 +220,9 @@ class PSJSGeneconv:
             f, g = self.loglikelihood_and_gradient_for_one_n(n)
             sum_f += f
             sum_g += g
-            
+
+        # Now record lnL in self.ll
+        self.ll = -f
         if display:
             print ('Sum log likelihood = ', sum_f)
             print ('All derivatives = ', sum_g)
@@ -244,11 +244,18 @@ class PSJSGeneconv:
 
     def objective_wo_gradient(self, display, x):
         self.unpack_x(x)
+
         sum_f = 0.0
-        for n in self.data.two_sites_name_to_seq.keys():
+        inc = 0.05
+        for it in range(len(self.data.two_sites_name_to_seq.keys())):
+            n = sorted(self.data.two_sites_name_to_seq.keys())[it]
+            if (it + 0.0) / len(self.data.two_sites_name_to_seq) > inc and display:
+                print(str(floor(inc * 100)) + '% finished,  n =', n)
+                inc += 0.2
             f, g = self._loglikelihood(n, False)
             sum_f += f
-
+            
+        self.ll = sum_f
         if display:
             print ('log likelihood = ', sum_f)
             print ('Current x array = ', self.x)
@@ -290,16 +297,25 @@ class PSJSGeneconv:
         self.unpack_x(self.x)
         
     def get_summary(self):
+        if self.ll == None:
+            #self.ll = -1.0
+            self.objective_wo_gradient(False, self.x)
+            
         summary_mat = [self.ll]
         label = ['ll']
         
-        for par in self.jsmodel.PMModel.parameter_list:
+        for par in self.psjsmodel.PMModel.parameter_list:
             label.append(par)
-            summary_mat.append(self.jsmodel.PMModel.parameters[par])
+            summary_mat.append(self.psjsmodel.PMModel.parameters[par])
 
-        for par in self.jsmodel.IGCModel.parameter_list:
-            label.append(par)
-            summary_mat.append(self.jsmodel.IGCModel.parameters[par])
+        label.extend(['init_rate', 'tract_length'])
+        summary_mat.extend([np.exp(self.psjsmodel.x_IGC[0]), 1.0 / np.exp(self.psjsmodel.x_IGC[1])])
+
+
+        # TODO: Need to create a PSIGCModel class
+##        for par in self.psjsmodel.IGCModel.parameter_list:
+##            label.append(par)
+##            summary_mat.append(self.psjsmodel.IGCModel.parameters[par])
         
         for edge in self.tree.edge_list:
             summary_mat.append(self.tree.edge_to_blen[edge])
@@ -336,16 +352,20 @@ if __name__ == '__main__':
     node_to_pos = {'D1':0}
     save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
     summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
+    seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
 
     pm_model = 'HKY'
     x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
     IGC_pm = 'One rate'
     space_list = range(1, 330, 20)
-    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
+    space_list = None
+    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
                       node_to_pos, terminal_node_list, save_file, space_list = space_list)
     self = test
     #print(test.loglikelihood_and_gradient_for_one_n(n))
     #test.get_mle()
+    test.get_individual_summary(summary_file)
+
 
 
 

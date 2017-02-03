@@ -56,7 +56,7 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
 
 def get_PS_iid_observations(data, tree, nsites, n, data_type = 'nt'):
     assert(isinstance(data, Data) and isinstance(tree, Tree))
-    assert(nsites + n <= data.nsites)
+    assert(nsites  <= len(data.space_idx_pairs[n]))
     # Generate iid_observations from data class and tree class
     if data_type == 'nt':
         obs_to_state = {nt:'ACGT'.index(nt) for nt in 'ACGT'}
