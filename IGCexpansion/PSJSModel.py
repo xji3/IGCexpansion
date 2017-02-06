@@ -3,8 +3,8 @@
 # Xiang Ji
 # xji3@ncsu.edu
 import sys
-from IGCModel import IGCModel
 from PMModel import PMModel
+from PSIGCModel import PSIGCModel
 import numpy as np
 import itertools
 from copy import deepcopy
@@ -29,6 +29,8 @@ class PSJSModel:
         self.n_orlg   = n_orlg        # total number of ortholog groups
 
         self.PMModel  = None          # PMModel class instance for point mutation model
+        # TODO: use PSIGCModel class
+#        self.PSIGCModel = None        # PSIGCModel class instance for pair state IGC model
 
         self.state_space_shape = None # initialized in init_models() function
 
@@ -57,6 +59,7 @@ class PSJSModel:
     def update_by_x_js(self, new_x_js):
         self.unpack_x_js(new_x_js)
         self.PMModel.update_by_x_pm(self.x_pm)
+        #self.PSIGCModel.update_by_x_IGC(self.x_IGC)
 
 
     def divide_force(self):
@@ -99,6 +102,7 @@ class PSJSModel:
 
         pm_force, IGC_force = self.divide_force()
         self.PMModel = PMModel(self.pm_model, self.x_pm, pm_force)
+        #self.PSIGCModel = PSIGCModel(self.x_IGC, self.n_orlg, self.IGC_pm, force = IGC_force)
         self.IGC_force = IGC_force
         assert( len(set(self.state_space_shape)) == 1) # now consider only same state space model
         self.update_by_x_js(self.x_js)

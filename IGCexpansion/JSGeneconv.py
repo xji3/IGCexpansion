@@ -270,7 +270,7 @@ class JSGeneconv:
 
         return -ll
             
-    def get_mle(self, display = True, derivative = True):
+    def get_mle(self, display = True, derivative = True, method = 'L-BFGS-B', niter = 2000):
         self.unpack_x(self.x)  # do one more update first
         if derivative:
             f = partial(self.objective_and_gradient, display)
@@ -286,11 +286,24 @@ class JSGeneconv:
 ##            bnds  = [(None, None)] * (len(self.tree.edge_list) - 1)
 
 
-
-        if derivative:
-            result = scipy.optimize.minimize(f, guess_x, jac = True, method = 'L-BFGS-B', bounds = bnds)
-        else:
-            result = scipy.optimize.minimize(f, guess_x, jac = False, method = 'L-BFGS-B', bounds = bnds)
+        if method == 'L-BFGS-B':
+            if derivative:
+                result = scipy.optimize.minimize(f, guess_x, jac = True, method = 'L-BFGS-B', bounds = bnds)
+            else:
+                result = scipy.optimize.minimize(f, guess_x, jac = False, method = 'L-BFGS-B', bounds = bnds)
+        elif method == 'BasinHopping':
+            bnds = bnds = [(-20.0, -0.001)] * 3
+            bnds.extend([(-20.0, 20.0)] * 2 + [(-20.0, 2.0)] * (len(self.x) - 5))
+            if derivative:
+                result = scipy.optimize.basinhopping(f, guess_x, minimizer_kwargs = {'method':'L-BFGS-B', 'jac':True, 'bounds':bnds}, niter = niter)#, callback = self.check_boundary)
+            else:
+                result = scipy.optimize.basinhopping(f, guess_x, minimizer_kwargs = {'method':'L-BFGS-B', 'jac':False, 'bounds':bnds}, niter = niter)#, callback = self.check_boundary)
+        elif method == 'DifferentialEvolution':
+            f = partial(self.objective_wo_gradient, display)
+            bnds = bnds = [(-20.0, -0.001)] * 3
+            bnds.extend([(-20.0, 20.0)] * 2 + [(-20.0, 2.0)] * (len(self.x) - 5))
+            result = scipy.optimize.differential_evolution(f, bnds)
+            
 
         self.save_x()
         print(result)
@@ -357,7 +370,8 @@ if __name__ == '__main__':
     IGC_pm = 'One rate'
     test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
                       node_to_pos, terminal_node_list, save_file)
-    test.get_mle()
+    #test.get_mle(method = 'BasinHopping')
+    test.get_mle(method = 'DifferentialEvolution')
     self = test
     print(test.tree.n_js, test.tree.n_orlg)
 
@@ -372,7 +386,7 @@ if __name__ == '__main__':
 
     self = test_2
 #    print test.get_scene(100)
-    test_2.get_mle()
+    #test_2.get_mle(method = 'BasinHopping')
     #test.get_expectedNumGeneconv()
     #print(test.get_pairDirectionalExpectedNumGeneconv([1, 2]))
     #test.get_individual_summary(summary_file)

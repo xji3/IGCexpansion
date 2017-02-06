@@ -261,6 +261,73 @@ class PSJSGeneconv:
             print ('Current x array = ', self.x)
 
         return -sum_f
+
+    def objective_tract_p(self, display, log_tract_p):
+        assert(self.psjsmodel.IGC_pm == 'One rate')
+        # Only implemented for One rate model for now
+        log_tau = self.psjsmodel.x_IGC[0] - self.psjsmodel.x_IGC[1]
+        new_x_IGC = [log_tau + log_tract_p, log_tract_p]
+        if self.root_by_dup:
+            x_rate = self.x[-len(self.tree.edge_list):]
+            x_js   = self.x[:(-len(self.tree.edge_list))]
+        else:
+            x_rate = self.x[-(len(self.tree.edge_list) - 1):]
+            x_js   = self.x[:-(len(self.tree.edge_list) - 1)]
+
+        x_js[-1] = new_x_IGC[-1]
+        x_js[-2] = new_x_IGC[-2]
+        return self.objective_wo_gradient(display, np.concatenate((x_js, x_rate)))
+
+    def objective_2d_x_IGC(self, display, new_x_IGC):
+        assert(self.psjsmodel.IGC_pm == 'One rate')
+        # Only implemented for One rate model for now
+        if self.root_by_dup:
+            x_rate = self.x[-len(self.tree.edge_list):]
+            x_js   = self.x[:(-len(self.tree.edge_list))]
+        else:
+            x_rate = self.x[-(len(self.tree.edge_list) - 1):]
+            x_js   = self.x[:-(len(self.tree.edge_list) - 1)]
+
+        x_js[-1] = new_x_IGC[-1]
+        x_js[-2] = new_x_IGC[-2]
+        return self.objective_wo_gradient(display, np.concatenate((x_js, x_rate)))
+
+        
+      
+
+    def optimize_x_IGC(self, display = True, dimension = 1, method = 'L-BFGS-B'):
+        if dimension == 1:
+            f = partial(self.objective_tract_p, display)
+            guess_x = self.psjsmodel.x_IGC[1]
+            if method == 'L-BFGS-B':
+                bnds = [(None, 0.0)]
+            elif method == 'BasinHopping':
+                bnds = [(-20.0, 0.0)]
+            elif method == 'DifferentialEvolution':
+                bnds = [(-20.0, 0.0)]
+            else:
+                sys.exit('Optimization method is not implemented!')
+        if dimension == 2:
+            f = partial(self.objective_2d_x_IGC, display)
+            guess_x = self.psjsmodel.x_IGC
+            if method == 'L-BFGS-B':
+                bnds = [(None, None), (None, 0.0)]
+            elif method == 'BasinHopping':
+                bnds = [(-20.0, 20.0), (-20.0, 0.0)]
+            elif method == 'DifferentialEvolution':
+                bnds = [(-20.0, 20.0), (-20.0, 0.0)]
+            else:
+                sys.exit('Optimization method is not implemented!')
+        if method == 'L-BFGS-B':
+            result = scipy.optimize.minimize(f, guess_x, jac = False, method = method, bounds = bnds)
+        elif method == 'BasinHopping':
+            sys.exit('Not implemented yet!')
+        else:
+            sys.exit('Not implemented yet!')
+            
+        self.save_x()
+        print (result)
+        return result
             
     def get_mle(self, display = True, derivative = True):
         self.unpack_x(self.x)  # do one more update first
@@ -364,7 +431,7 @@ if __name__ == '__main__':
     self = test
     #print(test.loglikelihood_and_gradient_for_one_n(n))
     #test.get_mle()
-    test.get_individual_summary(summary_file)
+    #test.get_individual_summary(summary_file)
 
 
 
