@@ -14,12 +14,13 @@ import scipy.sparse.linalg
 from Common import *
 
 class JSModel:
-    def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, accessible_orlg_pair = None, force = None):
+    def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, pm_rate_variation = False, accessible_orlg_pair = None, force = None):
         self.n_js   = n_js            # number of contemporaneous paralog states considered on each branch
         self.x_js   = x_js            # one concatenated vector to store all rate matrix parameters
         self.x_pm   = None            # x_pm vector for PMModel
         self.x_IGC  = None            # x_IGC vector for IGCModel
         self.force  = force           # parameter value constraint
+        self.pm_rate_variation = pm_rate_variation  # bool indicator of rate variation for point mutation model
 
         self.pm_model = pm_model      # name of point mutation model
         self.IGC_pm   = IGC_pm        # IGC parameterization
@@ -40,6 +41,8 @@ class JSModel:
         assert(self.IGC_pm in IGCModel.supported)
         if self.pm_model == 'HKY':
             num_x_pm = 4
+            if self.pm_rate_variation:
+                num_x_pm += 2
         else:
             sys.exit( 'The point mutation model is not supported.')
 
@@ -106,7 +109,7 @@ class JSModel:
             print 'The point mutation model has not been implemented.'
 
         pm_force, IGC_force = self.divide_force()
-        self.PMModel = PMModel(self.pm_model, self.x_pm, pm_force)
+        self.PMModel = PMModel(self.pm_model, self.x_pm, self.pm_rate_variation, pm_force)
         self.IGCModel = IGCModel(self.x_IGC, self.n_orlg, self.IGC_pm, self.accessible_orlg_pair, IGC_force)
         assert( len(set(self.state_space_shape)) == 1) # now consider only same state space model
         self.update_by_x_js(self.x_js)
@@ -165,7 +168,7 @@ class JSModel:
             indicator = indicator and state_from[pos] == state_to[pos]
         return indicator
 
-    def cal_js_transition_rate(self, transition, configuration, proportion = False):
+    def cal_js_transition_rate(self, transition, configuration, codon_site, proportion = False):
         # this function should only be called for allowable transitions
         # this step may be redundant, but it doesnot cost much computational time
         assert(self.is_transition_compatible(transition, configuration))
@@ -175,7 +178,7 @@ class JSModel:
         pos_list = [i for i in range(self.n_js) if state_from[i] != state_to[i]]
 
         # get transition rate from Point Mutation Model
-        q_ij = self.PMModel.Q_mut[state_from[pos_list[0]], state_to[pos_list[0]]]
+        q_ij = self.PMModel.get_HKY_transition_rate((state_from[pos_list[0]], state_to[pos_list[0]]), codon_site)
 
         # Now get IGC rates from IGC Model
         ortho_group_to_pos = divide_configuration(configuration)
@@ -193,7 +196,7 @@ class JSModel:
         else:
             return q_ij + t_IGC
 
-    def cal_js_directional_transition_proportion(self, transition, configuration, orlg_pair):
+    def cal_js_directional_transition_proportion(self, transition, configuration, orlg_pair, codon_site):
         # this function should only be called for allowable transitions
         # this step may be redundant, but it doesnot cost much computational time
         assert(self.is_transition_compatible(transition, configuration))
@@ -205,7 +208,7 @@ class JSModel:
         pos_list = [i for i in range(self.n_js) if state_from[i] != state_to[i]]
 
         # get transition rate from Point Mutation Model
-        q_ij = self.PMModel.Q_mut[state_from[pos_list[0]], state_to[pos_list[0]]]
+        q_ij = self.PMModel.get_HKY_transition_rate((state_from[pos_list[0]], state_to[pos_list[0]]), codon_site)
 
         # Now get IGC rates from IGC Model
         ortho_group_to_pos = divide_configuration(configuration)
@@ -223,13 +226,13 @@ class JSModel:
         else:
             return 0.0
 
-    def get_js_transition_rates_BF(self, configuration):  # Brute force way for test purpose
+    def get_js_transition_rates_BF(self, configuration, codon_site = 1):  # Brute force way for test purpose
         for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
             for state_to in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
                 if self.is_transition_compatible([state_from, state_to], configuration):
-                    yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration)
+                    yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration, codon_site)
 
-    def get_js_transition_rates(self, configuration, proportion = False):
+    def get_js_transition_rates(self, configuration, codon_site, proportion = False):
         ortho_group_to_pos = divide_configuration(configuration)
         for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
             for orlg in ortho_group_to_pos['extent']:
@@ -238,9 +241,9 @@ class JSModel:
                     for pos in ortho_group_to_pos['extent'][orlg]:
                         state_to[pos] = nt                            
                         if self.is_transition_compatible([state_from, state_to], configuration):
-                            yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration, proportion)
+                            yield state_from, state_to, self.cal_js_transition_rate([state_from, state_to], configuration, codon_site, proportion)
 
-    def get_js_directional_transition_proportions(self, configuration, orlg_pair):
+    def get_js_directional_transition_proportions(self, configuration, orlg_pair, codon_site):
         assert(len(orlg_pair) == 2) # consider only pair of orlg
         assert(all([-1 < orlg < self.n_orlg for orlg in orlg_pair]))
         ortho_group_to_pos = divide_configuration(configuration)
@@ -252,14 +255,14 @@ class JSModel:
                     for pos in ortho_group_to_pos['extent'][orlg]:
                         state_to[pos] = nt                            
                         if self.is_transition_compatible([state_from, state_to], configuration):
-                            yield state_from, state_to, self.cal_js_directional_transition_proportion([state_from, state_to], configuration, orlg_pair)
+                            yield state_from, state_to, self.cal_js_directional_transition_proportion([state_from, state_to], configuration, orlg_pair, codon_site)
 
 
-    def get_process_definition(self, configuration, proportion = False):
+    def get_process_definition(self, configuration, codon_site = 1, proportion = False):
         row_states = []
         column_states = []
         transition_rates = []
-        for row_state, col_state, transition_rate in self.get_js_transition_rates(configuration, proportion):
+        for row_state, col_state, transition_rate in self.get_js_transition_rates(configuration, codon_site, proportion):
             row_states.append(deepcopy(row_state))
             column_states.append(deepcopy(col_state))
             transition_rates.append(transition_rate)
@@ -276,11 +279,11 @@ class JSModel:
                 transition_rates = transition_rates)
         return process_definition
 
-    def get_directional_process_definition(self, configuration, orlg_pair):
+    def get_directional_process_definition(self, configuration, orlg_pair, codon_site = 1):
         row_states = []
         column_states = []
         transition_rates = []
-        for row_state, col_state, transition_rate in self.get_js_directional_transition_proportions(configuration, orlg_pair):
+        for row_state, col_state, transition_rate in self.get_js_directional_transition_proportions(configuration, orlg_pair, codon_site):
             row_states.append(deepcopy(row_state))
             column_states.append(deepcopy(col_state))
             transition_rates.append(transition_rate)
@@ -318,13 +321,17 @@ class JSModel:
 
 
 if __name__ == '__main__':
-##    pm_model = 'HKY'
-##    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
-##    n_orlg = 4
-##    IGC_pm = 'One rate'
-##    n_js = 5
-##    test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
-##    self = test
+    pm_model = 'HKY'
+    x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
+    n_orlg = 4
+    IGC_pm = 'One rate'
+    n_js = 5
+    test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
+    self = test
+    
+    x_js = np.log([0.3, 0.5, 0.2, 9.5, 0.4, 1.6, 4.9])
+    test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm, True)
+    self = test
 ##
 ##    test_configuration = [(i/2, 1) for i in range(n_js)]
 ##    print 'test configuration = ', test_configuration
@@ -396,27 +403,28 @@ if __name__ == '__main__':
 ##
 ##    
 
-    from Tree import Tree
-    from Common import *
-    from Func import *
-
-    tree_newick = '../test/PrimateTest.newick'
-    DupLosList = '../test/PrimateTestDupLost.txt'
-
-
-    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
-    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
-    tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-
-    conf_list = count_process(tree.node_to_conf)
-    accessible_orlg_pair = get_accessible_orlg_pair(conf_list)
-
-
-    pm_model = 'HKY'
-    x_js = np.concatenate((np.log([0.3, 0.5, 0.2, 9.5]), np.log(range(2, 2 + len(accessible_orlg_pair) * 2))))
-    IGC_pm = 'Most general'
-    test = JSModel(tree.n_js, x_js, pm_model, tree.n_orlg, IGC_pm, accessible_orlg_pair)
-    self = test
+##    from Tree import Tree
+##    from Common import *
+##    from Func import *
+##
+##    tree_newick = '../test/PrimateTest.newick'
+##    DupLosList = '../test/PrimateTestDupLost.txt'
+##
+##
+##    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':2, 'L1':2}
+##    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
+##    tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+##
+##    conf_list = count_process(tree.node_to_conf)
+##    accessible_orlg_pair = get_accessible_orlg_pair(conf_list)
+##
+##
+##    pm_model = 'HKY'
+##    x_js = np.concatenate((np.log([0.3, 0.5, 0.2, 9.5]), np.log(range(2, 2 + len(accessible_orlg_pair) * 2))))
+##    IGC_pm = 'Most general'
+##    configuration = [[3, 1], [5, 1], [7, 1], [8, 1], [2, 1]]
+##    test = JSModel(tree.n_js, x_js, pm_model, tree.n_orlg, IGC_pm, accessible_orlg_pair = accessible_orlg_pair)
+##    self = test
 
 
 

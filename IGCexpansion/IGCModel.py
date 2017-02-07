@@ -111,7 +111,7 @@ class IGCModel:
 
     def __str__(self): # overide for print function
         return 'IGC Model parameterization: ' + self.pm + '\n' + 'IGC parameters: ' + str(np.exp(self.x_IGC)) \
-               + '\n Accessible orlg pairs:' + str(self.accessible_orlg_pair)
+               + '\nAccessible orlg pairs:' + str(self.accessible_orlg_pair)
             
 
 if __name__ == '__main__':

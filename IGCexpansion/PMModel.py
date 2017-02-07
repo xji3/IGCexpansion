@@ -7,7 +7,7 @@ from copy import deepcopy
 
 class PMModel:
     supported = ['HKY']                         # supported models
-    def __init__(self, model_name, x_pm, force = None):
+    def __init__(self, model_name, x_pm, rate_variation, force = None):
         self.name           = model_name          # name of supported models
         self.x_pm           = x_pm                # an array of log() values
         self.data_type      = None                # used for get_iid_observation function in Func.py
@@ -16,13 +16,21 @@ class PMModel:
         self.Q_mut          = None                # Point mutation Q matrix
         self.parameters     = dict()              # a dictionary to store all model parameters
         self.parameter_list = None
+        self.rate_variation = rate_variation      # a bool indicator of whether rate variation among codon sites is considered
         self.init_Q()
 
 
     def init_Q(self):
         assert(self.name in self.supported) # check if PM model is implemented
         if self.name == 'HKY':
-            self.parameter_list = ['Pi_A', 'Pi_C', 'Pi_G', 'Pi_T', 'kappa']
+            if self.rate_variation:
+                self.parameter_list = ['Pi_A', 'Pi_C', 'Pi_G', 'Pi_T', 'kappa', 'r2', 'r3']
+                # r1, r2, r3 are three rates for three nt positions in a codon.
+                # r1 is always 1.0 and is used for the branch length unit.
+                # The name of the parameters are suggested by Jeff.
+            else:
+                self.parameter_list = ['Pi_A', 'Pi_C', 'Pi_G', 'Pi_T', 'kappa']
+
             self.init_HKY_Q()
             self.data_type = 'nt'
 
@@ -31,15 +39,30 @@ class PMModel:
         # first, check x_pm size
         # x_pm = np.log([%AG, %A, %C, kappa])
         # HKY model has 3 parameters for nt frequency, and 1 parameter kappa for transition/transversion ratio
-        assert(len(self.x_pm) == 4)
-        if not self.force == None:
-            assert(all([key < 4 for key in self.force]))
+        assert(self.check_x_pm())
+        assert(self.check_force())
+
         self.unpack_frequency()
         if self.force == None or not 3 in self.force:
             kappa = np.exp(self.x_pm[3])
         else:
             kappa = self.force[3]
         self.parameters['kappa'] = kappa
+
+        # Now add in rate variation
+        if self.rate_variation:
+            if self.force == None or not 4 in self.force:
+                r2 = np.exp(self.x_pm[4])
+            else:
+                r2 = self.force[4]
+
+            if self.force == None or not 5 in self.force:
+                r3 = np.exp(self.x_pm[5])
+            else:
+                r3 = self.force[5]
+
+            self.parameters['r2'] = r2
+            self.parameters['r3'] = r3
 
         # In order of
         # ACGT   A=0, C=1, G=2, T=3
@@ -54,6 +77,29 @@ class PMModel:
         stationary_distn = np.array(stationary_distn) / sum(stationary_distn)
         expected_rate = np.dot(stationary_distn, Qbasic.sum(axis = 1))
         self.Q_mut = Qbasic / expected_rate
+
+    def check_x_pm(self):
+        if self.name == 'HKY':
+            if self.rate_variation:
+                return len(self.x_pm) == 6
+            else:
+                return len(self.x_pm) == 4
+        else:
+            sys.exit('The point mutation model has not been implemented!')
+            return False # Just in case
+
+    def check_force(self):
+        if self.force == None:
+            return True
+        else:
+            if self.name == 'HKY':
+                if self.rate_variation:
+                    return all([key < 6 for key in self.force])
+                else:
+                    return all([key < 4 for key in self.force])
+            else:
+                sys.exit('The point mutation model has not been implemented!')
+                return False # Just in case sys.exit is missed, so that assert still captures.
 
 
     def unpack_frequency(self):
@@ -85,15 +131,32 @@ class PMModel:
         assert(-1 < state < 4)
         # 0:A, 1:C, 2:G, 3:T
         return self.parameters['Pi_' + 'ACGT'[state]]
-        
+
+    def get_HKY_transition_rate(self, transition, codon_site = 1):
+        state_from, state_to = transition
+        if codon_site == 1:
+            return self.Q_mut[state_from, state_to]
+        elif codon_site == 2:
+            assert(self.rate_variation)
+            return self.Q_mut[state_from, state_to] * self.parameters['r2']
+        elif codon_site == 3:
+            assert(self.rate_variation)
+            return self.Q_mut[state_from, state_to] * self.parameters['r3']
 
     def __str__(self): # overide for print function
         return 'Point mutation model: ' + self.name + '\n' + \
-               'Point mutation parameters: ' + ' '.join([item + ' '+ str(self.parameters[item]) for item in self.parameters])
+               'Rate variation: ' + str(self.rate_variation) + '\n' + \
+               'Point mutation parameters: ' + ' '.join([item + ' '+ str(self.parameters[item]) for item in self.parameter_list])
 
 if __name__ == '__main__':
-    test = PMModel('HKY', np.log([0.3, 0.5, 0.2, 9.5]), {2:0.0})
+    test = PMModel('HKY', np.log([0.3, 0.5, 0.2, 9.5]), False, {2:0.0})
     self = test
     print test.Q_mut
     test.update_by_x_pm(np.log([0.1, 0.9, 0.3, 11.0]))
+    print test.Q_mut
+
+    test = PMModel('HKY', np.log([0.3, 0.5, 0.2, 9.5, 0.4, 1.4]), True)
+    self = test
+    print test.Q_mut
+    test.update_by_x_pm(np.log([0.1, 0.9, 0.3, 11.0, 0.4, 1.5]))
     print test.Q_mut
