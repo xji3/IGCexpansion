@@ -82,7 +82,7 @@ class Tree:
         all_nodes = sorted(T.degree().items(), key = lambda node: node[1])
         self.node_to_num = {n[0]:i for i, n in enumerate(all_nodes)}
         self.num_to_node = {i:n[0] for i, n in enumerate(all_nodes)}
-        edge_list = sorted(edge_to_blen.keys(), key = lambda edge: edge[0])
+        edge_list = sorted(edge_to_blen.keys())
          
         # Now setup self.tree dictionary
         tree_row = [self.node_to_num[na] for na, nb in edge_list]
