@@ -19,23 +19,23 @@ from TriGeneconv import *
 
 class JSGeneconv:
     auto_save_step = 2
-    def __init__(self, alignment_file, gene_to_orlg_file, # Data input
-                 tree_newick, DupLosList,                 # Tree input
-                 x_js, pm_model, IGC_pm,    # JSModel input
-                 node_to_pos, terminal_node_list,         # Configuration input
-                 save_file,                               # Auto save file
-#                root_by_dup = False,                     # JSModel input
-                 force = None,                            # Parameter value constraint
+    def __init__(self, alignment_file, gene_to_orlg_file, cdna, # Data input
+                 tree_newick, DupLosList,                       # Tree input
+                 x_js, pm_model, IGC_pm, rate_variation,        # JSModel input
+                 node_to_pos, terminal_node_list,               # Configuration input
+                 save_file,                                     # Auto save file
+                 force = None,                                  # Parameter value constraint
+                 seq_index_file = None,                         # Seq index file
                  nsites = None):  
 
         
         self.tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-        self.data = Data(alignment_file, gene_to_orlg_file)
+        self.data = Data(alignment_file, gene_to_orlg_file, seq_index_file = seq_index_file, cdna = cdna)
         # added new variable for jsmodel
         conf_list = count_process(self.tree.node_to_conf)
         accessible_orlg_pair = get_accessible_orlg_pair(conf_list)
         
-        self.jsmodel = JSModel(self.tree.n_js, x_js, pm_model, self.tree.n_orlg, IGC_pm, accessible_orlg_pair, force)
+        self.jsmodel = JSModel(self.tree.n_js, x_js, pm_model, self.tree.n_orlg, IGC_pm, rate_variation, accessible_orlg_pair, force)
         self.node_to_pos = node_to_pos
         self.terminal_node_list = terminal_node_list
         self.root_by_dup = self.tree.is_duplication_node(self.tree.phylo_tree.root.name)
@@ -49,6 +49,7 @@ class JSGeneconv:
                 self.x = np.concatenate((x_js, np.log([0.01] * len(self.tree.edge_list))))
             else:
                 self.x = np.concatenate((x_js, np.log([0.01] * (len(self.tree.edge_list) - 1))))
+            self.unpack_x(self.x)
 
         assert(self.jsmodel.n_orlg == self.tree.n_orlg)  # make sure n_orlg got updated
         self.ll   = None              # used to store log likelihood
@@ -56,6 +57,10 @@ class JSGeneconv:
         self.auto_save = 0            # used to control auto save frequency
 
         self.nsites = nsites
+        self.iid_observations = None  # Store iid_observations which only needs one time calculation
+        self.observable_nodes = None
+        self.observable_axes  = None  
+        
 
             
     def unpack_x(self, x):
@@ -124,27 +129,54 @@ class JSGeneconv:
         self.tree.get_tree_process(conf_list)
 
         prior_feasible_states, distn = self.get_prior()
-        
-        if self.nsites is None:
-            observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, self.data.nsites, self.jsmodel.PMModel.data_type)
+
+        self.cal_iid_observations()
+        if self.jsmodel.rate_variation:
+            scene = [dict(
+                node_count = len(self.tree.node_to_num),
+                process_count = len(process_definitions),
+                state_space_shape = state_space_shape,
+                tree = self.tree.tree_json,
+                root_prior = {'states':prior_feasible_states,
+                              'probabilities':distn},
+                process_definitions = process_definitions,
+                observed_data = {
+                    'nodes':self.observable_nodes,
+                    'variables':self.observable_axes,
+                    'iid_observations':self.iid_observations[i]
+                    } 
+                ) for i in range(1, 4)]
         else:
-            observable_nodes, observable_axes, iid_observations = get_iid_observations(self.data, self.tree, self.nsites, self.jsmodel.PMModel.data_type)
-        scene = dict(
-            node_count = len(self.tree.node_to_num),
-            process_count = len(process_definitions),
-            state_space_shape = state_space_shape,
-            tree = self.tree.tree_json,
-            root_prior = {'states':prior_feasible_states,
-                          'probabilities':distn},
-            process_definitions = process_definitions,
-            observed_data = {
-                'nodes':observable_nodes,
-                'variables':observable_axes,
-                'iid_observations':iid_observations
-                }
-            )
+            scene = dict(
+                node_count = len(self.tree.node_to_num),
+                process_count = len(process_definitions),
+                state_space_shape = state_space_shape,
+                tree = self.tree.tree_json,
+                root_prior = {'states':prior_feasible_states,
+                              'probabilities':distn},
+                process_definitions = process_definitions,
+                observed_data = {
+                    'nodes':self.observable_nodes,
+                    'variables':self.observable_axes,
+                    'iid_observations':self.iid_observations
+                    }
+                )
         return scene
 
+    def cal_iid_observations(self):
+        if self.iid_observations == None:
+            if self.data.cdna:
+                self.observable_nodes, self.observable_axes, self.iid_observations = get_iid_observations(self.data, self.tree, self.nsites, self.jsmodel.PMModel.data_type)
+                if not self.jsmodel.rate_variation:
+                    self.iid_observations = [i for j in range(1,4) for i in self.iid_observations[j]]
+            else:
+                if self.nsites is None:
+                    self.observable_nodes, self.observable_axes, self.iid_observations = get_iid_observations(self.data, self.tree, self.data.nsites, self.jsmodel.PMModel.data_type)
+                else:
+                    self.observable_nodes, self.observable_axes, self.iid_observations = get_iid_observations(self.data, self.tree, self.nsites, self.jsmodel.PMModel.data_type)
+
+
+        
     def get_expectedNumGeneconv(self, display = False):
         process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
         requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
@@ -356,7 +388,8 @@ if __name__ == '__main__':
     ###########Yeast
 #######################
     gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
-    alignment_file = '../test/YDR418W_YEL054C_MG94_geo_10.0_Sim_8.fasta'
+    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
+    cdna = True
 
     tree_newick = '../test/YeastTree.newick'
     DupLosList = '../test/YeastTestDupLost.txt'
@@ -366,25 +399,45 @@ if __name__ == '__main__':
     summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'
 
     pm_model = 'HKY'
-    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])
     IGC_pm = 'One rate'
-    test = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
+    
+    rate_variation = True
+    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
+    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file)
+    test.cal_iid_observations()
+    scene = test.get_scene()
+    test.get_mle()
+    test.get_individual_summary(summary_file)
+
+
+
+##    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
+##    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
+##
+##    rate_variation = True
+##    x_js = np.log([0.3, 0.5, 0.2, 9.5, 0.4, 1.6, 4.9])
+##    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+##                      node_to_pos, terminal_node_list, save_file)
+##
+##    scene = test.cal_iid_observations()
+
+
     #test.get_mle(method = 'BasinHopping')
-    test.get_mle(method = 'DifferentialEvolution')
-    self = test
-    print(test.tree.n_js, test.tree.n_orlg)
-
-    pm_model = 'HKY'
-    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376, 1.5456])
-    IGC_pm = 'Most general'
-    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_Most_general_save.txt'
-    summary_file = '../test/HKY_YLR406C_YDL075W_nonclock_dir_summary.txt'
-
-    test_2 = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
-                      node_to_pos, terminal_node_list, save_file)
-
-    self = test_2
+##    test.get_mle(method = 'DifferentialEvolution')
+##    self = test
+##    print(test.tree.n_js, test.tree.n_orlg)
+##
+##    pm_model = 'HKY'
+##    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376, 1.5456])
+##    IGC_pm = 'Most general'
+##    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_Most_general_save.txt'
+##    summary_file = '../test/HKY_YLR406C_YDL075W_nonclock_dir_summary.txt'
+##
+##    test_2 = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
+##                      node_to_pos, terminal_node_list, save_file)
+##
+##    self = test_2
 #    print test.get_scene(100)
     #test_2.get_mle(method = 'BasinHopping')
     #test.get_expectedNumGeneconv()

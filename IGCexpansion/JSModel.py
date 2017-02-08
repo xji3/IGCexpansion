@@ -14,13 +14,13 @@ import scipy.sparse.linalg
 from Common import *
 
 class JSModel:
-    def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, pm_rate_variation = False, accessible_orlg_pair = None, force = None):
+    def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, rate_variation = False, accessible_orlg_pair = None, force = None):
         self.n_js   = n_js            # number of contemporaneous paralog states considered on each branch
         self.x_js   = x_js            # one concatenated vector to store all rate matrix parameters
         self.x_pm   = None            # x_pm vector for PMModel
         self.x_IGC  = None            # x_IGC vector for IGCModel
         self.force  = force           # parameter value constraint
-        self.pm_rate_variation = pm_rate_variation  # bool indicator of rate variation for point mutation model
+        self.rate_variation = rate_variation  # bool indicator of rate variation for point mutation model
 
         self.pm_model = pm_model      # name of point mutation model
         self.IGC_pm   = IGC_pm        # IGC parameterization
@@ -41,7 +41,7 @@ class JSModel:
         assert(self.IGC_pm in IGCModel.supported)
         if self.pm_model == 'HKY':
             num_x_pm = 4
-            if self.pm_rate_variation:
+            if self.rate_variation:
                 num_x_pm += 2
         else:
             sys.exit( 'The point mutation model is not supported.')
@@ -109,7 +109,7 @@ class JSModel:
             print 'The point mutation model has not been implemented.'
 
         pm_force, IGC_force = self.divide_force()
-        self.PMModel = PMModel(self.pm_model, self.x_pm, self.pm_rate_variation, pm_force)
+        self.PMModel = PMModel(self.pm_model, self.x_pm, self.rate_variation, pm_force)
         self.IGCModel = IGCModel(self.x_IGC, self.n_orlg, self.IGC_pm, self.accessible_orlg_pair, IGC_force)
         assert( len(set(self.state_space_shape)) == 1) # now consider only same state space model
         self.update_by_x_js(self.x_js)
@@ -258,7 +258,7 @@ class JSModel:
                             yield state_from, state_to, self.cal_js_directional_transition_proportion([state_from, state_to], configuration, orlg_pair, codon_site)
 
 
-    def get_process_definition(self, configuration, codon_site = 1, proportion = False):
+    def get_process_definition(self, configuration, proportion = False, codon_site = 1):
         row_states = []
         column_states = []
         transition_rates = []
@@ -323,15 +323,16 @@ class JSModel:
 if __name__ == '__main__':
     pm_model = 'HKY'
     x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])
-    n_orlg = 4
+    n_orlg = 3
     IGC_pm = 'One rate'
-    n_js = 5
+    n_js = 2
     test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm)
     self = test
     
     x_js = np.log([0.3, 0.5, 0.2, 9.5, 0.4, 1.6, 4.9])
     test = JSModel(n_js, x_js, pm_model, n_orlg, IGC_pm, True)
     self = test
+    process = test.get_process_definition([[1, 1], [2, 1]])
 ##
 ##    test_configuration = [(i/2, 1) for i in range(n_js)]
 ##    print 'test configuration = ', test_configuration

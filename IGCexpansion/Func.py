@@ -37,19 +37,41 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
     observable_axes  = [item[2] for item in name_node_axes]
     observed_names   = [item[0] for item in name_node_axes]
 
-    iid_observations = []
-    for site in range(nsites):
-        observations = []
-        for name in observed_names:
-            if name == 'distinct':
-                observation = -1
-            elif data.name_to_seq[name][site] == 'n' or data.name_to_seq[name][site] == '-':
-                observation = -1
+    if data.cdna:
+        iid_observations = {i:[] for i in range(1, 4)}
+        for codon_site in range(1, 4):
+            if nsites == None:
+                iter_max = len(data.codon_site_to_pos[codon_site])
             else:
-                observation = obs_to_state[data.name_to_seq[name][site].upper()]
-            observations.append(observation)
-        
-        iid_observations.append(observations)
+                iter_max = nsites
+            for site in range(iter_max):
+                observations = []
+                for name in observed_names:
+                    observed_nt = data.name_to_seq[name][data.codon_site_to_pos[codon_site][site]]
+                    if name == 'distinct':
+                        observation = -1
+                    elif observed_nt == 'n' or observed_nt == '-':
+                        observation = -1
+                    else:
+                        observation = obs_to_state[observed_nt.upper()]
+                    observations.append(observation)
+                
+                iid_observations[codon_site].append(observations)
+    else:
+        assert(nsites)
+        iid_observations = []
+        for site in range(nsites):
+            observations = []
+            for name in observed_names:
+                if name == 'distinct':
+                    observation = -1
+                elif data.name_to_seq[name][site] == 'n' or data.name_to_seq[name][site] == '-':
+                    observation = -1
+                else:
+                    observation = obs_to_state[data.name_to_seq[name][site].upper()]
+                observations.append(observation)
+            
+            iid_observations.append(observations)
 
     return observable_nodes, observable_axes, iid_observations
 
@@ -106,13 +128,13 @@ def count_process(node_to_conf):
 
     return sorted(conf_list)
     
-def get_process_definitions(tree, jsmodel, proportions = False):
+def get_process_definitions(tree, jsmodel, proportions = False, codon_site = 1):
     assert(isinstance(tree, Tree) and isinstance(jsmodel, JSModel))
     conf_list = count_process(tree.node_to_conf)
     process_definitions = []
     for conf in conf_list:
         #print conf
-        process = jsmodel.get_process_definition(conf, proportions)
+        process = jsmodel.get_process_definition(conf, proportions, codon_site)
         process_definitions.append(process)
     return process_definitions, conf_list
 
