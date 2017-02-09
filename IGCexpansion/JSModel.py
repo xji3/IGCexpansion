@@ -73,8 +73,10 @@ class JSModel:
         assert(self.IGC_pm in IGCModel.supported)
         if self.pm_model == 'HKY':
             num_x_pm = 4
+            if self.rate_variation:
+                num_x_pm += 2
         else:
-            print 'The point mutation model is not supported.'
+            sys.exit( 'The point mutation model is not supported.')
             num_x_pm = 0
 
         if self.IGC_pm == 'One rate':

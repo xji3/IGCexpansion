@@ -232,10 +232,11 @@ class JSGeneconv:
                 status = j_out['status']
                 ll += j_out['responses'][0]
 
-            if edge_derivative:
-                edge_derivs += np.array(j_out['responses'][1])
-            else:
-                edge_derivs = []
+                if edge_derivative:
+                    #print('In _loglikelihood() edge_derivs: ', j_out['responses'][1])
+                    edge_derivs += np.array(j_out['responses'][1])
+                else:
+                    edge_derivs = []
         else:
             j_in = {
                 'scene' : scene,
@@ -281,12 +282,17 @@ class JSGeneconv:
 
         for i in range(m):
             if self.force == None or not i in self.force:
-                x_plus_delta = np.array(self.x)
+                x_plus_delta = deepcopy(np.array(self.x))
                 x_plus_delta[i] += delta
                 self.unpack_x(x_plus_delta)
-                ll_delta, _ = self._loglikelihood(False)
-                d_estimate = (ll_delta - ll) / delta
+                ll_plus, _ = self._loglikelihood(False)
+                x_plus_delta[i] -= 2*delta
+                self.unpack_x(x_plus_delta)
+                ll_minus, _ = self._loglikelihood(False)
+                d_estimate = (ll_plus - ll_minus) / (2 * delta)
                 other_derivs.append(d_estimate)
+                # restore x_plut_delta
+                x_plus_delta[i] += delta
                 # restore self.x
                 self.unpack_x(x)
             else:
@@ -420,37 +426,63 @@ if __name__ == '__main__':
     DupLosList = '../test/YeastTestDupLost.txt'
     terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
     node_to_pos = {'D1':0}
-    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_One_rate_save.txt'
-    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'
-
     pm_model = 'HKY'
     IGC_pm = 'One rate'
-    
-##    rate_variation = False
-##    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
-##    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-##                      node_to_pos, terminal_node_list, save_file)
-##    test.cal_iid_observations()
-##    scene = test.get_scene()
-##    test.get_mle()
-##    test.get_individual_summary(summary_file)
+
+
+
+    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_One_rate_save.txt'
+    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'    
+    rate_variation = False
+    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
+    test_old = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_file)
+    test_old.get_mle()
+    print (test_old._loglikelihood(True))
+
+    save_file = '../test/save/Force_HKY_YDR418W_YEL054C_nonclock_One_rate_save.txt'
+    summary_file = '../test/Summary/Force_HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'    
+    rate_variation = False
+    force = {4:0.0}
+    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
+    test_old_force = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_file, force)
+    test_old_force.get_mle()
+    print (test_old_force._loglikelihood(True))
 
 
 
     save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
     summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
-
     rate_variation = True
-    x_js = np.log([0.3, 0.5, 0.2, 9.5, 1.0, 2.6, 5.9])
+#    x_js = np.log([0.3, 0.5, 0.2, 9.5, 1.0, 2.6, 5.9])
+    x_js = np.concatenate((test_old.jsmodel.x_js[:-1], [0.0, 0.0, test_old.jsmodel.x_js[-1]]))
+    x = np.concatenate((x_js, test_old.x[len(test_old.jsmodel.x_js):]))
     test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file)
+    test.get_mle()
+    
+
+    save_file = '../test/save/Force_HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
+    summary_file = '../test/Summary/Force_HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
+
+    rate_variation = True
+    force = {6:0.0}
+    #x_js = np.concatenate((test_old.jsmodel.x_js[:-1], [0.0, 0.0, test_old.jsmodel.x_js[-1]]))
+    x_js = np.log([0.3, 0.5, 0.2, 9.5, 1.0, 2.6, 5.9])
+    test_force = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_file, force)
+    x = np.concatenate((x_js, test_old.x[len(test_old.jsmodel.x_js):]))
+    test_force.get_mle()
+
+    
     self = test
     print (test._loglikelihood(True))
     test.cal_iid_observations()
     scene = test.get_scene()
     print(test.loglikelihood_and_gradient(True))
-    test.get_mle()
-    test.get_individual_summary(summary_file)
+
+    #test.get_individual_summary(summary_file)
 
 
     #test.get_mle(method = 'BasinHopping')
