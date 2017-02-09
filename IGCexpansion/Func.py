@@ -7,6 +7,7 @@ from Tree import Tree
 from JSModel import JSModel
 import numpy as np
 from copy import deepcopy
+from itertools import product
 from Common import *
 
 
@@ -76,9 +77,16 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
     return observable_nodes, observable_axes, iid_observations
 
 
-def get_PS_iid_observations(data, tree, nsites, n, data_type = 'nt'):
+def get_PS_iid_observations(data, tree, nsites, n, codon_site_pair = None, data_type = 'nt'):
     assert(isinstance(data, Data) and isinstance(tree, Tree))
-    assert(nsites  <= len(data.space_idx_pairs[n]))
+    if codon_site_pair == None:
+        assert(not data.cdna)
+        assert(nsites  <= len(data.space_idx_pairs[n]))
+    else:
+        assert(type(codon_site_pair) == tuple and len(codon_site_pair) == 2 and all([ 0 < i < 4 for i in codon_site_pair]))
+        assert(n in data.two_sites_name_to_seq[codon_site_pair])
+        assert(nsites  <= len(data.space_idx_pairs[codon_site_pair][n]))
+    
     # Generate iid_observations from data class and tree class
     if data_type == 'nt':
         obs_to_state = {nt:'ACGT'.index(nt) for nt in 'ACGT'}
@@ -111,12 +119,25 @@ def get_PS_iid_observations(data, tree, nsites, n, data_type = 'nt'):
             if name == 'distinct':
                 sys.exit('There should not be distinction!')
             else:
-                observation = translate_two_nt_to_one_state(data.two_sites_name_to_seq[n][name][site])
+                if codon_site_pair == None:
+                    observation = translate_two_nt_to_one_state(data.two_sites_name_to_seq[n][name][site])
+                else:
+                    observation = translate_two_nt_to_one_state(data.two_sites_name_to_seq[codon_site_pair][n][name][site])
             observations.append(observation)
         #print observations, observed_names
         iid_observations.append(observations)
 
     return observable_nodes, observable_axes, iid_observations
+
+def get_all_PS_iid_observations(data, tree, data_type = 'nt'):
+    assert(data.cdna and data_type == 'nt')
+    iid_observations = {(i, j):dict() for i, j in product(range(1, 4), repeat = 2)}
+    for codon_site_pair in iid_observations:
+        for n in data.two_sites_name_to_seq[codon_site_pair]:
+            nsites = len(data.space_idx_pairs[codon_site_pair][n])
+            iid_observable_nodes, observable_axes, single_iid_observations = get_PS_iid_observations(data, tree, nsites, n, codon_site_pair = codon_site_pair, data_type = data_type)
+            iid_observations[codon_site_pair][n] = single_iid_observations
+    return iid_observable_nodes, observable_axes, iid_observations
 
 def count_process(node_to_conf):
     conf_list = []

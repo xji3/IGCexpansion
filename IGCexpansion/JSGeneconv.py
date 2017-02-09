@@ -59,7 +59,9 @@ class JSGeneconv:
         self.nsites = nsites
         self.iid_observations = None  # Store iid_observations which only needs one time calculation
         self.observable_nodes = None
-        self.observable_axes  = None  
+        self.observable_axes  = None
+
+        assert(self.self_check())
         
 
             
@@ -74,6 +76,13 @@ class JSGeneconv:
             x_js   = x[:-(len(self.tree.edge_list) - 1)]
         self.unpack_x_rates(x_rate)
         self.jsmodel.update_by_x_js(x_js)
+
+    def self_check(self):
+        check_status = True
+        if self.jsmodel.rate_variation:
+            check_status = check_status and self.data.cdna
+
+        return check_status
 
     def unpack_x_rates(self, x_rate):
         if self.root_by_dup:

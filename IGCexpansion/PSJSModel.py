@@ -16,7 +16,7 @@ from Common import *
 class PSJSModel:
     supported = ['One rate']
     # Consider only two paralog case
-    def __init__(self, x_js, pm_model, n_orlg, IGC_pm, force = None, n_js = 2):
+    def __init__(self, x_js, pm_model, n_orlg, IGC_pm, rate_variation = False, force = None, n_js = 2):
         self.n_js   = n_js            # number of contemporaneous paralog states considered on each branch
         self.x_js   = x_js            # a concatenated vector storing x_pm + x_IGC        
         self.x_pm   = None            # x_pm vector for PMModel
@@ -24,6 +24,7 @@ class PSJSModel:
         self.IGC_force = None         # parameter value constraints on IGC
         self.force  = force           # parameter value constraint
         self.IGC_pm = IGC_pm
+        self.rate_variation = rate_variation # bool indicator of rate variation for point mutation model
 
         self.pm_model = pm_model      # name of point mutation model
         self.n_orlg   = n_orlg        # total number of ortholog groups
@@ -43,6 +44,8 @@ class PSJSModel:
         assert(self.IGC_pm in PSJSModel.supported)
         if self.pm_model == 'HKY':
             num_x_pm = 4
+            if self.rate_variation:
+                num_x_pm += 2
         else:
             sys.exit( 'The point mutation model is not supported.')
 
@@ -101,7 +104,7 @@ class PSJSModel:
             sys.exit('The point mutation model has not been implemented.')
 
         pm_force, IGC_force = self.divide_force()
-        self.PMModel = PMModel(self.pm_model, self.x_pm, pm_force)
+        self.PMModel = PMModel(self.pm_model, self.x_pm, self.rate_variation, pm_force)
         #self.PSIGCModel = PSIGCModel(self.x_IGC, self.n_orlg, self.IGC_pm, force = IGC_force)
         self.IGC_force = IGC_force
         assert( len(set(self.state_space_shape)) == 1) # now consider only same state space model
@@ -133,7 +136,7 @@ class PSJSModel:
             sys.exit('Check is_transition_compatible function in PSJSModel class.')
         
         
-    def cal_IGC_transition_rate(self, transition, n, proportion = False):
+    def cal_IGC_transition_rate(self, transition, n, codon_site_pair, proportion = False):
         # n is the distance between two sites
         # n = 1, 2, 3, ...
         # Transition should be compatible
@@ -141,6 +144,10 @@ class PSJSModel:
         
         # Now get the two states
         state_from, state_to = transition
+
+        # Now extend the codon_site_pair to have compatible size as states
+        extended_cdn_site_pair = codon_site_pair * 2
+        assert(len(extended_cdn_site_pair) == len(state_from))
 
         # Get positions in the state that differ
         pos_list = [i for i in range(len(state_from)) if state_from[i] != state_to[i]]
@@ -152,8 +159,9 @@ class PSJSModel:
             IGC_0_and_n = IGC_init / IGC_p * (1 - IGC_p) ** n
             if len(pos_list) == 1:
                 pos = pos_list[0]
+                codon_site = extended_cdn_site_pair[pos]
                 same_paralog_other_pos, other_paralog_same_pos, other_paralog_other_pos = self.get_other_pos(pos)
-                q_ij = self.PMModel.Q_mut[state_from[pos], state_to[pos]]
+                q_ij = self.PMModel.get_HKY_transition_rate((state_from[pos], state_to[pos]), codon_site)
                 if state_to[pos] == state_from[other_paralog_same_pos] \
                    and state_from[same_paralog_other_pos] == state_from[other_paralog_other_pos]:
                     q_IGC = IGC_0_not_n + IGC_0_and_n
@@ -180,14 +188,14 @@ class PSJSModel:
         else:
             sys.exit('Cal_IGC_transition_rate not implemented yet.')
     
-    def get_IGC_transition_rates_BF(self, n, proportion = False):
+    def get_IGC_transition_rates_BF(self, n, codon_site_pair, proportion = False):
         # This function is only for checking code, it should not be used in real calculation
         for state_from in itertools.product(range(4), repeat = self.n_js * 2):
             for state_to in itertools.product(range(4), repeat = self.n_js * 2):
                 if self.is_transition_compatible((state_from, state_to)):
-                    yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, proportion)
+                    yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, codon_site_pair, proportion)
 
-    def get_IGC_transition_rates(self, n, proportion = False):
+    def get_IGC_transition_rates(self, n, codon_site_pair, proportion = False):
         # This function is only for checking code, it should not be used in real calculation
         for state_from in itertools.product(range(4), repeat = self.n_js * 2):
             # Now visit only possible state_to
@@ -199,7 +207,7 @@ class PSJSModel:
                     new_state = list(deepcopy(state_from))
                     new_state[i] = nt
                     new_state = tuple(new_state)
-                    yield state_from, new_state, self.cal_IGC_transition_rate((state_from, new_state), n, proportion)
+                    yield state_from, new_state, self.cal_IGC_transition_rate((state_from, new_state), n, codon_site_pair, proportion)
             
             # two site changes
             if state_from[0] != state_from[2] and state_from[1] != state_from[3]:
@@ -207,13 +215,13 @@ class PSJSModel:
                 state_to[0] = state_from[2]
                 state_to[1] = state_from[3]
                 state_to = tuple(state_to)
-                yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, proportion)
+                yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, codon_site_pair, proportion)
 
                 state_to = list(deepcopy(state_from))
                 state_to[2] = state_from[0]
                 state_to[3] = state_from[1]
                 state_to = tuple(state_to)
-                yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, proportion)
+                yield state_from, state_to, self.cal_IGC_transition_rate((state_from, state_to), n, codon_site_pair, proportion)
 
 
     def is_compatible_pm_transition(self, transition):
@@ -237,23 +245,24 @@ class PSJSModel:
         else:
             return False
 
-    def cal_PM_transition_rate(self, transition):
+    def cal_PM_transition_rate(self, transition, codon_site_pair):
         assert(self.is_compatible_pm_transition(transition))
         state_from, state_to = transition
         pos_list = [i for i in range(len(state_from) / 2) if state_from[i] != state_to[i]]
         pos = pos_list[0]
-        return self.PMModel.Q_mut[state_from[pos], state_to[pos]]
+        codon_site = codon_site_pair[pos]
+        return self.PMModel.get_HKY_transition_rate((state_from[pos], state_to[pos]), codon_site)
             
-    def get_PM_transition_rates_BF(self):
+    def get_PM_transition_rates_BF(self, codon_site_pair):
         # This function is only for checking code, it should not be used in real calculation
         for state_from in itertools.product(range(4), repeat = self.n_js):
             state_from = state_from + state_from
             for state_to in itertools.product(range(4), repeat = self.n_js):
                 state_to = state_to + state_to
                 if self.is_compatible_pm_transition((state_from, state_to)):
-                    yield state_from, state_to, self.cal_PM_transition_rate((state_from, state_to)) 
+                    yield state_from, state_to, self.cal_PM_transition_rate((state_from, state_to), codon_site_pair) 
 
-    def get_PM_transition_rates(self):
+    def get_PM_transition_rates(self, codon_site_pair):
         for state_from in itertools.product(range(4), repeat = self.n_js):
             state_from = state_from + state_from
             for i in range(2):
@@ -263,14 +272,14 @@ class PSJSModel:
                     state_to = list(deepcopy(state_from))
                     state_to[i] = state_to[i + 2] = nt
                     state_to = tuple(state_to)
-                    yield state_from, state_to, self.cal_PM_transition_rate((state_from, state_to))
+                    yield state_from, state_to, self.cal_PM_transition_rate((state_from, state_to), codon_site_pair)
                      
         
-    def get_IGC_process_definition(self, n, proportion = False):
+    def get_IGC_process_definition(self, n, codon_site_pair = (1, 1), proportion = False):
         row_states = []
         column_states = []
         transition_rates = []
-        for row_state, col_state, transition_rate in self.get_IGC_transition_rates(n, proportion):
+        for row_state, col_state, transition_rate in self.get_IGC_transition_rates(n, codon_site_pair, proportion):
             row_states.append(translate_four_nt_to_two_state(row_state))
             column_states.append(translate_four_nt_to_two_state(col_state))
             transition_rates.append(transition_rate)
@@ -287,11 +296,11 @@ class PSJSModel:
                 transition_rates = transition_rates)
         return process_definition
 
-    def get_PM_process_definition(self):
+    def get_PM_process_definition(self, codon_site_pair = (1, 1)):
         row_states = []
         column_states = []
         transition_rates = []
-        for row_state, col_state, transition_rate in self.get_PM_transition_rates():
+        for row_state, col_state, transition_rate in self.get_PM_transition_rates(codon_site_pair):
             row_states.append(translate_four_nt_to_two_state(row_state))
             column_states.append(translate_four_nt_to_two_state(col_state))
             transition_rates.append(transition_rate)
@@ -319,10 +328,11 @@ class PSJSModel:
 if __name__ == '__main__':
 
     pm_model = 'HKY'
-    x_js = np.concatenate((np.log([0.3, 0.5, 0.2, 9.5]), np.log([0.3, 1.0 / 30.0 ])))
+    x_js = np.concatenate((np.log([0.3, 0.5, 0.2, 9.5, 1.2, 2.5]), np.log([0.3, 1.0 / 30.0 ])))
     IGC_pm = 'One rate'
     n_orlg = 3
-    test = PSJSModel(x_js, pm_model, n_orlg, IGC_pm)
+    rate_variation = True
+    test = PSJSModel(x_js, pm_model, n_orlg, IGC_pm, rate_variation)
     self = test
 
     transition = [(0, 2, 2, 3), (0, 2, 2, 1)]
@@ -332,7 +342,7 @@ if __name__ == '__main__':
     IGC_0_not_n = IGC_init / IGC_p * (1 - (1 - IGC_p) ** n)
     IGC_0_and_n = IGC_init / IGC_p * (1 - IGC_p) ** n
     print IGC_0_not_n, IGC_0_and_n
-    print test.is_transition_compatible(transition), test.cal_IGC_transition_rate(transition, n)
+    print test.is_transition_compatible(transition), test.cal_IGC_transition_rate(transition, n, (1, 1)), test.cal_IGC_transition_rate(transition, n, (1, 3))
     print test.PMModel.Q_mut
     a = test.get_IGC_process_definition(10)
     print len(a['row_states'])

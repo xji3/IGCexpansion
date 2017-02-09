@@ -3,6 +3,7 @@
 # Xiang Ji
 # xji3@ncsu.edu
 from __future__ import print_function
+from itertools import product
 import jsonctmctree.ll, jsonctmctree.interface
 from Data import Data
 from Tree import Tree
@@ -15,25 +16,27 @@ import scipy.optimize
 import os
 from Common import *
 
+
 from TriGeneconv import *
 
 class PSJSGeneconv:
     auto_save_step = 2
     def __init__(self, alignment_file, gene_to_orlg_file, # Data input
-                 seq_index_file,                          # Data input                 
+                 seq_index_file, cdna, allow_same_codon,  # Data input                 
                  tree_newick, DupLosList,                 # Tree input
-                 x_js, pm_model, IGC_pm,                  # JSModel input
+                 x_js, pm_model, IGC_pm, rate_variation,  # PSJSModel input
                  node_to_pos, terminal_node_list,         # Configuration input
                  save_file,                               # Auto save file
 #                root_by_dup = False,                     # JSModel input
-                 force = None,                            # Parameter value constraint
+                 force = None,                            # PSJS Parameter value constraint
                  nsites = None, space_list = None
                  ):  
 
         
         self.tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-        self.data = Data(alignment_file, gene_to_orlg_file, seq_index_file = seq_index_file, two_sites = True, space_list = space_list)        
-        self.psjsmodel = PSJSModel(x_js, pm_model, self.tree.n_orlg, IGC_pm, force)
+        self.data = Data(alignment_file, gene_to_orlg_file, seq_index_file = seq_index_file, two_sites = True, space_list = space_list,
+                         cdna = cdna, allow_same_codon = allow_same_codon)        
+        self.psjsmodel = PSJSModel(x_js, pm_model, self.tree.n_orlg, IGC_pm, rate_variation, force)
         self.node_to_pos = node_to_pos
         self.terminal_node_list = terminal_node_list
         self.root_by_dup = self.tree.is_duplication_node(self.tree.phylo_tree.root.name)
@@ -54,6 +57,19 @@ class PSJSGeneconv:
         self.auto_save = 0            # used to control auto save frequency
 
         self.nsites = nsites
+        self.iid_observations = None  # Store iid_observations which only needs one time calculation
+        self.observable_nodes = None
+        self.observable_axes  = None
+
+        assert(self.self_check())
+
+
+    def self_check(self):
+        check_status = True
+        if self.psjsmodel.rate_variation:
+            check_status = check_status and self.data.cdna
+
+        return check_status
 
             
     def unpack_x(self, x):
@@ -131,6 +147,22 @@ class PSJSGeneconv:
                 }
             )
         return scene
+
+    def cal_iid_observations(self):
+        if self.iid_observations == None:
+            if self.data.cdna:
+                self.observable_nodes, self.observable_axes, self.iid_observations = get_all_PS_iid_observations(self.data, self.tree, self.psjsmodel.PMModel.data_type)
+                if not self.psjsmodel.rate_variation:
+                    new_iid_observations = {n:[] for n in self.data.space_list}
+                    for n in self.data.space_list:
+                        new_iid_observations[n] = [i for j in product(range(1, 4), repeat = 2) if n in self.iid_observations[j] for i in self.iid_observations[j][n] ]
+                    self.iid_observations = new_iid_observations
+            else:
+                if self.nsites is None:
+                    self.observable_nodes, self.observable_axes, self.iid_observations = get_PS_iid_observations(self.data, self.tree, self.data.nsites, self.psjsmodel.PMModel.data_type)
+                else:
+                    self.observable_nodes, self.observable_axes, self.iid_observations = get_iid_observations(self.data, self.tree, self.nsites, self.psjsmodel.PMModel.data_type)
+
 
 
     def _loglikelihood(self, n, edge_derivative = False):
@@ -426,9 +458,13 @@ if __name__ == '__main__':
     IGC_pm = 'One rate'
     space_list = range(1, 330, 20)
     space_list = None
-    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
+    cdna = True
+    allow_same_codon = True
+    rate_variation = False
+    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, space_list = space_list)
     self = test
+    test.cal_iid_observations()
     #print(test.loglikelihood_and_gradient_for_one_n(n))
     #test.get_mle()
     #test.get_individual_summary(summary_file)

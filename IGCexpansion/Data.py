@@ -213,8 +213,8 @@ if __name__ == '__main__':
     seq_index_file = None
     space_list = None
     
-    test = Data(alignment_file, gene_to_orlg_file, two_sites = False,
-                space_list = space_list, seq_index_file = seq_index_file, cdna = True, allow_same_codon = False)
+    test = Data(alignment_file, gene_to_orlg_file, two_sites = True,
+                space_list = space_list, seq_index_file = seq_index_file, cdna = True, allow_same_codon = True)
     print test.seq_index
     self = test
     #print test.gene_to_orlg, test.name_to_seq
