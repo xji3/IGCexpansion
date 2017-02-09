@@ -132,7 +132,7 @@ class PMModel:
         # 0:A, 1:C, 2:G, 3:T
         return self.parameters['Pi_' + 'ACGT'[state]]
 
-    def get_HKY_transition_rate(self, transition, codon_site = 1):
+    def get_HKY_transition_rate(self, transition, codon_site):
         state_from, state_to = transition
         if codon_site == 1:
             return self.Q_mut[state_from, state_to]

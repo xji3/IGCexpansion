@@ -125,28 +125,35 @@ class JSGeneconv:
     
     def get_scene(self):
         state_space_shape = self.jsmodel.state_space_shape
-        process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
+        conf_list = count_process(self.tree.node_to_conf)
+        
         self.tree.get_tree_process(conf_list)
 
         prior_feasible_states, distn = self.get_prior()
 
         self.cal_iid_observations()
         if self.jsmodel.rate_variation:
-            scene = [dict(
-                node_count = len(self.tree.node_to_num),
-                process_count = len(process_definitions),
-                state_space_shape = state_space_shape,
-                tree = self.tree.tree_json,
-                root_prior = {'states':prior_feasible_states,
-                              'probabilities':distn},
-                process_definitions = process_definitions,
-                observed_data = {
-                    'nodes':self.observable_nodes,
-                    'variables':self.observable_axes,
-                    'iid_observations':self.iid_observations[i]
-                    } 
-                ) for i in range(1, 4)]
+            scene_list = []
+            for codon_site in range(1, 4):
+                process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, codon_site = codon_site)
+                scene = dict(
+                    node_count = len(self.tree.node_to_num),
+                    process_count = len(process_definitions),
+                    state_space_shape = state_space_shape,
+                    tree = self.tree.tree_json,
+                    root_prior = {'states':prior_feasible_states,
+                                  'probabilities':distn},
+                    process_definitions = process_definitions,
+                    observed_data = {
+                        'nodes':self.observable_nodes,
+                        'variables':self.observable_axes,
+                        'iid_observations':self.iid_observations[codon_site]
+                        } 
+                    )
+                scene_list.append(scene)
+            return scene_list
         else:
+            process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
             scene = dict(
                 node_count = len(self.tree.node_to_num),
                 process_count = len(process_definitions),
@@ -161,7 +168,7 @@ class JSGeneconv:
                     'iid_observations':self.iid_observations
                     }
                 )
-        return scene
+            return scene
 
     def cal_iid_observations(self):
         if self.iid_observations == None:
@@ -212,20 +219,38 @@ class JSGeneconv:
             requests = [log_likelihood_request, derivatives_request]
         else:
             requests = [log_likelihood_request]
-        j_in = {
-            'scene' : scene,
-            'requests' : requests
-            }
-        j_out = jsonctmctree.interface.process_json_in(j_in)
 
-        status = j_out['status']
-    
-        ll = j_out['responses'][0]
-        self.ll = ll
-        if edge_derivative:
-            edge_derivs = j_out['responses'][1]
+        if self.jsmodel.rate_variation:
+            edge_derivs = 0.0
+            ll = 0.0
+            for codon_site_scene in scene:
+                j_in = {
+                    'scene' : codon_site_scene,
+                    'requests' : requests
+                    }
+                j_out = jsonctmctree.interface.process_json_in(j_in)
+                status = j_out['status']
+                ll += j_out['responses'][0]
+
+            if edge_derivative:
+                edge_derivs += np.array(j_out['responses'][1])
+            else:
+                edge_derivs = []
         else:
-            edge_derivs = []
+            j_in = {
+                'scene' : scene,
+                'requests' : requests
+                }
+            j_out = jsonctmctree.interface.process_json_in(j_in)
+
+            status = j_out['status']
+        
+            ll = j_out['responses'][0]
+            self.ll = ll
+            if edge_derivative:
+                edge_derivs = j_out['responses'][1]
+            else:
+                edge_derivs = []
 
         return ll, edge_derivs
 
@@ -350,8 +375,8 @@ class JSGeneconv:
         self.unpack_x(self.x)
         
     def get_summary(self):
-        summary_mat = [self.ll]
-        label = ['ll']
+        summary_mat = [self.ll, self.data.nsites]
+        label = ['ll', 'length']
         
         for par in self.jsmodel.PMModel.parameter_list:
             label.append(par)
@@ -401,26 +426,31 @@ if __name__ == '__main__':
     pm_model = 'HKY'
     IGC_pm = 'One rate'
     
-    rate_variation = True
-    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
-    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-                      node_to_pos, terminal_node_list, save_file)
-    test.cal_iid_observations()
-    scene = test.get_scene()
-    test.get_mle()
-    test.get_individual_summary(summary_file)
-
-
-
-##    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
-##    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
-##
-##    rate_variation = True
-##    x_js = np.log([0.3, 0.5, 0.2, 9.5, 0.4, 1.6, 4.9])
+##    rate_variation = False
+##    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
 ##    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
 ##                      node_to_pos, terminal_node_list, save_file)
-##
-##    scene = test.cal_iid_observations()
+##    test.cal_iid_observations()
+##    scene = test.get_scene()
+##    test.get_mle()
+##    test.get_individual_summary(summary_file)
+
+
+
+    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
+    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
+
+    rate_variation = True
+    x_js = np.log([0.3, 0.5, 0.2, 9.5, 1.0, 2.6, 5.9])
+    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_file)
+    self = test
+    print (test._loglikelihood(True))
+    test.cal_iid_observations()
+    scene = test.get_scene()
+    print(test.loglikelihood_and_gradient(True))
+    test.get_mle()
+    test.get_individual_summary(summary_file)
 
 
     #test.get_mle(method = 'BasinHopping')
