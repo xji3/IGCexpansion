@@ -129,14 +129,27 @@ def get_PS_iid_observations(data, tree, nsites, n, codon_site_pair = None, data_
 
     return observable_nodes, observable_axes, iid_observations
 
-def get_all_PS_iid_observations(data, tree, data_type = 'nt'):
-    assert(data.cdna and data_type == 'nt')
-    iid_observations = {(i, j):dict() for i, j in product(range(1, 4), repeat = 2)}
-    for codon_site_pair in iid_observations:
-        for n in data.two_sites_name_to_seq[codon_site_pair]:
-            nsites = len(data.space_idx_pairs[codon_site_pair][n])
-            iid_observable_nodes, observable_axes, single_iid_observations = get_PS_iid_observations(data, tree, nsites, n, codon_site_pair = codon_site_pair, data_type = data_type)
-            iid_observations[codon_site_pair][n] = single_iid_observations
+def get_all_PS_iid_observations(data, tree, data_type = 'nt', nsites = None):
+    assert(data_type == 'nt')
+    if data.cdna:
+        iid_observations = {(i, j):dict() for i, j in product(range(1, 4), repeat = 2)}
+        for codon_site_pair in iid_observations:
+            for n in data.two_sites_name_to_seq[codon_site_pair]:
+                if nsites == None:
+                    used_nsites = len(data.space_idx_pairs[codon_site_pair][n])
+                else:
+                    used_nsites = min([nsites, len(data.space_idx_pairs[codon_site_pair][n])])
+                iid_observable_nodes, observable_axes, single_iid_observations = get_PS_iid_observations(data, tree, used_nsites, n, codon_site_pair = codon_site_pair, data_type = data_type)
+                iid_observations[codon_site_pair][n] = single_iid_observations
+    else:
+        iid_observations = {n:[] for n in data.space_list}
+        for n in data.space_list:
+            if nsites == None:
+                used_nsites = len(data.space_idx_pairs[n])
+            else:
+                used_nsites = min([nsites, len(data.space_idx_pairs[n])])
+            iid_observable_nodes, observable_axes, single_iid_observations = get_PS_iid_observations(data, tree, used_nsites, n, codon_site_pair = None, data_type = data_type)
+            iid_observations[n] = single_iid_observations
     return iid_observable_nodes, observable_axes, iid_observations
 
 def count_process(node_to_conf):

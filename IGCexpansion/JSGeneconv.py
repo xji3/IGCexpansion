@@ -140,7 +140,9 @@ class JSGeneconv:
 
         prior_feasible_states, distn = self.get_prior()
 
-        self.cal_iid_observations()
+        if self.iid_observations == None:
+            self.cal_iid_observations()
+            
         if self.jsmodel.rate_variation:
             scene_list = []
             for codon_site in range(1, 4):

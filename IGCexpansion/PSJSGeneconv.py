@@ -119,7 +119,9 @@ class PSJSGeneconv:
         distn = np.array(distn) / sum(distn)
         return prior_feasible_states, distn
     
-    def get_scene(self, n):
+    def get_scene(self, n, codon_site_pair = None):
+        if self.psjsmodel.rate_variation:
+            assert(not codon_site_pair == None)
         state_space_shape = self.psjsmodel.state_space_shape
         conf_list = count_process(self.tree.node_to_conf)
         process_definitions = [self.psjsmodel.get_PM_process_definition(), self.psjsmodel.get_IGC_process_definition(n)]
@@ -127,11 +129,15 @@ class PSJSGeneconv:
 
         prior_feasible_states, distn = self.get_prior()
         
-        if self.nsites is None:
-            observable_nodes, observable_axes, iid_observations = get_PS_iid_observations(self.data, self.tree, len(self.data.space_idx_pairs[n]), n, self.psjsmodel.PMModel.data_type)
+        if self.iid_observations == None:
+            self.cal_iid_observations()
+
+        if self.psjsmodel.rate_variation:
+            iid_observations = self.iid_observations[codon_site_pair][n]
         else:
-            used_n = min([len(self.data.space_idx_pairs[n]), self.nsites])
-            observable_nodes, observable_axes, iid_observations = get_PS_iid_observations(self.data, self.tree, used_n, n, self.psjsmodel.PMModel.data_type)
+            assert(codon_site_pair == (1, 1) or codon_site_pair == None)
+            iid_observations = self.iid_observations[n]
+            
         scene = dict(
             node_count = len(self.tree.node_to_num),
             process_count = len(process_definitions),
@@ -141,8 +147,8 @@ class PSJSGeneconv:
                           'probabilities':distn},
             process_definitions = process_definitions,
             observed_data = {
-                'nodes':observable_nodes,
-                'variables':observable_axes,
+                'nodes':self.observable_nodes,
+                'variables':self.observable_axes,
                 'iid_observations':iid_observations
                 }
             )
@@ -159,14 +165,18 @@ class PSJSGeneconv:
                     self.iid_observations = new_iid_observations
             else:
                 if self.nsites is None:
-                    self.observable_nodes, self.observable_axes, self.iid_observations = get_PS_iid_observations(self.data, self.tree, self.data.nsites, self.psjsmodel.PMModel.data_type)
+                    self.observable_nodes, self.observable_axes, self.iid_observations = get_all_PS_iid_observations(self.data, self.tree, self.psjsmodel.PMModel.data_type)
                 else:
-                    self.observable_nodes, self.observable_axes, self.iid_observations = get_iid_observations(self.data, self.tree, self.nsites, self.psjsmodel.PMModel.data_type)
+                    self.observable_nodes, self.observable_axes, self.iid_observations = get_all_PS_iid_observations(self.data, self.tree, self.psjsmodel.PMModel.data_type, self.nsites)
 
 
 
-    def _loglikelihood(self, n, edge_derivative = False):
-        scene = self.get_scene(n)
+    def _loglikelihood(self, n, edge_derivative = False, codon_site_pair = None):
+        if self.psjsmodel.rate_variation:
+            assert(not codon_site_pair == None)
+            scene = self.get_scene(n, codon_site_pair)
+        else:
+            scene = self.get_scene(n)
         log_likelihood_request = {'property':'snnlogl'}
         derivatives_request = {'property':'sdnderi'}
         if edge_derivative:
@@ -449,22 +459,39 @@ if __name__ == '__main__':
     DupLosList = '../test/YeastTestDupLost.txt'
     terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
     node_to_pos = {'D1':0}
-    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
-    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
     seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
 
     pm_model = 'HKY'
-    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
+    
     IGC_pm = 'One rate'
     space_list = range(1, 330, 20)
     space_list = None
+
+    
+##    cdna = False
+##    allow_same_codon = False
+##    rate_variation = False
+##    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
+##    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
+##    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
+##    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+##                      node_to_pos, terminal_node_list, save_file, space_list = space_list)
+##    scene = test.get_scene(469, None)
+
     cdna = True
     allow_same_codon = True
-    rate_variation = False
+    rate_variation = True
+    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_save.txt'
+    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_summary.txt'
+    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244, 1.4, 2.0,  0.3, 1.0 / 30.0 ])
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, space_list = space_list)
+    
     self = test
     test.cal_iid_observations()
+    print (test.iid_observations.keys() )
+    scene = test.get_scene(469, (1, 2))
+    print(test._loglikelihood(1, codon_site_pair = (1, 2)))
     #print(test.loglikelihood_and_gradient_for_one_n(n))
     #test.get_mle()
     #test.get_individual_summary(summary_file)
