@@ -346,8 +346,9 @@ if __name__ == '__main__':
     print test.PMModel.Q_mut
     a = test.get_IGC_process_definition(10)
     print len(a['row_states'])
-    b = test.get_PM_process_definition()
-    print len(b['row_states'])
+    b = test.get_PM_process_definition((1, 2))
+    c = test.get_PM_process_definition((3, 1))
+    print b == c
 
 
 

@@ -30,6 +30,7 @@ class Data:
         self.codon_site_to_idx  = None               # a dictionary to store idx of subsequence of different codon site
         self.codon_site_to_pos  = None               # a dictionary to store pos of subsequence of different codon site
         self.allow_same_codon   = allow_same_codon   # a bool indicator for coding sequence when used in pair site models
+        self.space_codon_site_pair = None            # a dictionary to store available codon pair for given space. This is my lazy compromise.
         
 
         self.get_gene_to_orlg()
@@ -157,6 +158,10 @@ class Data:
             
 
         possible_space_list = list(set(possible_space_list))
+
+        # My lazy compromise
+        if self.cdna:
+            self.space_codon_site_pair = {n:[codon_site_pair for codon_site_pair in product(range(1, 4), repeat = 2) if n in self.space_idx_pairs[codon_site_pair]] for n in possible_space_list}
         return possible_space_list
 
             

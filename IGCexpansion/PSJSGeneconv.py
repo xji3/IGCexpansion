@@ -124,7 +124,7 @@ class PSJSGeneconv:
             assert(not codon_site_pair == None)
         state_space_shape = self.psjsmodel.state_space_shape
         conf_list = count_process(self.tree.node_to_conf)
-        process_definitions = [self.psjsmodel.get_PM_process_definition(), self.psjsmodel.get_IGC_process_definition(n)]
+        process_definitions = [self.psjsmodel.get_PM_process_definition(codon_site_pair), self.psjsmodel.get_IGC_process_definition(n, codon_site_pair)]
         self.tree.get_tree_process(conf_list)
 
         prior_feasible_states, distn = self.get_prior()
@@ -171,12 +171,13 @@ class PSJSGeneconv:
 
 
 
-    def _loglikelihood(self, n, edge_derivative = False, codon_site_pair = None):
+    def _loglikelihood(self, n, codon_site_pair, edge_derivative = False):
         if self.psjsmodel.rate_variation:
             assert(not codon_site_pair == None)
             scene = self.get_scene(n, codon_site_pair)
         else:
             scene = self.get_scene(n)
+            
         log_likelihood_request = {'property':'snnlogl'}
         derivatives_request = {'property':'sdnderi'}
         if edge_derivative:
@@ -199,10 +200,27 @@ class PSJSGeneconv:
 
         return ll, edge_derivs
 
+    def _loglikelihood_for_one_n(self, n, edge_derivative = False):
+        assert(n in self.data.space_list)
+        if self.psjsmodel.rate_variation:
+            ll = 0.0
+            edge_derivs = 0.0
+            for codon_site_pair in self.data.space_codon_site_pair[n]:
+                new_ll, new_edge_derivs = self._loglikelihood(n, codon_site_pair, edge_derivative)
+                ll += new_ll
+                edge_derivs += np.array(new_edge_derivs)
+        else:
+            ll, edge_derivs = self._loglikelihood(n, codon_site_pair = None, edge_derivative = edge_derivative)
+
+        return ll, edge_derivs
+            
+            
+
     def loglikelihood_and_gradient_for_one_n(self, n):
         delta = 1e-8
         x = deepcopy(self.x)
-        ll, edge_derivs = self._loglikelihood(n, edge_derivative = True)
+        ll, edge_derivs = self._loglikelihood_for_one_n(n, edge_derivative = True)
+            
         if self.root_by_dup:
             x_rate_derivs = edge_derivs
         else:
@@ -228,7 +246,7 @@ class PSJSGeneconv:
                 x_plus_delta = np.array(self.x)
                 x_plus_delta[i] += delta
                 self.unpack_x(x_plus_delta)
-                ll_delta, _ = self._loglikelihood(n, False)
+                ll_delta, _ = self._loglikelihood_for_one_n(n, False)
                 d_estimate = (ll_delta - ll) / delta
                 other_derivs.append(d_estimate)
                 # restore self.x
@@ -239,24 +257,16 @@ class PSJSGeneconv:
         other_derivs = np.array(other_derivs)
         f = -ll
         g = -np.concatenate((other_derivs, x_rate_derivs))
-        if False:
-            print ('log likelihood = ', ll)
-            print ('Edge derivatives = ', x_rate_derivs)
-            print ('other derivatives:', other_derivs)
-            print ('Current exp x array = ', np.exp(self.x))
-            print ('PM parameters = ' + ' '.join([i + ':' + str(self.psjsmodel.PMModel.parameters[i]) for i in self.psjsmodel.PMModel.parameter_list]))
-            print ('Edge lengths = ', self.tree.edge_to_blen)
-            print ()
-            
+
         return f, g
     
     def loglikelihood_and_gradient(self, display = False):
         sum_f = 0.0
         sum_g = 0.0
         inc = 0.05
-        for it in range(len(self.data.two_sites_name_to_seq.keys())):
-            n = sorted(self.data.two_sites_name_to_seq.keys())[it]
-            if (it + 0.0) / len(self.data.two_sites_name_to_seq) > inc and display:
+        for it in range(len(self.data.space_list)):
+            n = sorted(self.data.space_list)[it]
+            if (it + 0.0) / len(self.data.space_list) > inc and display:
                 print(str(floor(inc * 100)) + '% finished,  n =', n)
                 inc += 0.2
             f, g = self.loglikelihood_and_gradient_for_one_n(n)
@@ -453,13 +463,14 @@ if __name__ == '__main__':
     ###########Yeast
 #######################
     gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
-    alignment_file = '../test/YDR418W_YEL054C_MG94_geo_10.0_Sim_8.fasta'
+    alignment_file = '../test/YDR418W_YEL054C_test.fasta'
 
     tree_newick = '../test/YeastTree.newick'
     DupLosList = '../test/YeastTestDupLost.txt'
     terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
     node_to_pos = {'D1':0}
     seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
+    seq_index_file = None
 
     pm_model = 'HKY'
     
@@ -483,15 +494,43 @@ if __name__ == '__main__':
     rate_variation = True
     save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_save.txt'
     summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_summary.txt'
-    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244, 1.4, 2.0,  0.3, 1.0 / 30.0 ])
+    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 1.8,  0.3, 1.0 / 30.0 ])
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, space_list = space_list)
+
+    x = np.array([ -0.92969299,  -0.60831311,  -1.00401104,  -0.8891694 ,
+        -0.89092996,  -0.20694348, -65.92436066, 0.0, -2.73221044,
+       -26.7831379 ,  -3.44536047,  -2.72202154, -21.09784191,
+        -2.70441861, -22.63017035,  -2.72779708, -20.53753293,
+        -3.44335198,  -2.73358356, -20.14414384])
+    test.unpack_x(x)
     
     self = test
     test.cal_iid_observations()
     print (test.iid_observations.keys() )
-    scene = test.get_scene(469, (1, 2))
-    print(test._loglikelihood(1, codon_site_pair = (1, 2)))
+    scene1 = test.get_scene(13, (1, 2))
+    scene2 = test.get_scene(13, (2, 3))
+    scene3 = test.get_scene(13, (3, 1))
+    for key in scene1:
+        try:
+            print (key, scene1[key] == scene2[key], scene1[key] == scene3[key])
+        except:
+            print (key)
+    key = 'process_definitions'
+    print (key, scene1[key][0] == scene2[key][0], scene1[key][0] == scene3[key][0])
+    print (key, scene1[key][1] == scene2[key][1], scene1[key][1] == scene3[key][1])
+    print(test._loglikelihood(13,  codon_site_pair = (2, 3), edge_derivative = False), test._loglikelihood(13,  codon_site_pair = (1, 2), edge_derivative = False),
+          test._loglikelihood(13,  codon_site_pair = (3, 1), edge_derivative = False))
+    print(sum([test._loglikelihood(13,  codon_site_pair = (2, 3), edge_derivative = False)[0], test._loglikelihood(13,  codon_site_pair = (1, 2), edge_derivative = False)[0],
+          test._loglikelihood(13,  codon_site_pair = (3, 1), edge_derivative = False)[0]]))
+
+    print(test._loglikelihood_for_one_n(13, False))
+    print(test.loglikelihood_and_gradient_for_one_n(13))
+
+    ll, g = test.loglikelihood_and_gradient(True)
+    print( ll/(test.data.nsites - 1.0), g/(test.data.nsites - 1.0) )
+    for edge in test.tree.edge_list:
+        print (edge, test.tree.edge_to_blen[edge])
     #print(test.loglikelihood_and_gradient_for_one_n(n))
     #test.get_mle()
     #test.get_individual_summary(summary_file)
