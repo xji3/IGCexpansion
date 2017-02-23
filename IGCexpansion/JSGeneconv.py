@@ -14,6 +14,7 @@ import scipy
 import scipy.optimize
 import os
 from Common import *
+from math import floor
 
 from TriGeneconv import *
 
@@ -266,6 +267,43 @@ class JSGeneconv:
 
         return ll, edge_derivs
 
+    def _sitewise_loglikelihood(self):
+        scene = self.get_scene()
+        log_likelihood_request = {'property':'dnnlogl'}
+        requests = [log_likelihood_request]
+
+
+        if self.jsmodel.rate_variation:
+            edge_derivs = 0.0
+            ll_list = []
+            for codon_site_scene in scene:
+                j_in = {
+                    'scene' : codon_site_scene,
+                    'requests' : requests
+                    }
+                j_out = jsonctmctree.interface.process_json_in(j_in)
+                status = j_out['status']
+                ll_list.append(j_out['responses'][0])
+            ll = []
+            for i in range(self.data.nsites):
+                codon_site = i % 3
+                pos = int(floor((i + 0.5) / 3))
+                ll.append(ll_list[codon_site][pos])
+        
+        else:
+            j_in = {
+                'scene' : scene,
+                'requests' : requests
+                }
+            j_out = jsonctmctree.interface.process_json_in(j_in)
+
+            status = j_out['status']
+        
+            ll = j_out['responses'][0]
+
+        return ll
+       
+
     
     def loglikelihood_and_gradient(self, display = False):
         delta = 1e-8
@@ -425,107 +463,170 @@ class JSGeneconv:
 
 
 if __name__ == '__main__':
-
 #######################
-    ###########Yeast
+    ###########EDN ECP
 #######################
-    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
-    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
-    cdna = True
-
-    tree_newick = '../test/YeastTree.newick'
-    DupLosList = '../test/YeastTestDupLost.txt'
-    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+    gene_to_orlg_file = '../test/EDN_ECP_GeneToOrlg.txt'
+    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+    tree_newick = '../test/input_tree.newick'
+    DupLosList = '../test/EDN_ECPDupLost.txt'
+    terminal_node_list = ['Chimpanzee', 'Gorilla', 'Orangutan', 'Macaque', 'Tamarin']
     node_to_pos = {'D1':0}
+    seq_index_file = None
     pm_model = 'HKY'
     IGC_pm = 'One rate'
+    space_list = None
 
-
-
-##    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_One_rate_save.txt'
-##    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'    
-##    rate_variation = False
-##    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
-##    test_old = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-##                      node_to_pos, terminal_node_list, save_file)
-##    test_old.get_mle()
-##    print (test_old._loglikelihood(True))
-##
-##    save_file = '../test/save/Force_HKY_YDR418W_YEL054C_nonclock_One_rate_save.txt'
-##    summary_file = '../test/Summary/Force_HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'    
-##    rate_variation = False
-##    force = {4:0.0}
-##    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
-##    test_old_force = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-##                      node_to_pos, terminal_node_list, save_file, force)
-##    test_old_force.get_mle()
-##    print (test_old_force._loglikelihood(True))
-
-
-    alignment_file = '../test/YDR418W_YEL054C_test.fasta'
-    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
-    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
-    rate_variation = True
-    x_js = np.log([0.3, 0.5, 0.2, 9.5, 1.0, 2.6, 5.9])
-    #x_js = np.concatenate((test_old.jsmodel.x_js[:-1], [0.0, 0.0, test_old.jsmodel.x_js[-1]]))
-    #x = np.concatenate((x_js, test_old.x[len(test_old.jsmodel.x_js):]))
+    cdna = True
+    allow_same_codon = True
+    rate_variation = False
+    save_file = '../test/save/JS_HKY_EDN_ECP_nonclock_save.txt'
+    summary_file = '../test/Summary/JS_HKY_EDN_ECP_nonclock_summary.txt'
+    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244,  0.3])
+    force = None
     test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-                      node_to_pos, terminal_node_list, save_file)
-    #test.get_mle()
-    x = np.array([ -0.92969299,  -0.60831311,  -1.00401104,  -0.8891694 ,
-        -0.89092996,  -0.20694348, -65.92436066,  -2.73221044,
-       -26.7831379 ,  -3.44536047,  -2.72202154, -21.09784191,
-        -2.70441861, -22.63017035,  -2.72779708, -20.53753293,
-        -3.44335198,  -2.73358356, -20.14414384])
-    test.unpack_x(x)
-    print(test.x)
-    print(test.loglikelihood_and_gradient())
-    for edge in test.tree.edge_list:
-        print (edge, test.tree.edge_to_blen[edge])    
+                      node_to_pos, terminal_node_list, save_file, force)
+    test.get_mle()
+    test.get_individual_summary(summary_file)
 
-##    save_file = '../test/save/Force_HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
-##    summary_file = '../test/Summary/Force_HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
+
+    cdna = True
+    allow_same_codon = True
+    rate_variation = False
+    save_file = '../test/save/Force_JS_HKY_EDN_ECP_nonclock_save.txt'
+    summary_file = '../test/Summary/Force_JS_HKY_EDN_ECP_nonclock_summary.txt'
+    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244,  0.3])
+    force = {4:0.0}
+    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_file, force)
+    test.get_mle()
+    test.get_individual_summary(summary_file)
+
+    cdna = True
+    allow_same_codon = True
+    rate_variation = True
+    save_file = '../test/save/JS_HKY_rv_EDN_ECP_nonclock_save.txt'
+    summary_file = '../test/Summary/JS_HKY_rv_EDN_ECP_nonclock_summary.txt'
+    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 9.0,  0.3])
+    force = None
+    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_file, force)
+    test.get_mle()
+    test.get_individual_summary(summary_file)
+
+
+    cdna = True
+    allow_same_codon = True
+    rate_variation = True
+    save_file = '../test/save/Force_JS_HKY_rv_EDN_ECP_nonclock_save.txt'
+    summary_file = '../test/Summary/Force_JS_HKY_rv_EDN_ECP_nonclock_summary.txt'
+    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 9.0,  0.3])
+    force = {6:0.0}
+    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_file, force)
+    test.get_mle()
+    test.get_individual_summary(summary_file)
+#########################
+##    ###########Yeast
+#########################
+##    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
+##    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
+##    cdna = True
 ##
-##    rate_variation = True
-##    force = {6:0.0}
-##    #x_js = np.concatenate((test_old.jsmodel.x_js[:-1], [0.0, 0.0, test_old.jsmodel.x_js[-1]]))
-##    x_js = np.log([0.3, 0.5, 0.2, 9.5, 1.0, 2.6, 5.9])
-##    test_force = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-##                      node_to_pos, terminal_node_list, save_file, force)
-##    x = np.concatenate((x_js, test_old.x[len(test_old.jsmodel.x_js):]))
-##    test_force.get_mle()
-##
-##    
-##    self = test
-##    print (test._loglikelihood(True))
-##    test.cal_iid_observations()
-##    scene = test.get_scene()
-##    print(test.loglikelihood_and_gradient(True))
-
-    #test.get_individual_summary(summary_file)
-
-
-    #test.get_mle(method = 'BasinHopping')
-##    test.get_mle(method = 'DifferentialEvolution')
-##    self = test
-##    print(test.tree.n_js, test.tree.n_orlg)
-##
+##    tree_newick = '../test/YeastTree.newick'
+##    DupLosList = '../test/YeastTestDupLost.txt'
+##    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+##    node_to_pos = {'D1':0}
 ##    pm_model = 'HKY'
-##    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376, 1.5456])
-##    IGC_pm = 'Most general'
-##    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_Most_general_save.txt'
-##    summary_file = '../test/HKY_YLR406C_YDL075W_nonclock_dir_summary.txt'
+##    IGC_pm = 'One rate'
 ##
-##    test_2 = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
+##
+##
+####    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_One_rate_save.txt'
+####    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'    
+####    rate_variation = False
+####    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
+####    test_old = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+####                      node_to_pos, terminal_node_list, save_file)
+####    test_old.get_mle()
+####    print (test_old._loglikelihood(True))
+####
+####    save_file = '../test/save/Force_HKY_YDR418W_YEL054C_nonclock_One_rate_save.txt'
+####    summary_file = '../test/Summary/Force_HKY_YDR418W_YEL054C_nonclock_One_rate_summary.txt'    
+####    rate_variation = False
+####    force = {4:0.0}
+####    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376])    
+####    test_old_force = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+####                      node_to_pos, terminal_node_list, save_file, force)
+####    test_old_force.get_mle()
+####    print (test_old_force._loglikelihood(True))
+##
+##
+##    alignment_file = '../test/YDR418W_YEL054C_test.fasta'
+##    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
+##    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
+##    summary_file = '../test/Summary/HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
+##    rate_variation = True
+##    x_js = np.log([0.3, 0.5, 0.2, 9.5, 1.0, 2.6, 5.9])
+##    #x_js = np.concatenate((test_old.jsmodel.x_js[:-1], [0.0, 0.0, test_old.jsmodel.x_js[-1]]))
+##    #x = np.concatenate((x_js, test_old.x[len(test_old.jsmodel.x_js):]))
+##    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
 ##                      node_to_pos, terminal_node_list, save_file)
+##    #test.get_mle()
+##    x = np.array([ -0.92969299,  -0.60831311,  -1.00401104,  -0.8891694 ,
+##        -0.89092996,  -0.20694348, -65.92436066,  -2.73221044,
+##       -26.7831379 ,  -3.44536047,  -2.72202154, -21.09784191,
+##        -2.70441861, -22.63017035,  -2.72779708, -20.53753293,
+##        -3.44335198,  -2.73358356, -20.14414384])
+##    test.unpack_x(x)
+##    print(test.x)
+##    print(test.loglikelihood_and_gradient())
+##    for edge in test.tree.edge_list:
+##        print (edge, test.tree.edge_to_blen[edge])    
 ##
-##    self = test_2
-#    print test.get_scene(100)
-    #test_2.get_mle(method = 'BasinHopping')
-    #test.get_expectedNumGeneconv()
-    #print(test.get_pairDirectionalExpectedNumGeneconv([1, 2]))
-    #test.get_individual_summary(summary_file)
-
+####    save_file = '../test/save/Force_HKY_YDR418W_YEL054C_nonclock_rv_One_rate__save.txt'
+####    summary_file = '../test/Summary/Force_HKY_YDR418W_YEL054C_nonclock_rv_One_rate_summary.txt'
+####
+####    rate_variation = True
+####    force = {6:0.0}
+####    #x_js = np.concatenate((test_old.jsmodel.x_js[:-1], [0.0, 0.0, test_old.jsmodel.x_js[-1]]))
+####    x_js = np.log([0.3, 0.5, 0.2, 9.5, 1.0, 2.6, 5.9])
+####    test_force = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+####                      node_to_pos, terminal_node_list, save_file, force)
+####    x = np.concatenate((x_js, test_old.x[len(test_old.jsmodel.x_js):]))
+####    test_force.get_mle()
+####
+####    
+####    self = test
+####    print (test._loglikelihood(True))
+####    test.cal_iid_observations()
+####    scene = test.get_scene()
+####    print(test.loglikelihood_and_gradient(True))
+##
+##    #test.get_individual_summary(summary_file)
+##
+##
+##    #test.get_mle(method = 'BasinHopping')
+####    test.get_mle(method = 'DifferentialEvolution')
+####    self = test
+####    print(test.tree.n_js, test.tree.n_orlg)
+####
+####    pm_model = 'HKY'
+####    x_js = np.log([ 0.1,   0.7,   0.1,  4.35588244,   1.01054376, 1.5456])
+####    IGC_pm = 'Most general'
+####    save_file = '../test/save/HKY_YDR418W_YEL054C_nonclock_Most_general_save.txt'
+####    summary_file = '../test/HKY_YLR406C_YDL075W_nonclock_dir_summary.txt'
+####
+####    test_2 = JSGeneconv(alignment_file, gene_to_orlg_file, tree_newick, DupLosList,x_js, pm_model, IGC_pm,
+####                      node_to_pos, terminal_node_list, save_file)
+####
+####    self = test_2
+###    print test.get_scene(100)
+##    #test_2.get_mle(method = 'BasinHopping')
+##    #test.get_expectedNumGeneconv()
+##    #print(test.get_pairDirectionalExpectedNumGeneconv([1, 2]))
+##    #test.get_individual_summary(summary_file)
+##
 
 
 ###########################

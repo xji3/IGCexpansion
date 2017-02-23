@@ -1,0 +1,9 @@
+Chimpanzee__EDN	1
+Chimpanzee__ECP	2
+Gorilla__EDN	1
+Gorilla__ECP	2
+Orangutan__EDN	1
+Orangutan__ECP	2
+Macaque__EDN	1
+Macaque__ECP	2
+Tamarin__EDN	0
