@@ -302,6 +302,13 @@ class JSGeneconv:
             ll = j_out['responses'][0]
 
         return ll
+
+    def get_sitewise_loglikelihood_summary(self, summary_file):
+        ll = self._sitewise_loglikelihood()
+        with open(summary_file, 'w+') as f:
+            f.write('#Site\tlnL\t\n')
+            for i in range(self.data.nsites):
+                f.write('\t'.join([str(i), str(ll[i])]) + '\n')
        
 
     

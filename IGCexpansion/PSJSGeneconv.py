@@ -508,113 +508,114 @@ class PSJSGeneconv:
 
 if __name__ == '__main__':
 
-#########################
-##    ###########Yeast
-#########################
-##    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
-##    alignment_file = '../test/YDR418W_YEL054C_test.fasta'
-##
-##    tree_newick = '../test/YeastTree.newick'
-##    DupLosList = '../test/YeastTestDupLost.txt'
-##    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
-##    node_to_pos = {'D1':0}
-##    seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
-##    seq_index_file = None
-##
-##    pm_model = 'HKY'
-##    
-##    IGC_pm = 'One rate'
-##    space_list = range(1, 330, 20)
-##    space_list = None
-##
-##    
-####    cdna = False
-####    allow_same_codon = False
-####    rate_variation = False
-####    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
-####    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
-####    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
-####    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-####                      node_to_pos, terminal_node_list, save_file, space_list = space_list)
-####    scene = test.get_scene(469, None)
-##
-##    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
-##    cdna = True
-##    allow_same_codon = True
-##    rate_variation = True
-##    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_save.txt'
-##    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_summary.txt'
-##    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 1.8,  0.3, 1.0 / 30.0 ])
-##    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-##                      node_to_pos, terminal_node_list, save_file, space_list = space_list)
-##
-##    x = np.array([ -0.92969299,  -0.60831311,  -1.00401104,  -0.8891694 ,
-##        -0.89092996,  -0.20694348, -65.92436066, 0.0, -2.73221044,
-##       -26.7831379 ,  -3.44536047,  -2.72202154, -21.09784191,
-##        -2.70441861, -22.63017035,  -2.72779708, -20.53753293,
-##        -3.44335198,  -2.73358356, -20.14414384])
-##    test.unpack_x(x)
-##    
-##    self = test
-##    test.cal_iid_observations()
-####    print (test.iid_observations.keys() )
-####    scene1 = test.get_scene(13, (1, 2))
-####    scene2 = test.get_scene(13, (2, 3))
-####    scene3 = test.get_scene(13, (3, 1))
-####    for key in scene1:
-####        try:
-####            print (key, scene1[key] == scene2[key], scene1[key] == scene3[key])
-####        except:
-####            print (key)
-####    key = 'process_definitions'
-####    print (key, scene1[key][0] == scene2[key][0], scene1[key][0] == scene3[key][0])
-####    print (key, scene1[key][1] == scene2[key][1], scene1[key][1] == scene3[key][1])
-####    print(test._loglikelihood(13,  codon_site_pair = (2, 3), edge_derivative = False), test._loglikelihood(13,  codon_site_pair = (1, 2), edge_derivative = False),
-####          test._loglikelihood(13,  codon_site_pair = (3, 1), edge_derivative = False))
-####    print(sum([test._loglikelihood(13,  codon_site_pair = (2, 3), edge_derivative = False)[0], test._loglikelihood(13,  codon_site_pair = (1, 2), edge_derivative = False)[0],
-####          test._loglikelihood(13,  codon_site_pair = (3, 1), edge_derivative = False)[0]]))
-##
-####    print(test._loglikelihood_for_one_n(13, False))
-##    print(test.objective_wo_gradient(True, test.x))
-##    test.optimize_x_IGC(True)
-##    #print(test.loglikelihood_and_gradient_for_one_n(13))
-##
-####    ll, g = test.loglikelihood_and_gradient(True)
-####    print( ll/(test.data.nsites - 1.0), g/(test.data.nsites - 1.0) )
-####    for edge in test.tree.edge_list:
-####        print (edge, test.tree.edge_to_blen[edge])
-##    #print(test.loglikelihood_and_gradient_for_one_n(n))
-##    #test.get_mle()
-##    #test.get_individual_summary(summary_file)
-
-
 #######################
-    ###########EDN ECP
+    ###########Yeast
 #######################
-    gene_to_orlg_file = '../test/EDN_ECP_GeneToOrlg.txt'
-    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
-    tree_newick = '../test/input_tree.newick'
-    DupLosList = '../test/EDN_ECPDupLost.txt'
-    terminal_node_list = ['Chimpanzee', 'Gorilla', 'Orangutan', 'Macaque', 'Tamarin']
+    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
+    alignment_file = '../test/YDR418W_YEL054C_test.fasta'
+
+    tree_newick = '../test/YeastTree.newick'
+    DupLosList = '../test/YeastTestDupLost.txt'
+    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
     node_to_pos = {'D1':0}
+    seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
     seq_index_file = None
+
     pm_model = 'HKY'
+    
     IGC_pm = 'One rate'
+    space_list = range(1, 330, 20)
     space_list = None
 
+    
+##    cdna = False
+##    allow_same_codon = False
+##    rate_variation = False
+##    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
+##    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
+##    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
+##    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+##                      node_to_pos, terminal_node_list, save_file, space_list = space_list)
+##    scene = test.get_scene(469, None)
+
+    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
     cdna = True
     allow_same_codon = True
-    rate_variation = False
-    save_file = '../test/save/PSJS_HKY_EDN_ECP_nonclock_save.txt'
-    summary_file = '../test/Summary/PSJS_HKY_EDN_ECP_nonclock_summary.txt'
-    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244,  0.3, 1.0 / 30.0 ])
+    rate_variation = True
+    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_save.txt'
+    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_summary.txt'
+    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 1.8,  0.3, 1.0 / 30.0 ])
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, space_list = space_list)
+
+    x = np.array([ -0.92969299,  -0.60831311,  -1.00401104,  -0.8891694 ,
+        -0.89092996,  -0.20694348, -65.92436066, 0.0, -2.73221044,
+       -26.7831379 ,  -3.44536047,  -2.72202154, -21.09784191,
+        -2.70441861, -22.63017035,  -2.72779708, -20.53753293,
+        -3.44335198,  -2.73358356, -20.14414384])
+    test.unpack_x(x)
+    
+    self = test
+    test.cal_iid_observations()
+##    print (test.iid_observations.keys() )
+##    scene1 = test.get_scene(13, (1, 2))
+##    scene2 = test.get_scene(13, (2, 3))
+##    scene3 = test.get_scene(13, (3, 1))
+##    for key in scene1:
+##        try:
+##            print (key, scene1[key] == scene2[key], scene1[key] == scene3[key])
+##        except:
+##            print (key)
+##    key = 'process_definitions'
+##    print (key, scene1[key][0] == scene2[key][0], scene1[key][0] == scene3[key][0])
+##    print (key, scene1[key][1] == scene2[key][1], scene1[key][1] == scene3[key][1])
+##    print(test._loglikelihood(13,  codon_site_pair = (2, 3), edge_derivative = False), test._loglikelihood(13,  codon_site_pair = (1, 2), edge_derivative = False),
+##          test._loglikelihood(13,  codon_site_pair = (3, 1), edge_derivative = False))
+##    print(sum([test._loglikelihood(13,  codon_site_pair = (2, 3), edge_derivative = False)[0], test._loglikelihood(13,  codon_site_pair = (1, 2), edge_derivative = False)[0],
+##          test._loglikelihood(13,  codon_site_pair = (3, 1), edge_derivative = False)[0]]))
+
+##    print(test._loglikelihood_for_one_n(13, False))
+    #print(test.objective_wo_gradient(True, test.x))
+    #test.optimize_x_IGC(True)
+    #print(test.loglikelihood_and_gradient_for_one_n(13))
+    pairwise_lnL_summary_file = summary_file.replace('_summary.txt', '_lnL_summary.txt')
+    test.get_pairwise_loglikelihood_summary(pairwise_lnL_summary_file)
+##    ll, g = test.loglikelihood_and_gradient(True)
+##    print( ll/(test.data.nsites - 1.0), g/(test.data.nsites - 1.0) )
+##    for edge in test.tree.edge_list:
+##        print (edge, test.tree.edge_to_blen[edge])
+    #print(test.loglikelihood_and_gradient_for_one_n(n))
     #test.get_mle()
     #test.get_individual_summary(summary_file)
-    pairwise_lnL_summary_file = '../test/Summary/PSJS_HKY_EDN_ECP_nonclock_lnL_summary.txt'
-    test.get_pairwise_loglikelihood_summary(pairwise_lnL_summary_file)
-    #ll, idx_pairs = test._sitewise_loglikelihood(467, (1, 3))
+
+
+#########################
+##    ###########EDN ECP
+#########################
+##    gene_to_orlg_file = '../test/EDN_ECP_GeneToOrlg.txt'
+##    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+##    tree_newick = '../test/input_tree.newick'
+##    DupLosList = '../test/EDN_ECPDupLost.txt'
+##    terminal_node_list = ['Chimpanzee', 'Gorilla', 'Orangutan', 'Macaque', 'Tamarin']
+##    node_to_pos = {'D1':0}
+##    seq_index_file = None
+##    pm_model = 'HKY'
+##    IGC_pm = 'One rate'
+##    space_list = None
+##
+##    cdna = True
+##    allow_same_codon = True
+##    rate_variation = False
+##    save_file = '../test/save/PSJS_HKY_EDN_ECP_nonclock_save.txt'
+##    summary_file = '../test/Summary/PSJS_HKY_EDN_ECP_nonclock_summary.txt'
+##    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244,  0.3, 1.0 / 30.0 ])
+##    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+##                      node_to_pos, terminal_node_list, save_file, space_list = space_list)
+##    #test.get_mle()
+##    #test.get_individual_summary(summary_file)
+##    pairwise_lnL_summary_file = '../test/Summary/PSJS_HKY_EDN_ECP_nonclock_lnL_summary.txt'
+##    test.get_pairwise_loglikelihood_summary(pairwise_lnL_summary_file)
+##    #ll, idx_pairs = test._sitewise_loglikelihood(467, (1, 3))
     
     
 
