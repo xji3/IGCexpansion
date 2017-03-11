@@ -349,7 +349,16 @@ class Tree:
             elif configuration[pos][1] == 0: # distinct
                 ortho_group_to_pos['distinct'].append(pos)
 
-        return ortho_group_to_pos        
+        return ortho_group_to_pos
+
+    def __str__(self):  # overide for print function
+        Phylo.draw_ascii(self.phylo_tree)
+        for node in sorted(self.node_to_conf.keys()):
+            print node, self.node_to_conf[node]
+        print
+        return 'Tree newick file: ' + self.newicktree + '\n' + \
+               'Tree duplos file: ' + self.duploslist + '\n'
+               
 
 
     

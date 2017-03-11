@@ -146,7 +146,7 @@ class PMModel:
     def __str__(self): # overide for print function
         return 'Point mutation model: ' + self.name + '\n' + \
                'Rate variation: ' + str(self.rate_variation) + '\n' + \
-               'Point mutation parameters: ' + ' '.join([item + ' '+ str(self.parameters[item]) for item in self.parameter_list])
+               'Point mutation parameters: ' + ' '.join([item + ' '+ str(self.parameters[item]) for item in self.parameter_list]) + '\n'
 
 if __name__ == '__main__':
     test = PMModel('HKY', np.log([0.3, 0.5, 0.2, 9.5]), False, {2:0.0})
