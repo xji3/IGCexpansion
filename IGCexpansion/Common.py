@@ -2,6 +2,7 @@
 # Xiang Ji
 # xji3@ncsu.edu
 import itertools
+import numpy as np
 from math import floor
 
 def divide_configuration(configuration):
@@ -51,3 +52,12 @@ def translate_two_state_to_four_nt(state):
     
     return translate_one_state_to_two_nt(state[0]) + \
            translate_one_state_to_two_nt(state[1])
+
+
+def draw_from_distribution(prob, size, values):
+    bins = np.add.accumulate(prob)
+    if size == 1:
+        return values[np.digitize(np.random.random_sample(size), bins)]
+    else:
+        return [values[i] for i in np.digitize(np.random.random_sample(size), bins)]
+ 
