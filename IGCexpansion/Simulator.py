@@ -13,6 +13,7 @@ from Common import divide_configuration, draw_from_distribution
 import numpy as np
 import cPickle, os
 from copy import deepcopy
+from math import floor
 
 
 class Simulator:
@@ -143,7 +144,51 @@ class Simulator:
             
     def sim_one_branch(self, starting_seq, blen, conf):
         branch_orlg = divide_configuration(conf)
+        
+        current_seq = deepcopy(starting_seq)
+        branch_orlg = divide_configuration(conf)
+        assert(all([orlg in branch_orlg['loc'] for orlg in starting_seq.keys()]))
 
+        # Get sub IGC init matrix from
+        ordered_orlg = sorted(branch_orlg['loc'])
+        if len(ordered_orlg) == 1:
+            Total_IGC_init_rate = 0.0
+        else:
+            branch_IGC_init_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = np.floating)
+            for i in range(len(ordered_orlg)):
+                for j in range(len(ordered_orlg)):
+                    branch_IGC_init_Q[i, j] = self.IGCModel.Q_init[ordered_orlg[i], ordered_orlg[j]]
+            
+            IGC_init_rate_diag = branch_IGC_init_Q.sum(axis = 1) # row sum
+            Total_IGC_init_rate = sum(IGC_init_rate_diag) * self.nsites
+
+        cummulate_time = 0.0
+
+        while(cummulate_time < blen):
+            # Now sample exponential distributed waiting time for next event
+            # point mutation or IGC event
+            # need to update total point mutation rate with every new event
+            # no need to update total IGC rate on the same branch since it's modeled as context independent
+
+            seq_rate_dict, Total_PM_rate = self.get_mutation_rate( current_seq )
+            Total_rate = Total_PM_rate + Total_IGC_init_rate
+
+            cummulate_time += np.random.exponential(1.0 / Total_rate)
+            print cummulate_time
+
+            if cummulate_time > blen :
+                break
+            else:
+                # Now decide whether it's a point mutation or IGC event
+                event = draw_from_distribution(np.array([Total_PM_rate, Total_IGC_init_rate]) / Total_rate,
+                                               1, range(2))
+
+                if event == 0:
+                    # It's a point mutation event
+                    self.get_one_point_mutation(current_seq, seq_rate_dict)
+                elif event == 1:
+                    # It's an IGC event
+                    print
 
     def get_mutation_rate(self, seq): # modified from IGCSimulation.IGCSimulator
         #print self.current_seq
@@ -157,7 +202,32 @@ class Simulator:
             poisson_rate_sum += sum(seq_rate)
 
         return seq_rate_dict, poisson_rate_sum
-        
+
+    def get_one_point_mutation(self, seq, seq_rate_dict): # modified from IGCSimulation.IGCSimulator
+        # only allow all sequences to be of same length
+        assert(len(set([len(seq_rate_dict[orlg]) for orlg in seq_rate_dict])) == 1)
+        orlg_group = sorted(seq_rate_dict.keys())
+        # Now concatenate all rates to one giant list to draw from distribution
+        concatenated_rate = [rate for rate in  seq_rate_dict[orlg] for orlg in orlg_group]
+        concatenated_rate = np.array(concatenated_rate) / sum(concatenated_rate)
+
+        # Now sample a point mutation position
+        mut_pos = draw_from_distribution(concatenated_rate, 1, range(len(concatenated_rate)))
+        mut_paralog_num = int(floor(mut_pos / len(seq_rate_dict[orlg_group[0]])))
+        mut_paralog = orlg_group[mut_paralog_num]
+        seq_pos = mut_pos - mut_paralog_num * len(seq_rate_dict[orlg_group[0]])
+
+        # Now perform point mutation at the position
+        old_state = seq[mut_paralog][seq_pos]
+        prob = np.array(self.PMModel.Q_mut['ACGT'.index(old_state), :])
+        new_state = 'ACGT'[draw_from_distribution(prob / sum(prob), 1, range(len(prob)))]
+        seq[mut_paralog][seq_pos] = new_state
+
+        # TODO: implement log
+        mutation_info = [str(mut_paralog), str(seq_pos), old_state, new_state]
+        print ' '.join(mutation_info)
+
+        return seq
         
 
 if __name__ == '__main__':
@@ -204,7 +274,7 @@ if __name__ == '__main__':
     test.sim()
 
     edge = ('N0', 'D1')
-    #edge = ('N0', 'kluyveri')
+    edge = ('N0', 'kluyveri')
     blen = self.tree.edge_to_blen[edge]
     conf = self.tree.node_to_conf['N0']
     #conf = self.tree.node_to_conf['N2']
@@ -239,6 +309,7 @@ if __name__ == '__main__':
         Total_rate = Total_PM_rate + Total_IGC_init_rate
 
         cummulate_time += np.random.exponential(1.0 / Total_rate)
+        print cummulate_time
 
         if cummulate_time > blen :
             break
@@ -249,9 +320,10 @@ if __name__ == '__main__':
 
             if event == 0:
                 # It's a point mutation event
-                print
+                self.get_one_point_mutation(current_seq, seq_rate_dict)
             elif event == 1:
                 # It's an IGC event
+                print
         
 
     
