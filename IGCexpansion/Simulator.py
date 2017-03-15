@@ -160,7 +160,7 @@ class Simulator:
                     branch_IGC_init_Q[i, j] = self.IGCModel.Q_init[ordered_orlg[i], ordered_orlg[j]]
             
             IGC_init_rate_diag = branch_IGC_init_Q.sum(axis = 1) # row sum
-            Total_IGC_init_rate = sum(IGC_init_rate_diag) * self.nsites
+            Total_IGC_init_rate = sum(IGC_init_rate_diag) * (self.nsites - 1 + 1/2)
 
         cummulate_time = 0.0
 
@@ -192,6 +192,7 @@ class Simulator:
 
     def get_mutation_rate(self, seq): # modified from IGCSimulation.IGCSimulator
         #print self.current_seq
+        # TODO: add in rv
         poisson_rate_sum = 0.0
         PM_diag_rates = self.PMModel.Q_mut.sum(axis = 1)
 
@@ -203,12 +204,16 @@ class Simulator:
 
         return seq_rate_dict, poisson_rate_sum
 
+
     def get_one_point_mutation(self, seq, seq_rate_dict): # modified from IGCSimulation.IGCSimulator
         # only allow all sequences to be of same length
         assert(len(set([len(seq_rate_dict[orlg]) for orlg in seq_rate_dict])) == 1)
         orlg_group = sorted(seq_rate_dict.keys())
         # Now concatenate all rates to one giant list to draw from distribution
-        concatenated_rate = [rate for rate in  seq_rate_dict[orlg] for orlg in orlg_group]
+        # Use a dumb but safe way rather than comprehension
+        concatenated_rate = list()
+        for orlg in orlg_group:
+            concatenated_rate.extend(seq_rate_dict[orlg])
         concatenated_rate = np.array(concatenated_rate) / sum(concatenated_rate)
 
         # Now sample a point mutation position
@@ -228,8 +233,20 @@ class Simulator:
         print ' '.join(mutation_info)
 
         return seq
-        
 
+    def get_one_IGC_event(self, sub_IGC_init_Q, sub_IGC_tract_Q, sub_total_IGC_init_Q, ordered_orlg):
+        np.fill_diagonal(sub_IGC_tract_Q, 0.0)  # fill diagonal entries with 0, just in case..
+        
+        # sample an IGC event orlg pair        
+        IGC_pos = draw_from_distribution(sub_total_IGC_init_Q.ravel(), 1, range(sub_total_IGC_init_Q.size))
+        orlg_from_num = int(floor(IGC_pos / sub_total_IGC_init_Q.ndim))
+        orlg_to_num = IGC_pos - orlg_from * sub_total_IGC_init_Q.ndim
+        orlg_from = ordered_orlg[orlg_from_num]
+        orlg_to   = ordered_orlg[orlg_to_num]
+
+        # now sample a starting pos and tract length
+        tract_p = sub_IGC_tract_Q[orlg_from_num, orlg_to_num]
+        
 if __name__ == '__main__':
     gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
     seq_file = '../test/YDR418W_YEL054C_Simulation.fasta'
@@ -277,12 +294,12 @@ if __name__ == '__main__':
     edge = ('N0', 'kluyveri')
     blen = self.tree.edge_to_blen[edge]
     conf = self.tree.node_to_conf['N0']
-    #conf = self.tree.node_to_conf['N2']
+    conf = self.tree.node_to_conf['N2']
     starting_seq = self.node_to_seq['N0']
 
     current_seq = deepcopy(starting_seq)
     branch_orlg = divide_configuration(conf)
-    assert(all([orlg in branch_orlg['loc'] for orlg in starting_seq.keys()]))
+    #assert(all([orlg in branch_orlg['loc'] for orlg in starting_seq.keys()]))
 
     # Get sub IGC init matrix from
     ordered_orlg = sorted(branch_orlg['loc'])
@@ -290,12 +307,19 @@ if __name__ == '__main__':
         Total_IGC_init_rate = 0.0
     else:
         branch_IGC_init_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = np.floating)
+        branch_IGC_tract_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = np.floating)
+        Total_IGC_init_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = np.floating)
         for i in range(len(ordered_orlg)):
             for j in range(len(ordered_orlg)):
                 branch_IGC_init_Q[i, j] = self.IGCModel.Q_init[ordered_orlg[i], ordered_orlg[j]]
-        
+                branch_IGC_tract_Q[i, j] = self.IGCModel.Q_tract[ordered_orlg[i], ordered_orlg[j]]
+                if i != j:
+                    if branch_IGC_tract_Q[i, j] != 0:
+                        Total_IGC_init_Q[i, j] = branch_IGC_init_Q[i, j] * (self.nsites - 1 + 1.0 / branch_IGC_tract_Q[i, j])
+                
         IGC_init_rate_diag = branch_IGC_init_Q.sum(axis = 1) # row sum
-        Total_IGC_init_rate = sum(IGC_init_rate_diag) * self.nsites
+        Total_IGC_init_rate = Total_IGC_init_Q.sum()
+
 
     cummulate_time = 0.0
 
