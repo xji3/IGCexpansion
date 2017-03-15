@@ -229,23 +229,61 @@ class Simulator:
         seq[mut_paralog][seq_pos] = new_state
 
         # TODO: implement log
+        # mutation_orlg, mut_pos, old_state, new_state
         mutation_info = [str(mut_paralog), str(seq_pos), old_state, new_state]
         print ' '.join(mutation_info)
 
-        return seq
+        return seq, mutation_info
 
-    def get_one_IGC_event(self, sub_IGC_init_Q, sub_IGC_tract_Q, sub_total_IGC_init_Q, ordered_orlg):
+    def get_one_IGC_event(self, seq, sub_IGC_init_Q, sub_IGC_tract_Q, sub_total_IGC_init_Q, ordered_orlg):
         np.fill_diagonal(sub_IGC_tract_Q, 0.0)  # fill diagonal entries with 0, just in case..
         
         # sample an IGC event orlg pair        
         IGC_pos = draw_from_distribution(sub_total_IGC_init_Q.ravel(), 1, range(sub_total_IGC_init_Q.size))
         orlg_from_num = int(floor(IGC_pos / sub_total_IGC_init_Q.ndim))
-        orlg_to_num = IGC_pos - orlg_from * sub_total_IGC_init_Q.ndim
+        orlg_to_num = IGC_pos - orlg_from_num * sub_total_IGC_init_Q.ndim
         orlg_from = ordered_orlg[orlg_from_num]
         orlg_to   = ordered_orlg[orlg_to_num]
 
         # now sample a starting pos and tract length
+        
         tract_p = sub_IGC_tract_Q[orlg_from_num, orlg_to_num]
+        init_prob_array = np.array([1.0 / tract_p] + [1.0] * (self.nsites - 1))
+        start_pos = draw_from_distribution(init_prob_array / sum(init_prob_array), 1, range(len(init_prob_array)))
+        tract_length = np.random.geometric(tract_p, 1)
+        stop_pos = start_pos + tract_length + 1
+        seq, IGC_info = self.IGC_copy(start_pos, stop_pos, orlg_from, orlg_to, seq)
+
+        return seq, IGC_info
+
+
+    def IGC_copy(self, start_pos, stop_pos, orlg_from, orlg_to, seq):
+        # make sure the two orlgs are in seq
+        assert(orlg_from in seq and orlg_to in seq)
+        template_seq = seq[orlg_from][start_pos:stop_pos]
+        overide_seq = seq[orlg_to][start_pos:stop_pos]
+
+        num_diff = sum([template_seq[i] != overide_seq[i] for i in range(len(template_seq))])
+
+        # TODO: implement log
+        IGC_info = [str(orlg_from), str(orlg_to), str(start_pos), str(stop_pos), str(num_diff)]
+        print ' '.join(IGC_info)
+
+        # Now perform the IGC
+        print ''.join(template_seq), ''.join(overide_seq)
+        for i in range(start_pos, stop_pos):
+            seq[orlg_to][i] = seq[orlg_from][i]
+
+        print ''.join(template_seq), ''.join(overide_seq)
+        return seq, IGC_info
+        
+        
+
+        
+        
+
+        
+        
         
 if __name__ == '__main__':
     gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
@@ -294,7 +332,7 @@ if __name__ == '__main__':
     edge = ('N0', 'kluyveri')
     blen = self.tree.edge_to_blen[edge]
     conf = self.tree.node_to_conf['N0']
-    conf = self.tree.node_to_conf['N2']
+    #conf = self.tree.node_to_conf['N2']
     starting_seq = self.node_to_seq['N0']
 
     current_seq = deepcopy(starting_seq)
@@ -320,6 +358,10 @@ if __name__ == '__main__':
         IGC_init_rate_diag = branch_IGC_init_Q.sum(axis = 1) # row sum
         Total_IGC_init_rate = Total_IGC_init_Q.sum()
 
+        sub_IGC_tract_Q = branch_IGC_tract_Q
+        sub_total_IGC_init_Q = Total_IGC_init_Q
+        sub_IGC_init_Q = branch_IGC_init_Q
+
 
     cummulate_time = 0.0
 
@@ -335,6 +377,8 @@ if __name__ == '__main__':
         cummulate_time += np.random.exponential(1.0 / Total_rate)
         print cummulate_time
 
+        
+
         if cummulate_time > blen :
             break
         else:
@@ -344,10 +388,10 @@ if __name__ == '__main__':
 
             if event == 0:
                 # It's a point mutation event
-                self.get_one_point_mutation(current_seq, seq_rate_dict)
+                current_seq, mutation_info = self.get_one_point_mutation(current_seq, seq_rate_dict)
             elif event == 1:
                 # It's an IGC event
-                print
+                current_seq, IGC_info = self.get_one_IGC_event(current_seq, branch_IGC_init_Q, branch_IGC_tract_Q, Total_IGC_init_Q, ordered_orlg)
         
 
     
