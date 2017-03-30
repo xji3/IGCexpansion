@@ -26,7 +26,7 @@ class PSJSGeneconv:
                  tree_newick, DupLosList,                 # Tree input
                  x_js, pm_model, IGC_pm, rate_variation,  # PSJSModel input
                  node_to_pos, terminal_node_list,         # Configuration input
-                 save_file,                               # Auto save file
+                 save_file, log_file,                     # Auto save files
 #                root_by_dup = False,                     # JSModel input
                  force = None,                            # PSJS Parameter value constraint
                  nsites = None, space_list = None
@@ -41,6 +41,7 @@ class PSJSGeneconv:
         self.terminal_node_list = terminal_node_list
         self.root_by_dup = self.tree.is_duplication_node(self.tree.phylo_tree.root.name)
         self.save_file = save_file
+        self.log_file  = log_file
         self.force = force
         if os.path.isfile(self.save_file):
             self.initialize_by_save()
@@ -69,6 +70,13 @@ class PSJSGeneconv:
         if self.psjsmodel.rate_variation:
             check_status = check_status and self.data.cdna
 
+        # See if the log file is there
+        # It's not really a log but store values in each iteration
+        if not os.path.isfile(self.log_file):
+            with open(self.log_file, 'w+') as f:
+                f.write('\t'.join(['#lnL ', 'x[] ', ' df ']) + '\n')
+            print('Created log file: ' + self.log_file)
+            
         return check_status
 
             
@@ -341,8 +349,15 @@ class PSJSGeneconv:
         if self.auto_save == PSJSGeneconv.auto_save_step:
             self.save_x()
             self.auto_save = 0
+
+        # Now save the lnL parameter and gradient values
+        self.save_iteration(f, x, g)
         return f, g
 
+    def save_iteration(self, f, x, df):
+        with open(self.log_file, 'a') as g:
+            g.write('\t'.join([f] + x + df) + '\n')
+            
     def objective_wo_gradient(self, display, x):
         self.unpack_x(x)
 
@@ -543,10 +558,11 @@ if __name__ == '__main__':
     allow_same_codon = True
     rate_variation = True
     save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_save.txt'
+    log_file  = '../test/log/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_log.txt'
     summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_summary.txt'
     x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 1.8,  0.3, 1.0 / 30.0 ])
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-                      node_to_pos, terminal_node_list, save_file, space_list = space_list)
+                      node_to_pos, terminal_node_list, save_file, log_file, space_list = space_list)
 
     x = np.array([ -0.92969299,  -0.60831311,  -1.00401104,  -0.8891694 ,
         -0.89092996,  -0.20694348, -65.92436066, 0.0, -2.73221044,

@@ -592,6 +592,32 @@ class ReCodonGeneconv:
             edge_derivs = []
 
         return ll, edge_derivs
+
+    def _sitewise_loglikelihood(self):
+        scene = self.get_scene()
+        
+        log_likelihood_request = {'property':'dnnlogl'}
+        requests = [log_likelihood_request]
+        
+        j_in = {
+            'scene' : self.scene_ll,
+            'requests' : requests
+            }
+        j_out = jsonctmctree.interface.process_json_in(j_in)
+
+        status = j_out['status']
+    
+        ll = j_out['responses'][0]
+        self.ll = ll
+
+        return ll
+
+    def get_sitewise_loglikelihood_summary(self, summary_file):
+        ll = self._sitewise_loglikelihood()
+        with open(summary_file, 'w+') as f:
+            f.write('#Site\tlnL\t\n')
+            for i in range(self.nsites):
+                f.write('\t'.join([str(i), str(ll[i])]) + '\n')
     
     def get_scene(self):
         if self.Model == 'MG94':
@@ -1435,12 +1461,13 @@ if __name__ == '__main__':
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 
-    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
+    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
     scene = test.get_scene()
-    test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
+    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
     print (test._loglikelihood2())
-    test.get_mle(True, True, 0, 'BFGS')
+    #test.get_mle(True, True, 0, 'BFGS')
+    test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
 ##        print (scene['process_definitions'][1]['row_states'][i],\
