@@ -76,6 +76,8 @@ class PSJSGeneconv:
             with open(self.log_file, 'w+') as f:
                 f.write('\t'.join(['#lnL ', 'x[] ', ' df ']) + '\n')
             print('Created log file: ' + self.log_file)
+        else:
+            print('Found log file at ' + self.log_file)
             
         return check_status
 
@@ -356,7 +358,7 @@ class PSJSGeneconv:
 
     def save_iteration(self, f, x, df):
         with open(self.log_file, 'a') as g:
-            g.write('\t'.join([f] + x + df) + '\n')
+            g.write('\t'.join([str(item) for item in [f] + x + df]) + '\n')
             
     def objective_wo_gradient(self, display, x):
         self.unpack_x(x)
@@ -543,36 +545,38 @@ if __name__ == '__main__':
     space_list = None
 
     
-##    cdna = False
-##    allow_same_codon = False
-##    rate_variation = False
-##    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
-##    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
-##    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
-##    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-##                      node_to_pos, terminal_node_list, save_file, space_list = space_list)
-##    scene = test.get_scene(469, None)
-
+    cdna = False
+    allow_same_codon = False
+    rate_variation = False
     alignment_file = '../test/YDR418W_YEL054C_input.fasta'
-    cdna = True
-    allow_same_codon = True
-    rate_variation = True
-    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_save.txt'
-    log_file  = '../test/log/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_log.txt'
-    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_summary.txt'
-    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 1.8,  0.3, 1.0 / 30.0 ])
+    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
+    log_file  = '../test/log/PSJS_HKY_YDR418W_YEL054C_nonclock_log.txt'
+    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
+    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, log_file, space_list = space_list)
+##    scene = test.get_scene(469, None)
 
-    x = np.array([ -0.92969299,  -0.60831311,  -1.00401104,  -0.8891694 ,
-        -0.89092996,  -0.20694348, -65.92436066, 0.0, -2.73221044,
-       -26.7831379 ,  -3.44536047,  -2.72202154, -21.09784191,
-        -2.70441861, -22.63017035,  -2.72779708, -20.53753293,
-        -3.44335198,  -2.73358356, -20.14414384])
-    test.unpack_x(x)
+##    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
+##    cdna = True
+##    allow_same_codon = True
+##    rate_variation = True
+##    save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_save.txt'
+##    log_file  = '../test/log/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_log.txt'
+##    summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_rv_nonclock_summary.txt'
+##    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 1.8,  0.3, 1.0 / 30.0 ])
+##    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+##                      node_to_pos, terminal_node_list, save_file, log_file, space_list = space_list)
+##
+##    x = np.array([ -0.92969299,  -0.60831311,  -1.00401104,  -0.8891694 ,
+##        -0.89092996,  -0.20694348, -65.92436066, 0.0, -2.73221044,
+##       -26.7831379 ,  -3.44536047,  -2.72202154, -21.09784191,
+##        -2.70441861, -22.63017035,  -2.72779708, -20.53753293,
+##        -3.44335198,  -2.73358356, -20.14414384])
+##    test.unpack_x(x)
     
-    self = test
-    test.cal_iid_observations()
+##    self = test
+##    test.cal_iid_observations()
 ##    print (test.iid_observations.keys() )
 ##    scene1 = test.get_scene(13, (1, 2))
 ##    scene2 = test.get_scene(13, (2, 3))
