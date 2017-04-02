@@ -358,7 +358,7 @@ class PSJSGeneconv:
 
     def save_iteration(self, f, x, df):
         with open(self.log_file, 'a') as g:
-            g.write('\t'.join([str(item) for item in [f] + x + df]) + '\n')
+            g.write('\t'.join([str(item) for item in [f] + list(x) + list(df)]) + '\n')
             
     def objective_wo_gradient(self, display, x):
         self.unpack_x(x)
