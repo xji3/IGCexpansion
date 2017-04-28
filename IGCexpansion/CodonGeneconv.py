@@ -1467,7 +1467,7 @@ if __name__ == '__main__':
     self = test
     print (test._loglikelihood2())
     #test.get_mle(True, True, 0, 'BFGS')
-    test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
+    #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
 ##        print (scene['process_definitions'][1]['row_states'][i],\

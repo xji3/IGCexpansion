@@ -35,7 +35,7 @@ class Tree:
         self.n_orlg             = 0           # number of ortholog groups
         self.visited_DL_nodes   = list()
         self.n_js               = None
-        self.get_tree()
+        #self.get_tree()
 
 
 
@@ -118,6 +118,7 @@ class Tree:
                     child_node_name = branch[(first_ + 1):]
                     if father_node_name == 'Root' and self.phylo_tree.root.name != 'Root':
                         self.add_root()
+                    
                     for add_node in items[1:]:
                         self.add_node(father_node_name, child_node_name, add_node)
                         father_node_name = add_node
@@ -363,6 +364,15 @@ class Tree:
 
     
 if __name__ == '__main__':
+    wd = '/Users/xji3/GitFolders/xji3ST790/CourseProject/'
+    tree_newick = wd + 'sim_tree.newick'
+    DupLosList = wd + 'Sim_DupLost.txt'
+    terminal_node_list = ['Out', 'A', 'B']
+    node_to_pos = node_to_pos = {'D1':0, 'D2':0}
+    tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+    self = tree
+    tree.get_tree()
+
 ##    tree_newick = '../test/PrimateTest.newick'
 ##    DupLosList = '../test/PrimateTestDupLost.txt'
 ##    tree = Phylo.read( tree_newick, "newick")
@@ -433,20 +443,20 @@ if __name__ == '__main__':
 ##    for node in test.node_to_conf:
 ##        print node, test.node_to_conf[node]
 
-    tree_newick = '../test/PrimateTree.newick'
-    DupLosList = '../test/PrimateFullDupLost_P2.txt'
-    terminal_node_list = ['Chinese_Tree_Shrew', 'Bushbaby', 'Mouse_Lemur',
-                          'Tarsier', 'Marmoset', 'Vervet-AGM',
-                          'Olive_Baboon', 'Macaque', 'Gibbon',
-                          'Orangutan', 'Gorilla', 'Human']
-    node_to_pos = {'D1':0, 'D2':0, 'D3':0, 'D4':0, 'D5':0}
-    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-
-    Phylo.draw_ascii(test.phylo_tree)
-    self = test
-    test.get_configurations()
-    for i in test.node_to_conf:
-        print i, test.node_to_conf[i]
+##    tree_newick = '../test/PrimateTree.newick'
+##    DupLosList = '../test/PrimateFullDupLost_P2.txt'
+##    terminal_node_list = ['Chinese_Tree_Shrew', 'Bushbaby', 'Mouse_Lemur',
+##                          'Tarsier', 'Marmoset', 'Vervet-AGM',
+##                          'Olive_Baboon', 'Macaque', 'Gibbon',
+##                          'Orangutan', 'Gorilla', 'Human']
+##    node_to_pos = {'D1':0, 'D2':0, 'D3':0, 'D4':0, 'D5':0}
+##    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+##
+##    Phylo.draw_ascii(test.phylo_tree)
+##    self = test
+##    test.get_configurations()
+##    for i in test.node_to_conf:
+##        print i, test.node_to_conf[i]
 
 #    
             
@@ -454,5 +464,4 @@ if __name__ == '__main__':
 ##    Phylo.draw_ascii(test.phylo_tree)
 ##    for node in test.node_to_conf:
 ##        print node, test.node_to_conf[node]
-
 

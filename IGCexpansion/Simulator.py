@@ -22,7 +22,8 @@ class Simulator:
                  x_IGC, pm_IGC,                               # IGC Tract Model
                  tree_newick, DupLosList, x_rates,            # Tree input
                  terminal_node_list, node_to_pos,             # Configuration input
-                 gene_to_orlg_file, seq_file, log_file,       # output info
+                 gene_to_orlg_file, seq_file,                 # output info
+                 IGC_log_file, PM_log_file,                   # log_files
                  seed_file,                                   # random seed file
                  seq_index_file,                              # sequence index file
                  cdna = True                                  # simulate cdna sequence only or not
@@ -43,9 +44,10 @@ class Simulator:
         self.nsites    = None                # number of nucleotide to simulate, must agree with the overall span seq_index
         self.cdna      = cdna
 
-        self.seq_file  = seq_file            # output sequence file
-        self.log_file  = log_file            # output log file
-        self.seed_file = seed_file           # random seed file
+        self.seq_file      = seq_file            # output sequence file
+        self.IGC_log_file  = IGC_log_file        # IGC output log file
+        self.PM_log_file   = PM_log_file         # PM output log file
+        self.seed_file     = seed_file           # random seed file
 
         # {node:{orthologous_group:sequence}}
         self.node_to_seq = dict()            # dictionary to store sequence at each node
@@ -53,13 +55,25 @@ class Simulator:
 
         self.initiate()
 
+    def append_to_log_file(self, new_line, case):
+        if case == 'IGC':
+            with open(self.IGC_log_file, 'a') as g:
+                g.write('\t'.join([str(item) for item in new_line]) + '\n')
+        elif case == 'PM':
+            with open(self.PM_log_file, 'a') as g:
+                g.write('\t'.join([str(item) for item in new_line]) + '\n')
+            
+
     def __str__(self):  # overide for print function
         print self.PMModel
         print self.IGCModel
         print self.tree
 
         return 'IGC simulator output seq: ' + self.seq_file + '\n' + \
-               'log file: ' + self.log_file + '\n'
+               'IGC log file: ' + self.IGC_log_file + \
+               'PM log file: ' + self.PM_log_file + '\n'
+
+    
 
     def get_gene_to_orlg(self):  # copied from data class
         assert(os.path.isfile(self.gene_to_orlg_file))
@@ -80,6 +94,12 @@ class Simulator:
         self.get_gene_to_orlg()
         self.unpack_x_rates(self.x_rates)
         self.read_seq_index_file()
+        # Now update log files
+        with open(self.IGC_log_file, 'w+') as f:
+            f.write('\t'.join(['edge', 'time', 'orlg_from', 'orlg_to', 'start_pos', 'stop_pos', 'num_diff', 'template_seq', 'overide_seq']) + '\n')
+        with open(self.PM_log_file, 'w+') as g:
+            g.write('\t'.join(['edge', 'time', 'mut_orlg', 'mut_pos', 'old_state', 'new_state']) + '\n')
+            
 
     def unpack_x_rates(self, x_rate):  # copied from PSJSGeneconv.py
         if self.root_by_dup:
@@ -223,9 +243,14 @@ class Simulator:
                 if event == 0:
                     # It's a point mutation event
                     current_seq, mutation_info = self.get_one_point_mutation(current_seq, seq_rate_dict, display)
+                    to_write_info = ['_'.join(edge), str(cummulate_time)] + mutation_info
+                    self.append_to_log_file(to_write_info, 'PM')
+                    
                 elif event == 1:
                     # It's an IGC event
                     current_seq, IGC_info = self.get_one_IGC_event(current_seq, branch_IGC_init_Q, branch_IGC_tract_Q, Total_IGC_init_Q, ordered_orlg, display)
+                    to_write_info = ['_'.join(edge), str(cummulate_time)] + IGC_info
+                    self.append_to_log_file(to_write_info, 'IGC')
                 else:
                     # draw from distribution failure
                     assert(False)
@@ -263,7 +288,7 @@ class Simulator:
             self.node_to_seq[child_node] = seq
  
     def get_mutation_rate(self, seq): # modified from IGCSimulation.IGCSimulator
-        #print self.current_seq
+        # print self.current_seq
         # TODO: add in rv
         poisson_rate_sum = 0.0
         PM_diag_rates = self.PMModel.Q_mut.sum(axis = 1)
@@ -353,10 +378,13 @@ class Simulator:
 
         # Now perform the IGC event
             print ''.join(template_seq), ''.join(overide_seq)
+
+        IGC_info.extend([''.join(template_seq), ''.join(overide_seq)])
         for i in range(start_pos, stop_pos):
             seq[orlg_to][i] = seq[orlg_from][i]
 
         return seq, IGC_info
+
 
     def output_seq(self):
         # output sequence into seq_file using fasta format
@@ -383,7 +411,8 @@ class Simulator:
 if __name__ == '__main__':
     gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
     seq_file = '../test/YDR418W_YEL054C_Simulation.fasta'
-    log_file = '../test/YDR418W_YEL054C_Simulation.log'
+    IGC_log_file = '../test/YDR418W_YEL054C_Simulation_IGC.log'
+    PM_log_file  = '../test/YDR418W_YEL054C_Simulation_PM.log'
     seed_file = '../test/YDR418W_YEL054C_Simulation_seed.log'
 
     tree_newick = '../test/YeastTree.newick'
@@ -417,11 +446,11 @@ if __name__ == '__main__':
     
     test = Simulator(pm_model_name, x_pm, rate_variation,
                      x_IGC, pm_IGC, tree_newick, DupLosList, x_rates,
-                     terminal_node_list, node_to_pos, gene_to_orlg_file, seq_file, log_file, seed_file, seq_index_file)
+                     terminal_node_list, node_to_pos, gene_to_orlg_file, seq_file, IGC_log_file, PM_log_file, seed_file, seq_index_file)
 
     self = test
-    #print test
-    display = False
+    print test
+    display = True
     test.sim(display = display)
     test.output_seq()
 
