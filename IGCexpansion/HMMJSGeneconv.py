@@ -4,21 +4,25 @@
 
 from HMMTract import *
 from CodonGeneconv import ReCodonGeneconv
+from copy import deepcopy
 
 class HMMJSGeneconv:
     auto_save_step = 2
     def __init__(self, # First, ReCodonGeneconv objects
-                 newicktree, alignment_file, paralog, summary_path, x,
+                 newicktree, alignment_file, paralog, summary_path, x, save_path,
                  # Now HMMTract objects
                  IGC_sitewise_lnL_file, Force_sitewise_lnL_file,
-                 State_List, tau, seq_index_file,
+                 State_List, seq_index_file,
                  model = 'MG94',
                  force = None, nsites = None, clock = None):
         
-        self.MG94_IGC = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = force, clock = clock)
-        self.MG94_Force = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = {5:0.0}, clock = clock)
+        self.MG94_IGC = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = force, clock = clock, save_path = save_path)
+        self.MG94_Force = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = {5:0.0}, clock = clock, save_path = save_path)
         self.MG94_IGC.update_by_x(x)
         self.MG94_Force.update_by_x(x)
+        self.MG94_IGC._loglikelihood2()
+        self.MG94_Force._loglikelihood2()
+        self.x= np.concatenate((x, np.log([0.05])))
         if not os.path.isfile(IGC_sitewise_lnL_file):
             self.MG94_IGC.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file)
         if not os.path.isfile(Force_sitewise_lnL_file):
@@ -27,8 +31,41 @@ class HMMJSGeneconv:
         self.outgroup_branch = [edge for edge in self.MG94_IGC.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
         Total_blen = sum([self.MG94_IGC.edge_to_blen[edge] for edge in self.MG94_IGC.edge_list if edge != self.outgroup_branch])
         
-        self.hmmtract = HMMTract(IGC_sitewise_lnL_file, Force_sitewise_lnL_file, State_List, Total_blen, tau, seq_index_file)
+        self.hmmtract = HMMTract(IGC_sitewise_lnL_file, Force_sitewise_lnL_file, State_List, Total_blen, self.MG94_IGC.tau, seq_index_file)
+        self.hmmtract.update_by_x(np.log([self.MG94_IGC.tau * 0.05, 0.05]))
 
+    def _loglikelihood(self, x):
+        self.x = deepcopy(x)
+        # update two MG94 + IGC models first
+        self.MG94_IGC.update_by_x(x[:-1])
+        self.MG94_Force.update_by_x(x[:-1])
+        self.hmmtract.IGC_sitewise_lnL = self.MG94_IGC._sitewise_loglikelihood()
+        self.hmmtract.Force_sitewise_lnL = self.MG94_Force._sitewise_loglikelihood()
+
+        hmm_x = [np.log(self.MG94_IGC.tau) + x[-1], x[-1]]
+        self.hmmtract.update_by_x(hmm_x)
+        ll = -self.hmmtract.Forward(False, hmm_x)
+        return -ll
+
+    def objective(self, display, x):
+        assert(len(x) == len(self.x))
+        ll = self._loglikelihood(x)
+        if display:
+            print 'Current exp(x) array: ', np.exp(self.x)
+            print 'lnL = ', -ll
+        return ll
+
+    def get_mle(self, display = True):
+        self._loglikelihood(self.x)
+        f = partial(self.objective, display)
+        guess_x = deepcopy(self.x)
+        bnds = [(None, 0.0)] * 3 + [(None, None)] * (len(self.MG94_IGC.x) -3) + [(None, 0.0)]
+        result = scipy.optimize.minimize(f, guess_x, jac = False, method = 'L-BFGS-B', bounds = bnds)
+
+        if display:
+            print(result)
+
+        
 
 if __name__ == '__main__':
     pair = ["EDN", "ECP"]
@@ -60,12 +97,15 @@ if __name__ == '__main__':
     
     alignment_file = '../test/EDN_ECP_Cleaned.fasta'
     summary_path = '../test/Summary/'
-    MG94_IGC = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None)
-    
     IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
     Force_sitewise_lnL_file = '../test/Summary/Force_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
-    Total_blen = sum([MG94_IGC.edge_to_blen[edge] for edge in MG94_IGC.edge_list if edge != ('N0', 'Tamarin')])
-    seq_index_file = './' + '_'.join(paralog) + '_seq_index.txt'
+    save_path = '../test/save/'
 
-    test = HMMJSGeneconv(newicktree, alignment_file, paralog, summary_path, x, IGC_sitewise_lnL_file, Force_sitewise_lnL_file,
-                         state_list, 1.0, seq_index_file)
+    seq_index_file = '../test/' + '_'.join(paralog) + '_seq_index.txt'
+
+    test = HMMJSGeneconv(newicktree, alignment_file, paralog, summary_path, x, save_path, IGC_sitewise_lnL_file, Force_sitewise_lnL_file,
+                         state_list, seq_index_file)
+
+    self = test
+    print test._loglikelihood(np.concatenate((x, [-0.2])))
+    test.get_mle()
