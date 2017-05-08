@@ -68,6 +68,7 @@ class HMMTract:
         self.x = x
         self.eta = np.exp(x[0])
         self.tract_p = np.exp(x[1])
+        self.tau = self.eta / self.tract_p
         self.get_Ptr_analytical()
         self.get_Emi()
         
@@ -128,11 +129,13 @@ class HMMTract:
         distn = self.get_marginal_state_distn()
         for i in range(len(self.IGC_sitewise_lnL)):
             emission_0 = self.Force_sitewise_lnL[i]
-            emission_1 = self.IGC_sitewise_lnL[i] + np.log(1.0 - np.exp(emission_0 - self.IGC_sitewise_lnL[i]) * distn[0]) - np.log(distn[1])
 
             if 1.0 - np.exp(emission_0 - self.IGC_sitewise_lnL[i]) * distn[0] < 0:
-                print self.x
+                print self.x, i
                 sys.exit('something is wrong')
+                #emission_1 = -10000.0
+            else:
+                emission_1 = self.IGC_sitewise_lnL[i] + np.log(1.0 - np.exp(emission_0 - self.IGC_sitewise_lnL[i]) * distn[0]) - np.log(distn[1])
 
             self.Emi[:, i] = np.array([emission_0, emission_1])
             
