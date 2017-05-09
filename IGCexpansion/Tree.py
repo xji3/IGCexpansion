@@ -35,7 +35,7 @@ class Tree:
         self.n_orlg             = 0           # number of ortholog groups
         self.visited_DL_nodes   = list()
         self.n_js               = None
-        #self.get_tree()
+        self.get_tree()
 
 
 

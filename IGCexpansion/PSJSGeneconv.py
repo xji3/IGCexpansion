@@ -43,6 +43,7 @@ class PSJSGeneconv:
         self.save_file = save_file
         self.log_file  = log_file
         self.force = force
+        self.x     = None
         if os.path.isfile(self.save_file):
             self.initialize_by_save()
             print ('Loaded paramters from ' + self.save_file)
