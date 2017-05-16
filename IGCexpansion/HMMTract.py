@@ -131,7 +131,7 @@ class HMMTract:
             emission_0 = self.Force_sitewise_lnL[i]
 
             if 1.0 - np.exp(emission_0 - self.IGC_sitewise_lnL[i]) * distn[0] < 0:
-                print self.x, i
+                print self.x, i, emission_0, self.IGC_sitewise_lnL[i], distn[0]
                 sys.exit('something is wrong')
                 #emission_1 = -10000.0
             else:

@@ -7,7 +7,7 @@ from CodonGeneconv import ReCodonGeneconv
 from copy import deepcopy
 
 class HMMJSGeneconv:
-    auto_save_step = 2
+    auto_save_step = 1
     def __init__(self, save_file,
                  # First, ReCodonGeneconv objects
                  newicktree, alignment_file, paralog, summary_path, x, save_path,
@@ -23,11 +23,13 @@ class HMMJSGeneconv:
         self.MG94_Force.update_by_x(x[:-1])
         self.MG94_IGC._loglikelihood2()
         self.MG94_Force._loglikelihood2()
+        
         self.x= x
-        if not os.path.isfile(IGC_sitewise_lnL_file):
-            self.MG94_IGC.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file)
-        if not os.path.isfile(Force_sitewise_lnL_file):
-            self.MG94_Force.get_sitewise_loglikelihood_summary(Force_sitewise_lnL_file)
+
+        self.IGC_sitewise_lnL_file = IGC_sitewise_lnL_file
+        self.Force_sitewise_lnL_file = Force_sitewise_lnL_file
+        self.MG94_IGC.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file)
+        self.MG94_Force.get_sitewise_loglikelihood_summary(Force_sitewise_lnL_file)
         
         self.outgroup_branch = [edge for edge in self.MG94_IGC.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
         Total_blen = sum([self.MG94_IGC.edge_to_blen[edge] for edge in self.MG94_IGC.edge_list if edge != self.outgroup_branch])
@@ -36,8 +38,16 @@ class HMMJSGeneconv:
         self.hmmtract.update_by_x(np.log([self.MG94_IGC.tau * 0.05, 0.05]))
 
         #self.update_by_x(self.x)
+        self.save_file = save_file
+        if os.path.isfile(self.save_file):
+            self.initialize_by_save()
+            print 'Loaded parameter values from save file: ', self.save_file
 
         self.auto_save = 0
+
+    def initialize_by_save(self):
+        self.x = np.loadtxt(open(self.save_file, 'r'))
+        self.update_by_x(self.x)
 
     def update_by_x(self, x):
         self.x = deepcopy(x)
@@ -46,8 +56,11 @@ class HMMJSGeneconv:
         self.MG94_Force.update_by_x(x[:-1])
 
         # update emission probability
-        self.hmmtract.IGC_sitewise_lnL = self.MG94_IGC._sitewise_loglikelihood()
-        self.hmmtract.Force_sitewise_lnL = self.MG94_Force._sitewise_loglikelihood()
+        self.MG94_IGC.get_sitewise_loglikelihood_summary(self.IGC_sitewise_lnL_file)
+        self.MG94_Force.get_sitewise_loglikelihood_summary(self.Force_sitewise_lnL_file)
+        
+        self.hmmtract.IGC_sitewise_lnL = self.hmmtract.read_lnL(self.IGC_sitewise_lnL_file)
+        self.hmmtract.Force_sitewise_lnL = self.hmmtract.read_lnL(self.Force_sitewise_lnL_file)
 
         # update total branch length
         Total_blen = sum([self.MG94_IGC.edge_to_blen[edge] for edge in self.MG94_IGC.edge_list if edge != self.outgroup_branch])
@@ -72,7 +85,7 @@ class HMMJSGeneconv:
             print 'Current exp(x) array: ', np.exp(self.x)
             print 'lnL = ', -ll
 
-        if self.auto_save == HMMJSGeneconv.auto_save_step * len(self.x) * 2:
+        if self.auto_save == HMMJSGeneconv.auto_save_step * len(self.x):
             self.save_x()
             self.auto_save == 0
         else:
@@ -131,7 +144,7 @@ if __name__ == '__main__':
                   -4.137233772266141862e+00,
                   -2.6929935812559425#-2.5
                   ])
-    x = np.array([-0.69727878,
+    x_2 = np.array([-0.69727878,
                   -0.53710801,
                   -0.72400474,
                   0.72385788,
@@ -157,11 +170,11 @@ if __name__ == '__main__':
 
     seq_index_file = '../test/' + '_'.join(paralog) + '_seq_index.txt'
 
-    test = HMMJSGeneconv(save_file, newicktree, alignment_file, paralog, summary_path, x, save_path, IGC_sitewise_lnL_file, Force_sitewise_lnL_file,
+    test = HMMJSGeneconv(save_file, newicktree, alignment_file, paralog, summary_path, x_2, save_path, IGC_sitewise_lnL_file, Force_sitewise_lnL_file,
                          state_list, seq_index_file)
 
     self = test
-    #print test._loglikelihood(np.concatenate((x, [-0.2])))
+    #print test._loglikelihood(x)
     test.get_mle(display = True, two_step = False)
 
     #HKY_IGC = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = None, clock = None, save_path = save_path)
