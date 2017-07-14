@@ -1448,6 +1448,26 @@ class ReCodonGeneconv:
         else:
             self.x = np.loadtxt(open(save_file, 'r'))
             self.update_by_x()
+            
+    def site_reconstruction(self, package = 'new', display = False):
+        if package == 'new':
+            self.scene_ll = self.get_scene()
+            requests = [{'property' : "DNDNODE"}]
+            j_in = {
+                'scene' : self.scene_ll,
+                'requests' : requests
+                }        
+            j_out = jsonctmctree.interface.process_json_in(j_in)
+
+            status = j_out['status']
+            states_matrix = array(j_out['responses'][0])
+            #iid_obs * states * sites, we want to find the states to make the number biggest
+            
+            
+            print (j_out)
+            return j_out
+        else:
+            print ('Need to implement this for old package')
 
     
 
@@ -1461,12 +1481,10 @@ if __name__ == '__main__':
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 
-    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    scene = test.get_scene()
-    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
-    self = test
-    print (test._loglikelihood2())
+    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
     #test.get_mle(True, True, 0, 'BFGS')
+    a = test.site_reconstruction()
+    
     #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
