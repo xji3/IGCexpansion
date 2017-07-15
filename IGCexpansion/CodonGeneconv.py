@@ -43,7 +43,8 @@ class ReCodonGeneconv:
         codons = [a+b+c for a in bases for b in bases for c in bases]
         amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
         
-        self.nt_to_state    = {a:i for (i, a) in enumerate('ACGT')}        
+        self.nt_to_state    = {a:i for (i, a) in enumerate('ACGT')}  
+        self.state_to_nt    = {i:a for (i, a) in enumerate('ACGT')}
         self.codon_table    = dict(zip(codons, amino_acids))
         self.codon_nonstop  = [a for a in self.codon_table.keys() if not self.codon_table[a]=='*']
         self.codon_to_state = {a.upper() : i for (i, a) in enumerate(self.codon_nonstop)}
@@ -80,6 +81,9 @@ class ReCodonGeneconv:
         self.GeneconvTransRed  = None    # dictionary of Geneconv transition matrix used for json parsing
         self.ExpectedGeneconv  = None    # dictionary storing expected number of geneconv events on each branch
         self.ExpectedDwellTime = None    # dictionary storing expected total dwell time of heterogeneous states of each branch same order as self.edge_list
+
+        # ancestral reconstruction series
+        self.reconstruction_series  = None  # nodes * paralogs * 'string'
 
         # Initialize all parameters
         self.initialize_parameters()
@@ -1458,17 +1462,35 @@ class ReCodonGeneconv:
                 'requests' : requests
                 }        
             j_out = jsonctmctree.interface.process_json_in(j_in)
-
+        
             status = j_out['status']
-            states_matrix = array(j_out['responses'][0])
+            states_matrix = np.array(j_out['responses'][0])
             #iid_obs * states * sites, we want to find the states to make the number biggest
-            
-            
-            print (j_out)
+            maxprob_number = np.zeros((self.nsites,len(self.node_to_num)))#HKY
+            for sites in range(self.nsites):
+                for nodes_num in range(len(self.node_to_num)):
+                    maxprob_number[sites][nodes_num] = np.argmax(states_matrix[sites,0:16,nodes_num])  
+            self.get_reconstruction_result(maxprob_number,model='HKY', DNA_or_protein = 'DNA')            
             return j_out
         else:
             print ('Need to implement this for old package')
-
+        
+    def get_reconstruction_result(self, maxmatrix, model='HKY', DNA_or_protein = 'DNA'):
+        if model == 'HKY':
+            self.reconstruction_series = []
+            for nodes_num in range(len(self.node_to_num)):
+                self.reconstruction_series.append({self.paralog[0]:[], self.paralog[1]:[]})
+                for sites in range(self.nsites):
+                    state_1, state_2 = divmod(maxmatrix[sites][nodes_num]+0.1, 4)
+                    state_1 = int(state_1)
+                    state_2 = int(state_2)
+                    self.reconstruction_series[nodes_num][self.paralog[0]].append(self.state_to_nt[state_1])
+                    self.reconstruction_series[nodes_num][self.paralog[1]].append(self.state_to_nt[state_1])
+                    
+                    
+        elif model == 'MG94':
+            pass
+        
     
 
 if __name__ == '__main__':
@@ -1484,7 +1506,6 @@ if __name__ == '__main__':
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
     #test.get_mle(True, True, 0, 'BFGS')
     a = test.site_reconstruction()
-    
     #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
