@@ -48,6 +48,7 @@ class ReCodonGeneconv:
         self.codon_table    = dict(zip(codons, amino_acids))
         self.codon_nonstop  = [a for a in self.codon_table.keys() if not self.codon_table[a]=='*']
         self.codon_to_state = {a.upper() : i for (i, a) in enumerate(self.codon_nonstop)}
+        self.state_to_codon = {i : a.upper() for (i, a) in enumerate(self.codon_nonstop)}
         self.pair_to_state  = {pair:i for i, pair in enumerate(product(self.codon_nonstop, repeat = 2))}
 
         # Tip data related variable
@@ -1453,7 +1454,7 @@ class ReCodonGeneconv:
             self.x = np.loadtxt(open(save_file, 'r'))
             self.update_by_x()
             
-    def site_reconstruction(self, package = 'new', display = False):
+    def site_reconstruction(self, package = 'new', display = False):#前面三个是不要的
         if package == 'new':
             self.scene_ll = self.get_scene()
             requests = [{'property' : "DNDNODE"}]
@@ -1462,34 +1463,44 @@ class ReCodonGeneconv:
                 'requests' : requests
                 }        
             j_out = jsonctmctree.interface.process_json_in(j_in)
-        
+            
             status = j_out['status']
             states_matrix = np.array(j_out['responses'][0])
             #iid_obs * states * sites, we want to find the states to make the number biggest
-            maxprob_number = np.zeros((self.nsites,len(self.node_to_num)))#HKY
+            maxprob_number = np.zeros((self.nsites,len(self.node_to_num)))
             for sites in range(self.nsites):
                 for nodes_num in range(len(self.node_to_num)):
-                    maxprob_number[sites][nodes_num] = np.argmax(states_matrix[sites,0:16,nodes_num])  
-            self.get_reconstruction_result(maxprob_number,model='HKY', DNA_or_protein = 'DNA')            
+                    if self.Model == 'HKY':
+                        maxprob_number[sites][nodes_num] = np.argmax(states_matrix[sites,0:16,nodes_num])
+                    elif self.Model == 'MG94':
+                        maxprob_number[sites][nodes_num] = np.argmax(states_matrix[sites,0:3721,nodes_num])
+            self.get_reconstruction_result(states_matrix, maxprob_number, DNA_or_protein = 'DNA')            
             return j_out
         else:
             print ('Need to implement this for old package')
         
-    def get_reconstruction_result(self, maxmatrix, model='HKY', DNA_or_protein = 'DNA'):
-        if model == 'HKY':
+    def get_reconstruction_result(self, states_matrix, maxmatrix, DNA_or_protein = 'DNA'):
+        site_differences = [len(set(maxmatrix[sites])) for sites in range(self.nsites)]
+        if self.Model == 'HKY':
             self.reconstruction_series = []
             for nodes_num in range(len(self.node_to_num)):
-                self.reconstruction_series.append({self.paralog[0]:[], self.paralog[1]:[]})
-                for sites in range(self.nsites):
-                    state_1, state_2 = divmod(maxmatrix[sites][nodes_num]+0.1, 4)
+                self.reconstruction_series.append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
+                for sites in range(3,self.nsites):
+                    state_1, state_2 = divmod(maxmatrix[sites][nodes_num], 4)
                     state_1 = int(state_1)
                     state_2 = int(state_2)
-                    self.reconstruction_series[nodes_num][self.paralog[0]].append(self.state_to_nt[state_1])
-                    self.reconstruction_series[nodes_num][self.paralog[1]].append(self.state_to_nt[state_1])
-                    
-                    
-        elif model == 'MG94':
-            pass
+                    self.reconstruction_series[nodes_num][self.paralog[0]]+=self.state_to_nt[state_1]
+                    self.reconstruction_series[nodes_num][self.paralog[1]]+=self.state_to_nt[state_2]
+        elif self.Model == 'MG94':
+            self.reconstruction_series = []
+            for nodes_num in range(len(self.node_to_num)):
+                self.reconstruction_series.append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
+                for sites in range(1,self.nsites):
+                    state_1, state_2 = divmod(maxmatrix[sites][nodes_num], 61)
+                    state_1 = int(state_1)
+                    state_2 = int(state_2)
+                    self.reconstruction_series[nodes_num][self.paralog[0]]+=self.state_to_codon[state_1]
+                    self.reconstruction_series[nodes_num][self.paralog[1]]+=self.state_to_codon[state_2]
         
     
 
@@ -1503,9 +1514,15 @@ if __name__ == '__main__':
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 
-    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
+    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
     #test.get_mle(True, True, 0, 'BFGS')
-    a = test.site_reconstruction()
+    asa = test.site_reconstruction()
+    self=test
+    a2=self.reconstruction_series
+    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
+    asa = test.site_reconstruction()
+    self=test
+    a1=self.reconstruction_series
     #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
