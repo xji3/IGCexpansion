@@ -24,6 +24,7 @@ class ReCodonGeneconv:
         self.paralog     = paralog      # parlaog list
         self.nsites      = nnsites      # number of sites in the alignment used for calculation
         self.Model       = Model
+        self.IGC         = ''           # indicates if or not IGC in ancestral compare result
         self.ll          = 0.0          # Store current log-likelihood
         self.Force       = Force        # parameter constraints only works on self.x not on x_clock which should be translated into self.x first
         self.clock       = clock        # molecular clock control
@@ -1487,28 +1488,52 @@ class ReCodonGeneconv:
     def get_reconstruction_result(self, states_matrix, maxmatrix, DNA_or_protein = 'DNA'):
         site_differences = [len(set(maxmatrix[sites])) for sites in range(self.nsites)]
         if self.Model == 'HKY':
-            self.reconstruction_series = []
+            if self.tau == 0:
+                self.reconstruction_series = {'moedel':'', 'data':[]}
+            else:
+                self.reconstruction_series = {'moedel':'+IGC', 'data':[]}
             for nodes_num in range(len(self.node_to_num)):
-                self.reconstruction_series.append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
+                self.reconstruction_series['data'].append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
                 for sites in range(3,self.nsites):
                     state_1, state_2 = divmod(maxmatrix[sites][nodes_num], 4)
                     state_1 = int(state_1)
                     state_2 = int(state_2)
-                    self.reconstruction_series[nodes_num][self.paralog[0]]+=self.state_to_nt[state_1]
-                    self.reconstruction_series[nodes_num][self.paralog[1]]+=self.state_to_nt[state_2]
+                    self.reconstruction_series['data'][nodes_num][self.paralog[0]]+=self.state_to_nt[state_1]
+                    self.reconstruction_series['data'][nodes_num][self.paralog[1]]+=self.state_to_nt[state_2]
         elif self.Model == 'MG94':
-            self.reconstruction_series = []
+            if self.tau == 0:
+                self.reconstruction_series = {'moedel':'', 'data':[]}
+            else:
+                self.reconstruction_series = {'moedel':'+IGC', 'data':[]}
             for nodes_num in range(len(self.node_to_num)):
-                self.reconstruction_series.append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
+                self.reconstruction_series['data'].append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
                 for sites in range(1,self.nsites):
                     state_1, state_2 = divmod(maxmatrix[sites][nodes_num], 61)
                     state_1 = int(state_1)
                     state_2 = int(state_2)
-                    self.reconstruction_series[nodes_num][self.paralog[0]]+=self.state_to_codon[state_1]
-                    self.reconstruction_series[nodes_num][self.paralog[1]]+=self.state_to_codon[state_2]
+                    self.reconstruction_series['data'][nodes_num][self.paralog[0]]+=self.state_to_codon[state_1]
+                    self.reconstruction_series['data'][nodes_num][self.paralog[1]]+=self.state_to_codon[state_2]
         
+def find_differences_between(reconstruction_series1, reconstruction_series2):#the series must from one tree
+    result = {}
+    flag = 0
+    for nodes_num in range(len(reconstruction_series1['data'])):
+        for paralog in self.paralog:
+            result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog] = {'location':[], 'model_1': [], 'model_2': [], 'differences': 0}
+            for sites in range(len(reconstruction_series1['data'][nodes_num])):
+                if reconstruction_series1['data'][nodes_num][paralog][sites] == reconstruction_series2['data'][nodes_num][paralog][sites]:
+                    continue
+                else:
+                    result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['location'].append(sites)
+                    result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['model_1'].append(reconstruction_series1['data'][nodes_num][paralog][sites])
+                    result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['model_2'].append(reconstruction_series2['data'][nodes_num][paralog][sites])
+                    result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['differences'] += 1
+                    flag += 1
+    print(result)
+    print (flag)
+    return result
+            
     
-
 if __name__ == '__main__':
     paralog = ['YLR406C', 'YDL075W']
     Force = None
@@ -1531,7 +1556,8 @@ if __name__ == '__main__':
     self=test
     a1=self.reconstruction_series
     print(a1)
-    #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
+    result = find_differences_between(a1,a2)
+#test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
 ##        print (scene['process_definitions'][1]['row_states'][i],\
