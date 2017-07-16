@@ -1486,12 +1486,12 @@ class ReCodonGeneconv:
             print ('Need to implement this for old package')
         
     def get_reconstruction_result(self, states_matrix, maxmatrix, DNA_or_protein = 'DNA'):
-        site_differences = [len(set(maxmatrix[sites])) for sites in range(self.nsites)]
+        site_differences = [len(set(maxmatrix[sites])) for sites in range(self.nsites)]#TODO: sitedifferences in different paralogs
         if self.Model == 'HKY':
             if self.tau == 0:
-                self.reconstruction_series = {'moedel':'', 'data':[]}
+                self.reconstruction_series = {'model':'HKY', 'data': [], 'treename': self.newicktree}
             else:
-                self.reconstruction_series = {'moedel':'+IGC', 'data':[]}
+                self.reconstruction_series = {'model':'HKY+IGC', 'data': [], 'treename': self.newicktree}
             for nodes_num in range(len(self.node_to_num)):
                 self.reconstruction_series['data'].append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
                 for sites in range(3,self.nsites):
@@ -1502,9 +1502,9 @@ class ReCodonGeneconv:
                     self.reconstruction_series['data'][nodes_num][self.paralog[1]]+=self.state_to_nt[state_2]
         elif self.Model == 'MG94':
             if self.tau == 0:
-                self.reconstruction_series = {'moedel':'', 'data':[]}
+                self.reconstruction_series = {'model':'MG94', 'data':[], 'treename': self.newicktree}
             else:
-                self.reconstruction_series = {'moedel':'+IGC', 'data':[]}
+                self.reconstruction_series = {'model':'MG94+IGC', 'data':[], 'treename': self.newicktree}
             for nodes_num in range(len(self.node_to_num)):
                 self.reconstruction_series['data'].append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
                 for sites in range(1,self.nsites):
@@ -1514,24 +1514,28 @@ class ReCodonGeneconv:
                     self.reconstruction_series['data'][nodes_num][self.paralog[0]]+=self.state_to_codon[state_1]
                     self.reconstruction_series['data'][nodes_num][self.paralog[1]]+=self.state_to_codon[state_2]
         
-def find_differences_between(reconstruction_series1, reconstruction_series2):#the series must from one tree
-    result = {}
-    flag = 0
-    for nodes_num in range(len(reconstruction_series1['data'])):
-        for paralog in self.paralog:
-            result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog] = {'location':[], 'model_1': [], 'model_2': [], 'differences': 0}
-            for sites in range(len(reconstruction_series1['data'][nodes_num])):
-                if reconstruction_series1['data'][nodes_num][paralog][sites] == reconstruction_series2['data'][nodes_num][paralog][sites]:
-                    continue
-                else:
-                    result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['location'].append(sites)
-                    result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['model_1'].append(reconstruction_series1['data'][nodes_num][paralog][sites])
-                    result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['model_2'].append(reconstruction_series2['data'][nodes_num][paralog][sites])
-                    result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['differences'] += 1
-                    flag += 1
-    print(result)
-    print (flag)
-    return result
+    def find_differences_between_models(self, reconstruction_series1, reconstruction_series2):#the series must from one tree
+        assert(len(reconstruction_series1['data'])==len(reconstruction_series2['data']))
+        filename = open(self.save_path + 'ancestral_reconstruction_' + self.paralog[0] + '_' + self.paralog[1] + '_' + reconstruction_series1['model'] + '_' + reconstruction_series2['model'] +'.txt' ,'w')
+        result = {}
+        flag = 0
+        for nodes_num in range(len(reconstruction_series1['data'])):
+            for paralog in self.paralog:
+                result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog] = {'location':[], 'model_1': [], 'model_2': [], 'differences': 0}
+                for sites in range(len(reconstruction_series1['data'][nodes_num])):
+                    if reconstruction_series1['data'][nodes_num][paralog][sites] == reconstruction_series2['data'][nodes_num][paralog][sites]:
+                        continue
+                    else:
+                        result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['location'].append(sites)
+                        result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['model_1'].append(reconstruction_series1['data'][nodes_num][paralog][sites])
+                        result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['model_2'].append(reconstruction_series2['data'][nodes_num][paralog][sites])
+                        result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['differences'] += 1
+                        flag += 1
+                        print (flag)
+        filename.write('Total differences:' + str(flag)+ '\n')
+        filename.write(repr(result))
+        filename.close()
+        return result       
             
     
 if __name__ == '__main__':
@@ -1545,18 +1549,20 @@ if __name__ == '__main__':
     ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
     
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    test.get_mle(True, True, 0, 'BFGS')
+    #test.get_mle(True, True, 0, 'BFGS')
     asa = test.site_reconstruction()
     self=test
     a2=self.reconstruction_series
     print(a2)
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
-    test.get_mle(True, True, 0, 'BFGS')
+    #test.get_mle(True, True, 0, 'BFGS')
     asa = test.site_reconstruction()
     self=test
     a1=self.reconstruction_series
     print(a1)
-    result = find_differences_between(a1,a2)
+    result = self.find_differences_between_models(a1,a2)
+    print(result)
+    
 #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
