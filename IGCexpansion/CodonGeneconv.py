@@ -1513,16 +1513,19 @@ if __name__ == '__main__':
 ##    test.get_mle(True, True, 0, 'BFGS')
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
-
+    
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    #test.get_mle(True, True, 0, 'BFGS')
+    test.get_mle(True, True, 0, 'BFGS')
     asa = test.site_reconstruction()
     self=test
     a2=self.reconstruction_series
+    print(a2)
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
+    test.get_mle(True, True, 0, 'BFGS')
     asa = test.site_reconstruction()
     self=test
     a1=self.reconstruction_series
+    print(a1)
     #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
