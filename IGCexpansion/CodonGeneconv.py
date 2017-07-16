@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-   
+
 # Uses Alex Griffing's JsonCTMCTree package for likelihood and gradient calculation
 # Re-write of my previous CodonGeneconv class
 # commit number: Oct 22nd, 2014 for old package
@@ -5,8 +7,7 @@
 # commit number: Dec 17th, 2014 for new package
 # 33e393a973161e3a29149e82bfda23882b5826f3
 
-#! /usr/bin/env python     
-# -*- coding: utf-8 -*-     
+  
 
 from __future__ import print_function, absolute_import
 from IGCexpansion.CodonGeneconFunc import *
