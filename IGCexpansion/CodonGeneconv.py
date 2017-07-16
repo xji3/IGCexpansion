@@ -4,6 +4,10 @@
 # cb1ba60ee2b57d6703cd9a3987000c2fd4dd68a5
 # commit number: Dec 17th, 2014 for new package
 # 33e393a973161e3a29149e82bfda23882b5826f3
+
+#! /usr/bin/env python     
+# -*- coding: utf-8 -*-     
+
 from __future__ import print_function, absolute_import
 from IGCexpansion.CodonGeneconFunc import *
 import argparse
@@ -1510,9 +1514,9 @@ if __name__ == '__main__':
     alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
     newicktree = '../test/YeastTree.newick'
     Force = None
-##    test.get_mle(True, True, 0, 'BFGS')
-##    test.get_individual_summary(summary_path = '../test/Summary/')
-##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
+    ##    test.get_mle(True, True, 0, 'BFGS')
+    ##    test.get_individual_summary(summary_path = '../test/Summary/')
+    ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
     
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
     test.get_mle(True, True, 0, 'BFGS')
