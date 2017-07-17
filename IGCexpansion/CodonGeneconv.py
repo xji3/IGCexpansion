@@ -1481,7 +1481,6 @@ class ReCodonGeneconv:
                     elif self.Model == 'MG94':
                         maxprob_number[sites][nodes_num] = np.argmax(states_matrix[sites,0:3721,nodes_num])
             self.get_reconstruction_result(states_matrix, maxprob_number, DNA_or_protein = 'DNA')            
-            return j_out
         else:
             print ('Need to implement this for old package')
         
@@ -1514,9 +1513,9 @@ class ReCodonGeneconv:
                     self.reconstruction_series['data'][nodes_num][self.paralog[0]]+=self.state_to_codon[state_1]
                     self.reconstruction_series['data'][nodes_num][self.paralog[1]]+=self.state_to_codon[state_2]
         
-    def find_differences_between_models(self, reconstruction_series1, reconstruction_series2):#the series must from one tree
+    def find_differences_between(self, reconstruction_series1, reconstruction_series2):#the series must from one tree
         assert(len(reconstruction_series1['data'])==len(reconstruction_series2['data']))
-        filename = open(self.save_path + 'ancestral_reconstruction_' + self.paralog[0] + '_' + self.paralog[1] + '_' + reconstruction_series1['model'] + '_' + reconstruction_series2['model'] +'.txt' ,'w')
+        filename = open('../test/Ancestral_reconstruction/' + 'ancestral_reconstruction_' + self.paralog[0] + '_' + self.paralog[1] + '_' + reconstruction_series1['model'] + '_' + reconstruction_series2['model'] +'.txt' ,'w')
         result = {}
         flag = 0
         for nodes_num in range(len(reconstruction_series1['data'])):
@@ -1543,24 +1542,36 @@ if __name__ == '__main__':
     Force = None
     alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
     newicktree = '../test/YeastTree.newick'
-    Force = None
-    ##    test.get_mle(True, True, 0, 'BFGS')
     ##    test.get_individual_summary(summary_path = '../test/Summary/')
     ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
+    # Force MG94:{5:0.0} HKY:{4:0.0}
     
-    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    #test.get_mle(True, True, 0, 'BFGS')
-    asa = test.site_reconstruction()
-    self=test
-    a2=self.reconstruction_series
-    print(a2)
-    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
-    #test.get_mle(True, True, 0, 'BFGS')
-    asa = test.site_reconstruction()
-    self=test
-    a1=self.reconstruction_series
-    print(a1)
-    result = self.find_differences_between_models(a1,a2)
+    #MG94+tau
+    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
+    MG94_tau.get_mle(True, True, 0, 'BFGS')
+    MG94_tau.site_reconstruction()
+    MG94_tau_series = MG94_tau.reconstruction_series
+    
+    #MG94
+    MG94 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = {5:0.0}, clock = None, save_path = '../test/save/')
+    MG94.get_mle(True, True, 0, 'BFGS')
+    MG94.site_reconstruction()
+    MG94_series = MG94.reconstruction_series
+    result = MG94_tau.find_differences_between(MG94_tau_series, MG94_series)
+    print(result)
+    
+    #HKY+tau
+    HKY_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
+    MG94_tau.get_mle(True, True, 0, 'BFGS')
+    HKY_tau.site_reconstruction()
+    HKY_tau_series = HKY_tau.reconstruction_series
+    
+    #MG94
+    HKY = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = {4:0.0}, clock = None, save_path = '../test/save/')
+    MG94.get_mle(True, True, 0, 'BFGS')
+    HKY.site_reconstruction()
+    HKY_series = HKY.reconstruction_series
+    result = HKY_tau.find_differences_between(HKY_tau_series, HKY_series)
     print(result)
     
 #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
