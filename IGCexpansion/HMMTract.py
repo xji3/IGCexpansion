@@ -11,10 +11,10 @@ from math import floor
 import os, sys
 
 class HMMTract:
-    def __init__(self, IGC_sitewise_lnL_file, Force_sitewise_lnL_file,
+    def __init__(self, IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file,
                  State_List, Total_blen, tau, seq_index_file):
         self.IGC_sitewise_lnL   = self.read_lnL(IGC_sitewise_lnL_file)
-        self.Force_sitewise_lnL = self.read_lnL(Force_sitewise_lnL_file)
+        self.NOIGC_sitewise_lnL = self.read_lnL(NOIGC_sitewise_lnL_file)
         self.StateList          = State_List
         self.L                  = Total_blen
         self.seq_index          = self.read_seq_index_file(seq_index_file)       
@@ -47,7 +47,7 @@ class HMMTract:
 
     def init_parameters(self):
         self.update_by_x(np.log([self.tau * 0.05, 0.05]))
-        assert(len(self.IGC_sitewise_lnL) == len(self.Force_sitewise_lnL))
+        assert(len(self.IGC_sitewise_lnL) == len(self.NOIGC_sitewise_lnL))
 
     def read_lnL(self, sitewise_lnL_file):
         assert(os.path.isfile(sitewise_lnL_file))
@@ -128,14 +128,14 @@ class HMMTract:
         self.Emi = np.zeros((len(self.StateList), len(self.IGC_sitewise_lnL)), dtype = float)
         distn = self.get_marginal_state_distn()
         for i in range(len(self.IGC_sitewise_lnL)):
-            emission_0 = self.Force_sitewise_lnL[i]
+            emission_0 = self.NOIGC_sitewise_lnL[i] - np.log(distn[0]) 
 
-            if 1.0 - np.exp(emission_0 - self.IGC_sitewise_lnL[i]) * distn[0] < 0:
+            if 1.0 - np.exp(self.NOIGC_sitewise_lnL[i] - self.IGC_sitewise_lnL[i]) < 0:
                 print self.x, i, emission_0, self.IGC_sitewise_lnL[i], distn[0]
                 sys.exit('something is wrong')
                 #emission_1 = -10000.0
             else:
-                emission_1 = self.IGC_sitewise_lnL[i] + np.log(1.0 - np.exp(emission_0 - self.IGC_sitewise_lnL[i]) * distn[0]) - np.log(distn[1])
+                emission_1 = self.IGC_sitewise_lnL[i] + np.log(1.0 - np.exp(self.NOIGC_sitewise_lnL[i] - self.IGC_sitewise_lnL[i])) - np.log(distn[1])
 
             self.Emi[:, i] = np.array([emission_0, emission_1])
             
@@ -293,3 +293,22 @@ class HMMTract:
 
         return lnL_array
         
+if __name__ == '__main__':
+    pair = ["EDN", "ECP"]
+    paralog = pair
+    state_list = ['No IGC event (Si = 0)','At least one IGC event (Si > 0)']
+    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+    seq_index_file = '../test/' + '_'.join(paralog) + '_seq_index.txt'
+    tau = 0.52798941015896717
+    Total_blen = 0.54043382072811319
+    
+    test = HMMTract(IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file, state_list, Total_blen, tau, seq_index_file)
+    #scene = test.get_scene()
+    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
+    self = test
+    #print (test._loglikelihood2())
+    #test.get_mle(True, True, 0, 'BFGS')
+
+    #test.get_mle(True, False)
+    

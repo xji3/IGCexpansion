@@ -489,23 +489,23 @@ class IndCodonGeneconv:
                     # (ca, cb) to (ca, cc)
                     Qb = Qbasic[sb, sc]
                     if Qb != 0:
-                        row.append(61*sa + sb) # (sa, sb) 
-                        col.append(61*sa + sc) # (sa, sc) 
+                        row.append([61*sa + sb]) # (sa, sb) 
+                        col.append([61*sa + sc]) # (sa, sc) 
                         rate_geneconv.append(Qb)
                         rate_basic.append(0.0)
 
                     # (ca, cb) to (cc, cb)
                     Qb = Qbasic[sa, sc]
                     if Qb != 0:
-                        row.append(61*sa + sb) # (sa, sb) 
-                        col.append(61*sc + sb) # (sc, sb)
+                        row.append([61*sa + sb]) # (sa, sb) 
+                        col.append([61*sc + sb]) # (sc, sb)
                         rate_geneconv.append(Qb)
                         rate_basic.append(0.0)
 
                         
                 # (ca, cb) to (ca, ca)
-                row.append( 61*sa + sb) # (sa, sb)
-                col.append( 61*sa + sa) # (sa, sa)
+                row.append( [61*sa + sb] ) # (sa, sb)
+                col.append( [61*sa + sa] ) # (sa, sa)
                 Qb = Qbasic[sb, sa]
 
                 Tgeneconv = self.tau
@@ -513,15 +513,15 @@ class IndCodonGeneconv:
                 rate_basic.append(0.0)
                 
                 # (ca, cb) to (cb, cb)
-                row.append(61*sa + sb) # (sa, sb)
-                col.append(61*sb + sb) # (sb, sb)
+                row.append([61*sa + sb]) # (sa, sb)
+                col.append([61*sb + sb]) # (sb, sb)
                 Qb = Qbasic[sa, sb]
                 rate_geneconv.append(Qb)
                 rate_basic.append(0.0)
 
                 # (ca, cb) to absorbing state (IGC >= 1)
-                row.append( 61*sa + sb) # (sa, sb)
-                col.append( 61**2 ) # absorbing state (IGC >= 1)
+                row.append( [61*sa + sb]) # (sa, sb)
+                col.append( [61**2] ) # absorbing state (IGC >= 1)
                 rate_geneconv.append( 2*Tgeneconv)
                 rate_basic.append(0.0)
 
@@ -536,26 +536,26 @@ class IndCodonGeneconv:
                     if Qb != 0:
 
                         # (ca, ca) to (ca,  cc)
-                        row.append(61*sa + sb) # (sa, sb)
-                        col.append(61*sa + sc) # (sa, sc)
+                        row.append([61*sa + sb]) # (sa, sb)
+                        col.append([61*sa + sc]) # (sa, sc)
                         rate_geneconv.append(Qb)
                         rate_basic.append(0.0)
 
                         # (ca, ca) to (cc, ca)
-                        row.append(61*sa + sb) # (sa, sb)
-                        col.append(61*sc + sa) # (sc, sa)
+                        row.append([61*sa + sb]) # (sa, sb)
+                        col.append([61*sc + sa]) # (sc, sa)
                         rate_geneconv.append(Qb)
                         rate_basic.append(0.0)
 
                         # (ca, ca) to absorbing state (IGC >= 1)
-                        row.append(61*sa + sb) # (sa, sb)
-                        col.append( 61**2 ) # (sa, sc)
+                        row.append([61*sa + sb]) # (sa, sb)
+                        col.append( [61**2] ) # (sa, sc)
                         rate_geneconv.append(2*Tgeneconv)
                         rate_basic.append(0.0)
 
                         # (ca, ca) to (cc, cc)
-                        row.append(61*sa + sb) # (sa, sb)
-                        col.append(61*sc + sc) # (sc, sc)
+                        row.append([61*sa + sb]) # (sa, sb)
+                        col.append([61*sc + sc]) # (sc, sc)
                         rate_geneconv.append(0.0)
                         rate_basic.append(Qb)
                 
@@ -747,15 +747,15 @@ class IndCodonGeneconv:
 
     def _sitewise_loglikelihood(self, No_IGC):
         if No_IGC:
-            scene = self.get_NOIGC_scene()
+            scene_sitewise = self.get_NOIGC_scene()
         else:
-            scene = self.get_scene()
+            scene_sitewise = self.get_scene()
         
         log_likelihood_request = {'property':'dnnlogl'}
         requests = [log_likelihood_request]
         
         j_in = {
-            'scene' : self.scene_ll,
+            'scene' : scene_sitewise,
             'requests' : requests
             }
         j_out = jsonctmctree.interface.process_json_in(j_in)
@@ -773,6 +773,9 @@ class IndCodonGeneconv:
             f.write('#Site\tlnL\t\n')
             for i in range(self.nsites):
                 f.write('\t'.join([str(i), str(ll[i])]) + '\n')
+        self.get_data()
+        self.scene_ll = self.get_scene()
+        self.get_processes()
     
     def get_scene(self):
         if self.Model == 'MG94':
@@ -808,11 +811,12 @@ class IndCodonGeneconv:
             state_space_shape = [17]
 
         if self.Model == 'MG94':
-            process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.get_NOIGC_MG94Geneconv_and_MG94()]
+            self.processes = self.get_NOIGC_MG94Geneconv_and_MG94()
+            process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
         else:
             exit('Not implemented')
         # translate prior_feasible_states into the new states
-        NOIGC_prior_feasible_states = [61*i[0] + i[1] for i in self.prior_feasible_states]
+        NOIGC_prior_feasible_states = [[61*i[0] + i[1]] for i in self.prior_feasible_states]
         # Now change self.data
         self.get_NOIGC_data()
         scene = dict(
@@ -1665,16 +1669,21 @@ if __name__ == '__main__':
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 
     test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    scene = test.get_scene()
+    #scene = test.get_scene()
     #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
-    print (test._loglikelihood2())
+    #print (test._loglikelihood2())
     #test.get_mle(True, True, 0, 'BFGS')
-    s1 = test.get_scene()
-    s2 = test.get_NOIGC_scene()
-    sitewise_ll = test._sitewise_loglikelihood(True)
-    #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
+    #s1 = test.get_scene()
+    #s2 = test.get_NOIGC_scene()
+    #sitewise_ll = test._sitewise_loglikelihood(True)
+    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
 
+#    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, True)
+    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, False)
+    test.get_sitewise_loglikelihood_summary(NOIGC_sitewise_lnL_file, True)
+    
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
 ##        print (scene['process_definitions'][1]['row_states'][i],\
 ##              scene['process_definitions'][1]['column_states'][i],\
