@@ -183,14 +183,20 @@ class IndCodonGeneconv:
         
         self.observable_nodes = [self.node_to_num[n] for n in self.observable_names]
         self.observable_axes = [0 for s in self.observable_names]
-        
+
         # Now convert alignment into state list
+        # Need special treatment of outgroup species
+        out_group = [edge for edge in self.edge_list if edge[0] == 'N0' and not str.isdigit(edge[1][1:])][0][1]
+        
         iid_observations = []
         for site in range(self.nsites):
             observations = []
             for name in self.observable_names:
                 observation_paralog_1 = obs_to_state[self.name_to_seq[name + self.paralog[0]][site]]
-                observation_paralog_2 = obs_to_state[self.name_to_seq[name + self.paralog[1]][site]]
+                if name == out_group:
+                    observation_paralog_2 = observation_paralog_1
+                else:
+                    observation_paralog_2 = obs_to_state[self.name_to_seq[name + self.paralog[1]][site]]
                 observations.append(observation_paralog_1*61 + observation_paralog_2 )
             iid_observations.append(observations)
         self.iid_observations = iid_observations
@@ -739,8 +745,11 @@ class IndCodonGeneconv:
 
         return ll, edge_derivs
 
-    def _sitewise_loglikelihood(self):
-        scene = self.get_scene()
+    def _sitewise_loglikelihood(self, No_IGC):
+        if No_IGC:
+            scene = self.get_NOIGC_scene()
+        else:
+            scene = self.get_scene()
         
         log_likelihood_request = {'property':'dnnlogl'}
         requests = [log_likelihood_request]
@@ -758,8 +767,8 @@ class IndCodonGeneconv:
 
         return ll
 
-    def get_sitewise_loglikelihood_summary(self, summary_file):
-        ll = self._sitewise_loglikelihood()
+    def get_sitewise_loglikelihood_summary(self, summary_file, No_IGC = False):
+        ll = self._sitewise_loglikelihood(No_IGC)
         with open(summary_file, 'w+') as f:
             f.write('#Site\tlnL\t\n')
             for i in range(self.nsites):
@@ -797,9 +806,15 @@ class IndCodonGeneconv:
             state_space_shape = [61**2 + 1]
         elif self.Model == 'HKY':
             state_space_shape = [17]
-        process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
+
+        if self.Model == 'MG94':
+            process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.get_NOIGC_MG94Geneconv_and_MG94()]
+        else:
+            exit('Not implemented')
         # translate prior_feasible_states into the new states
         NOIGC_prior_feasible_states = [61*i[0] + i[1] for i in self.prior_feasible_states]
+        # Now change self.data
+        self.get_NOIGC_data()
         scene = dict(
             node_count = len(self.edge_to_blen) + 1,
             process_count = len(self.processes),
@@ -1642,7 +1657,7 @@ if __name__ == '__main__':
     
     paralog = ['EDN', 'ECP']
     Force = None
-    alignment_file = '../test/EDN_ECP_Cleaned_old.fasta'
+    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
     newicktree = '../test/input_tree.newick'
     Force = None
 ##    test.get_mle(True, True, 0, 'BFGS')
@@ -1654,7 +1669,10 @@ if __name__ == '__main__':
     #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
     print (test._loglikelihood2())
-    test.get_mle(True, True, 0, 'BFGS')
+    #test.get_mle(True, True, 0, 'BFGS')
+    s1 = test.get_scene()
+    s2 = test.get_NOIGC_scene()
+    sitewise_ll = test._sitewise_loglikelihood(True)
     #test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
 
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
