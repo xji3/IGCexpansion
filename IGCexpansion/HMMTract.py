@@ -46,7 +46,7 @@ class HMMTract:
         return seq_index
 
     def init_parameters(self):
-        self.update_by_x(np.log([self.tau * 0.05, 0.05]))
+        self.update_by_x(np.log([self.tau, 1.0]))
         assert(len(self.IGC_sitewise_lnL) == len(self.NOIGC_sitewise_lnL))
 
     def read_lnL(self, sitewise_lnL_file):
@@ -171,7 +171,7 @@ class HMMTract:
         self.Forward_mat = lnL_array
         ll = lnL_array[0, -1] + np.log(sum(np.exp(lnL_array[:, -1] - lnL_array[0, -1])))
         if display:
-            print '\t'.join([ str(item) for item in [ll] + list(np.exp(self.x))])
+            print '\t'.join([ str(item) for item in [ll, self.tau] + list(np.exp(self.x))])
 
         return -ll
 
@@ -304,11 +304,8 @@ if __name__ == '__main__':
     Total_blen = 0.54043382072811319
     
     test = HMMTract(IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file, state_list, Total_blen, tau, seq_index_file)
-    #scene = test.get_scene()
-    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
-    #print (test._loglikelihood2())
-    #test.get_mle(True, True, 0, 'BFGS')
 
-    #test.get_mle(True, False)
+
+    test.get_mle(True, True)
     

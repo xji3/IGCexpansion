@@ -547,18 +547,18 @@ class IndCodonGeneconv:
                         rate_geneconv.append(Qb)
                         rate_basic.append(0.0)
 
-                        # (ca, ca) to absorbing state (IGC >= 1)
-                        row.append([61*sa + sb]) # (sa, sb)
-                        col.append( [61**2] ) # (sa, sc)
-                        rate_geneconv.append(2*Tgeneconv)
-                        rate_basic.append(0.0)
-
                         # (ca, ca) to (cc, cc)
                         row.append([61*sa + sb]) # (sa, sb)
                         col.append([61*sc + sc]) # (sc, sc)
                         rate_geneconv.append(0.0)
                         rate_basic.append(Qb)
-                
+                        
+                # (ca, ca) to absorbing state (IGC >= 1)
+                row.append([61*sa + sb]) # (sa, sb)
+                col.append( [61**2] ) # (sa, sc)
+                rate_geneconv.append(2*Tgeneconv)
+                rate_basic.append(0.0)
+        
         process_geneconv = dict(
             row = row,
             col = col,
@@ -1673,7 +1673,7 @@ if __name__ == '__main__':
     #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
     #print (test._loglikelihood2())
-    #test.get_mle(True, True, 0, 'BFGS')
+    test.get_mle(True, True, 0, 'BFGS')
     #s1 = test.get_scene()
     #s2 = test.get_NOIGC_scene()
     #sitewise_ll = test._sitewise_loglikelihood(True)
@@ -1683,6 +1683,9 @@ if __name__ == '__main__':
 #    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, True)
     test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, False)
     test.get_sitewise_loglikelihood_summary(NOIGC_sitewise_lnL_file, True)
+    outgroup_branch = [edge for edge in test.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
+    Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
+    print (test.tau, Total_blen)
     
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
 ##        print (scene['process_definitions'][1]['row_states'][i],\
