@@ -22,6 +22,7 @@ class HMMJSGeneconv:
         self.MG94_IGC._loglikelihood2()
         
         self.x= x
+        # x = np.concatenate((self.MG94_IGC.x, np.log(tract_p)))
 
         self.IGC_sitewise_lnL_file = IGC_sitewise_lnL_file
         self.NOIGC_sitewise_lnL_file = NOIGC_sitewise_lnL_file
@@ -47,6 +48,8 @@ class HMMJSGeneconv:
     def initialize_by_save(self):
         self.x = np.loadtxt(open(self.save_file, 'r'))
         self.update_by_x(self.x)
+        self.hmmtract.update_by_x([self.x[5], self.x[-1]])
+        
 
     def update_by_x(self, x):
         self.x = deepcopy(x)
@@ -92,28 +95,68 @@ class HMMJSGeneconv:
             
         return ll
 
-    def get_mle(self, display = True, two_step = True):
+    def get_mle(self, display = True, two_step = True, One_Dimension = False):
         if two_step:
             self.MG94_IGC.get_mle()
             self.x[:-1] = deepcopy(self.MG94_IGC.x)
-        self._loglikelihood(self.x)
-        f = partial(self.objective, display)
-        guess_x = deepcopy(self.x)
-        bnds = [(None, 0.0)] * 3 + [(None, None)] * (len(self.MG94_IGC.x) -3) + [(None, 0.0)]
-        result = scipy.optimize.minimize(f, guess_x, jac = False, method = 'L-BFGS-B', bounds = bnds)
+            self.update_by_x(self.x)
+
+        if One_Dimension:
+            result = self.hmmtract.get_mle(display, True)
+            self.x[5] = self.hmmtract.x[0] - self.hmmtract.x[1]
+            self.x[-1] = self.hmmtract.x[-1]
+            self.update_by_x(self.x)
+        else:
+            self._loglikelihood(self.x)
+            f = partial(self.objective, display)
+            guess_x = deepcopy(self.x)
+            bnds = [(None, 0.0)] * 3 + [(None, None)] * (len(self.MG94_IGC.x) -3) + [(None, 0.0)]
+            result = scipy.optimize.minimize(f, guess_x, jac = False, method = 'L-BFGS-B', bounds = bnds)
+            self.save_x()
 
         if display:
             print(result)
+
+        return result
 
     def save_x(self):
         np.savetxt(open(self.save_file, 'w+'), self.x.T)
         self.MG94_IGC.save_x()
 
-        
+    def get_summary(self, summary_file):
+        out = [self.hmmtract.Forward(False, self.hmmtract.x)]
+        out.extend(self.MG94_IGC.pi)
+        out.extend([self.MG94_IGC.kappa, self.MG94_IGC.omega, self.MG94_IGC.tau])
+        out.extend(np.exp(self.hmmtract.x))
+        label = ['ll', 'pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'tau', 'eta', 'tract_p']
+        k = len(label)  # record the length of non-blen parameters
+
+        # Now add in branch length summary
+        label.extend(self.MG94_IGC.edge_list)
+        out.extend([self.MG94_IGC.edge_to_blen[label[j]] for j in range(k, len(label))])
+
+        # Now convert labels
+        for i in range(k, len(label)):
+            label[i] = '(' + ','.join(label[i]) + ')'
+            
+        footer = ' '.join(label)
+        np.savetxt(open(summary_file, 'w+'), np.matrix(out).T, delimiter = ' ', footer = footer) 
 
     
+    def plot_tract_p(self, log_p_list, plot_file):
+        self.MG94_IGC.get_mle()
+        self.x[:-1] = deepcopy(self.MG94_IGC.x)
+        self.update_by_x(self.x)
+        ll_list = []
+        for log_p in log_p_list:
+            ll = -self.hmmtract.objective_1D(False, [log_p])
+            ll_list.append(ll)
 
-        
+        with open(plot_file, 'w+') as f:
+            f.write('# log_p \t lnL \t \n')
+            for it in range(len(log_p_list)):
+                f.write('\t'.join([str(log_p_list[it]), str(ll_list[it]), '\n']))
+    
 
 if __name__ == '__main__':
     pair = ["EDN", "ECP"]
@@ -146,21 +189,7 @@ if __name__ == '__main__':
                   -4.133421357939401020e+00,
                   0.0#-2.6929935812559425#-2.5
                   ])
-    x_2 = np.array([-0.69727878,
-                  -0.53710801,
-                  -0.72400474,
-                  0.72385788,
-                  -0.18983735,
-                  -2.28199719,
-                  -2.01452935,
-                  -1.0337633,
-                  -3.29369029,
-                  -1.75318807,
-                  -3.25869777,
-                  -2.27341043,
-                  -4.20160402,
-                  -4.110472,
-                  -2.83333001])
+
     print 
     print '**' + '_'.join(paralog)+ '**', output_ctrl
     
@@ -176,7 +205,19 @@ if __name__ == '__main__':
                          state_list, seq_index_file)
 
     self = test
-    print test._loglikelihood(x)
-    test.get_mle(display = True, two_step = False)
+
+    summary_file_1D = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_1D_summary.txt'
+    summary_file_all_Dimension = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_all_summary.txt'
+
+    log_p_list = np.log(1.0/np.array(range(1, 1001)))
+    plot_file = '../test/plot/HMM_' + '_'.join(paralog) + '_lnL_1D_surface.txt'
+    test.plot_tract_p(log_p_list, plot_file)
+    test.get_mle(display = True, two_step = True, One_Dimension = True)
+    test.get_summary(summary_file_1D)
+    test.get_mle(display = True, two_step = False, One_Dimension = False)
+    test.get_summary(summary_file_all_Dimension)
+
 
     
+
+
