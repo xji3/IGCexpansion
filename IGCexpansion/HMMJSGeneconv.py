@@ -1,10 +1,12 @@
 # A separate file for joint estimation of HMM + JSIGC model
 # Xiang Ji
 # xji3@ncsu.edu
-
+import sys
+sys.path.append('/usr/local/lib/python2.7/site-packages')
 from HMMTract import *
 from IndCodonGeneconv import IndCodonGeneconv
 from copy import deepcopy
+import numdifftools as nd
 
 class HMMJSGeneconv:
     auto_save_step = 1
@@ -156,6 +158,17 @@ class HMMJSGeneconv:
             f.write('# log_p \t lnL \t \n')
             for it in range(len(log_p_list)):
                 f.write('\t'.join([str(log_p_list[it]), str(ll_list[it]), '\n']))
+
+    def get_Hessian(self, One_Dimension = False):
+        if One_Dimension:
+            f = nd.Derivative(partial(self.hmmtract.objective_1D, False), n = 2)
+            result = -f(self.hmmtract.x[1:])
+        else:
+            f = nd.Hessian(self._loglikelihood)
+            result = -f(self.x)
+        return result
+
+        
     
 
 if __name__ == '__main__':
@@ -209,13 +222,13 @@ if __name__ == '__main__':
     summary_file_1D = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_1D_summary.txt'
     summary_file_all_Dimension = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_all_summary.txt'
 
-    log_p_list = np.log(1.0/np.array(range(1, 1001)))
+    log_p_list = np.log(3.0/np.array(range(3, 501)))
     plot_file = '../test/plot/HMM_' + '_'.join(paralog) + '_lnL_1D_surface.txt'
     test.plot_tract_p(log_p_list, plot_file)
     test.get_mle(display = True, two_step = True, One_Dimension = True)
     test.get_summary(summary_file_1D)
-    test.get_mle(display = True, two_step = False, One_Dimension = False)
-    test.get_summary(summary_file_all_Dimension)
+##    test.get_mle(display = True, two_step = False, One_Dimension = False)
+##    test.get_summary(summary_file_all_Dimension)
 
 
     
