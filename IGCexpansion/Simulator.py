@@ -14,6 +14,8 @@ import numpy as np
 import cPickle, os
 from copy import deepcopy
 from math import floor
+from operator import mul
+from itertools import product
 
 
 class Simulator:
@@ -24,7 +26,7 @@ class Simulator:
                  terminal_node_list, node_to_pos,             # Configuration input
                  gene_to_orlg_file, seq_file,                 # output info
                  IGC_log_file, PM_log_file,                   # log_files
-                 seed_file,                                   # random seed file
+                 seed_number,                                 # random seed number
                  seq_index_file,                              # sequence index file
                  cdna = True                                  # simulate cdna sequence only or not
                  ):
@@ -39,15 +41,19 @@ class Simulator:
         self.gene_to_orlg_file = gene_to_orlg_file          # input from data class which is not used here
         self.gene_to_orlg   = dict()         # dictionary used to store gene ortholog group info
         self.orlg_to_gene   = dict()         # dictionary used to store gene ortholog group info
+
+        # Since my operation on the alignment is to remove codon columns that contain gaps,
+        # the seq_index uses codon for unit when it's cdna
         self.seq_index_file = seq_index_file # seq_index file location
         self.seq_index = None                # store sequence index information
-        self.nsites    = None                # number of nucleotide to simulate, must agree with the overall span seq_index
+        
+        self.nsites    = None                # number of nucleotide to simulate, must agree with the overall span of seq_index
         self.cdna      = cdna
 
         self.seq_file      = seq_file            # output sequence file
         self.IGC_log_file  = IGC_log_file        # IGC output log file
         self.PM_log_file   = PM_log_file         # PM output log file
-        self.seed_file     = seed_file           # random seed file
+        self.seed_number   = seed_number         # random seed file
 
         # {node:{orthologous_group:sequence}}
         self.node_to_seq = dict()            # dictionary to store sequence at each node
@@ -70,8 +76,9 @@ class Simulator:
         print self.tree
 
         return 'IGC simulator output seq: ' + self.seq_file + '\n' + \
-               'IGC log file: ' + self.IGC_log_file + \
-               'PM log file: ' + self.PM_log_file + '\n'
+               'IGC log file: ' + self.IGC_log_file + '\n' +\
+               'PM log file: ' + self.PM_log_file + '\n' +\
+               'Numpy random seed #: ' + str(self.seed_number) + '\n'
 
     
 
@@ -90,7 +97,7 @@ class Simulator:
                         self.orlg_to_gene[orlg] = [gene.split('__')]
 
     def initiate(self):
-        self.get_seed_file()
+        self.set_seed()
         self.get_gene_to_orlg()
         self.unpack_x_rates(self.x_rates)
         self.read_seq_index_file()
@@ -124,13 +131,10 @@ class Simulator:
                     rate_iter += 1
             self.tree.unpack_x_rates(translated_rate)        
 
-    def get_seed_file(self):
-        if os.path.isfile(self.seed_file):
-            prng = cPickle.load(open(self.seed_file, 'r'))
-            np.random.set_state(prng.get_state())
-        else:
-            prng = np.random.RandomState()
-            cPickle.dump(prng, open(self.seed_file, 'w+'))            
+    def set_seed(self):
+        assert(type(self.seed_number) == int)
+        np.random.seed(self.seed_number)
+        
 
     def read_seq_index_file(self):
         # The index should have columns:
@@ -158,6 +162,12 @@ class Simulator:
             for orlg in root_orlg['loc']:
                 seq = draw_from_distribution(distn, self.nsites, 'ACGT')
                 self.node_to_seq[root_name][orlg] = seq
+        elif self.PMModel.name == 'MG94':
+            distn = [ reduce(mul, [self.PMModel.parameters['Pi_' + b]  for b in codon], 1) for codon in self.PMModel.codon_nonstop ]
+            distn = np.array(distn) / sum(distn)
+            for orlg in root_orlg['loc']:
+                seq = draw_from_distribution(distn, self.nsites/3, self.PMModel.codon_nonstop)
+                self.node_to_seq[root_name][orlg] = [i for i in ''.join(seq)]            
 
     def sim(self, display = False):
         self.sim_root()
@@ -287,28 +297,58 @@ class Simulator:
 
             self.node_to_seq[child_node] = seq
  
-    def get_mutation_rate(self, seq): # modified from IGCSimulation.IGCSimulator
-        # print self.current_seq
-        # TODO: add in rv
+##    def get_mutation_rate(self, seq): # modified from IGCSimulation.IGCSimulator
+##        # print self.current_seq
+##        # TODO: add in rv
+##        poisson_rate_sum = 0.0
+##        PM_diag_rates = self.PMModel.Q_mut.sum(axis = 1)
+##
+##        seq_rate_dict = dict()
+##        for orlg in seq.keys():
+##            seq_rate = [PM_diag_rates['ACGT'.index(seq[orlg][i])] for i in range(self.nsites)]
+##            # My lazy compromise
+##            if self.PMModel.rate_variation:
+##                for i in range(len(seq_rate) / 3):
+##                    seq_rate[3 * i + 1] = seq_rate[3 * i + 1] * self.PMModel.parameters['r2']
+##                    seq_rate[3 * i + 2] = seq_rate[3 * i + 2] * self.PMModel.parameters['r3']
+##            seq_rate_dict[orlg] = seq_rate
+##            poisson_rate_sum += sum(seq_rate)
+##
+##        return seq_rate_dict, poisson_rate_sum
+
+    def get_mutation_rate(self, seq):
         poisson_rate_sum = 0.0
         PM_diag_rates = self.PMModel.Q_mut.sum(axis = 1)
-
         seq_rate_dict = dict()
-        for orlg in seq.keys():
-            seq_rate = [PM_diag_rates['ACGT'.index(seq[orlg][i])] for i in range(self.nsites)]
-            # My lazy compromise
+        if self.PMModel.data_type == 'cd':
+            # if it's a codon substitution model for point mutation
+            # translate nucleotide sequence into codon unit first
+            states = self.PMModel.codon_nonstop
+            translated_seq = dict()
+            for orlg in seq.keys():
+                assert(len(seq[orlg]) % 3 == 0)
+                translated_seq[orlg] = [''.join(seq[orlg][i:i+3]) for i in range(0, len(seq[orlg]), 3)]
+        else:
+            translated_seq = seq
+            states = 'ACGT'
+
+        
+        for orlg in translated_seq.keys():
+            #print orlg, states, translated_seq[orlg][:5], translated_seq[orlg][359]
+            seq_rate = [PM_diag_rates[states.index(translated_seq[orlg][i])] for i in range(len(translated_seq[orlg]))]
             if self.PMModel.rate_variation:
+                assert(self.PMModel.data_type == 'nt')
                 for i in range(len(seq_rate) / 3):
                     seq_rate[3 * i + 1] = seq_rate[3 * i + 1] * self.PMModel.parameters['r2']
                     seq_rate[3 * i + 2] = seq_rate[3 * i + 2] * self.PMModel.parameters['r3']
             seq_rate_dict[orlg] = seq_rate
             poisson_rate_sum += sum(seq_rate)
-
         return seq_rate_dict, poisson_rate_sum
 
 
+
     def get_one_point_mutation(self, seq, seq_rate_dict, display): # modified from IGCSimulation.IGCSimulator
-        # only allow all sequences to be of same length
+        # only allow all sequences with same length
         assert(len(set([len(seq_rate_dict[orlg]) for orlg in seq_rate_dict])) == 1)
         orlg_group = sorted(seq_rate_dict.keys())
         # Now concatenate all rates to one giant list to draw from distribution
@@ -324,11 +364,20 @@ class Simulator:
         mut_paralog = orlg_group[mut_paralog_num]
         seq_pos = mut_pos - mut_paralog_num * len(seq_rate_dict[orlg_group[0]])
 
+        # Now add in data_type difference: codon/nucleotide
+        if self.PMModel.data_type == 'cd':
+            states = self.PMModel.codon_nonstop
+            translated_seq = [''.join(seq[mut_paralog][i:i+3]) for i in range(0, len(seq[mut_paralog]), 3)]
+        else:
+            states = 'ACGT'
+            translated_seq = seq[mut_paralog]
+            
         # Now perform point mutation at the position
-        old_state = seq[mut_paralog][seq_pos]
-        prob = np.array(self.PMModel.Q_mut['ACGT'.index(old_state), :])
-        new_state = 'ACGT'[draw_from_distribution(prob / sum(prob), 1, range(len(prob)))]
-        seq[mut_paralog][seq_pos] = new_state
+        old_state = translated_seq[seq_pos]
+        prob = np.array(self.PMModel.Q_mut[states.index(old_state), :])
+        new_state = states[draw_from_distribution(prob / sum(prob), 1, range(len(prob)))]
+        translated_seq[seq_pos] = new_state
+        seq[mut_paralog] = [i for i in ''.join(translated_seq)]
 
         # TODO: implement log
         # mutation_orlg, mut_pos, old_state, new_state
@@ -354,9 +403,9 @@ class Simulator:
         init_prob_array = np.array([1.0 / tract_p] + [1.0] * (self.nsites - 1))
         start_pos = draw_from_distribution(init_prob_array / sum(init_prob_array), 1, range(len(init_prob_array)))
         tract_length = np.random.geometric(tract_p, 1)[0]
-        stop_pos = start_pos + tract_length + 1
+        stop_pos = start_pos + tract_length - 1  # tract_length is a positive integer
         if stop_pos > self.nsites:
-            stop_pos = self.nsites
+            stop_pos = self.nsites - 1
         #print start_pos, stop_pos, self.nsites
         seq, IGC_info = self.IGC_copy(start_pos, stop_pos, orlg_from, orlg_to, seq, display)
 
@@ -366,8 +415,8 @@ class Simulator:
     def IGC_copy(self, start_pos, stop_pos, orlg_from, orlg_to, seq, display):
         # make sure the two orlgs are in seq
         assert(orlg_from in seq and orlg_to in seq)
-        template_seq = seq[orlg_from][start_pos:stop_pos]
-        overide_seq = seq[orlg_to][start_pos:stop_pos]
+        template_seq = seq[orlg_from][start_pos:(stop_pos + 1)]
+        overide_seq = seq[orlg_to][start_pos:(stop_pos + 1)]
 
         num_diff = sum([template_seq[i] != overide_seq[i] for i in range(len(template_seq))])
 
@@ -380,7 +429,7 @@ class Simulator:
             print ''.join(template_seq), ''.join(overide_seq)
 
         IGC_info.extend([''.join(template_seq), ''.join(overide_seq)])
-        for i in range(start_pos, stop_pos):
+        for i in range(start_pos, stop_pos + 1):
             seq[orlg_to][i] = seq[orlg_from][i]
 
         return seq, IGC_info
@@ -413,20 +462,61 @@ if __name__ == '__main__':
     seq_file = '../test/YDR418W_YEL054C_Simulation.fasta'
     IGC_log_file = '../test/YDR418W_YEL054C_Simulation_IGC.log'
     PM_log_file  = '../test/YDR418W_YEL054C_Simulation_PM.log'
-    seed_file = '../test/YDR418W_YEL054C_Simulation_seed.log'
+    #seed_file = '../test/YDR418W_YEL054C_Simulation_seed.log'
+    seed_number = 822
 
     tree_newick = '../test/YeastTree.newick'
     DupLosList = '../test/YeastTestDupLost.txt'
     terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
     node_to_pos = {'D1':0}
     seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
+    #seq_index_file = '../test/test_seq_index.txt'
     #nsites = 489
 
-    pm_model_name = 'HKY'
-    x_pm = np.log([0.4, 0.5, 0.2, 9.2, 0.4, 5.0])
-    rate_variation = True
+##    pm_model_name = 'HKY'
+##    x_pm = np.log([0.4, 0.5, 0.2, 9.2, 0.4, 5.0])
+##    rate_variation = True
+##
+##    x_IGC = [2.0, 0.3]
+##    init_pm = 'One rate'
+##    tract_pm = 'One rate'
+##    pm_IGC = [init_pm, tract_pm]
+##
+##    x_rates = [-4.170654939766711422e+00,
+##               -5.674236262981605883e+00,
+##               -4.140979602575983520e+00,
+##               -4.344239699023852097e+00,
+##               -6.496123290482403334e+00,
+##               -6.063647134296714647e+00,
+##               -6.043806966727234276e+00,
+##               -5.111657692573940537e+00,
+##               -6.404488905061815451e+00,
+##               -5.467996717925044159e+00,
+##               -5.460686727891754799e+00,
+##               -6.459940982759793116e+00]
+##    
+##    test = Simulator(pm_model_name, x_pm, rate_variation,
+##                     x_IGC, pm_IGC, tree_newick, DupLosList, x_rates,
+##                     terminal_node_list, node_to_pos, gene_to_orlg_file, seq_file, IGC_log_file, PM_log_file, seed_file, seq_index_file)
+##
+##    self = test
+##    print test
+##    display = True
+##    test.sim(display = display)
+##    test.output_seq()
 
-    x_IGC = [2.0, 0.3]
+##    print "Still simulating?"
+##    edge = ('N0', 'D1')
+##    test.sim_one_branch(edge, True)
+##    
+##    edge = ('D1', 'N1')
+##    test.sim_one_branch(edge, True)
+
+    pm_model_name = 'MG94'
+    x_pm = np.log([0.4, 0.5, 0.2, 9.2, 1.0])
+    rate_variation = False
+
+    x_IGC = [0.12, 0.01]
     init_pm = 'One rate'
     tract_pm = 'One rate'
     pm_IGC = [init_pm, tract_pm]
@@ -446,22 +536,18 @@ if __name__ == '__main__':
     
     test = Simulator(pm_model_name, x_pm, rate_variation,
                      x_IGC, pm_IGC, tree_newick, DupLosList, x_rates,
-                     terminal_node_list, node_to_pos, gene_to_orlg_file, seq_file, IGC_log_file, PM_log_file, seed_file, seq_index_file)
+                     terminal_node_list, node_to_pos, gene_to_orlg_file, seq_file, IGC_log_file, PM_log_file, seed_number, seq_index_file)
 
     self = test
     print test
     display = True
+    
+    test.sim_root()
+    #edge = ('N0', 'kluyveri')
+    #test.sim_one_branch(edge, True)
+
     test.sim(display = display)
     test.output_seq()
-
-##    print "Still simulating?"
-##    edge = ('N0', 'D1')
-##    test.sim_one_branch(edge, True)
-##    
-##    edge = ('D1', 'N1')
-##    test.sim_one_branch(edge, True)
-
-    
 
 
     

@@ -11,7 +11,7 @@ import numdifftools as nd
 class HMMJSGeneconv:
     auto_save_step = 1
     def __init__(self, save_file,
-                 # First, ReCodonGeneconv objects
+                 # First, IndCodonGeneconv objects
                  newicktree, alignment_file, paralog, summary_path, x, save_path,
                  # Now HMMTract objects
                  IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file,
@@ -108,6 +108,7 @@ class HMMJSGeneconv:
             self.x[5] = self.hmmtract.x[0] - self.hmmtract.x[1]
             self.x[-1] = self.hmmtract.x[-1]
             self.update_by_x(self.x)
+            self.save_x()
         else:
             self._loglikelihood(self.x)
             f = partial(self.objective, display)
@@ -159,14 +160,18 @@ class HMMJSGeneconv:
             for it in range(len(log_p_list)):
                 f.write('\t'.join([str(log_p_list[it]), str(ll_list[it]), '\n']))
 
-    def get_Hessian(self, One_Dimension = False):
+    def get_Hessian(self, One_Dimension = True):
         if One_Dimension:
-            f = nd.Derivative(partial(self.hmmtract.objective_1D, False), n = 2)
-            result = -f(self.hmmtract.x[1:])
+            f = nd.Derivative(partial(self.hmmtract.objective_1D, False), n = 1)
+            ff = nd.Derivative(partial(self.hmmtract.objective_1D, False), n = 2)
+            grad = -f(self.hmmtract.x[1:])
+            hess = -ff(self.hmmtract.x[1:])
         else:
-            f = nd.Hessian(self._loglikelihood)
-            result = -f(self.x)
-        return result
+            f = nd.Derivative(self._loglikelihood, n = 1)
+            ff = nd.Hessdiag(self._loglikelihood)
+            grad = -f(self.x)
+            hess = -ff(self.x)
+        return grad, hess
 
         
     
@@ -200,8 +205,12 @@ if __name__ == '__main__':
                   -2.407034335517133528e+00,
                   -4.244048731094335558e+00,
                   -4.133421357939401020e+00,
-                  0.0#-2.6929935812559425#-2.5
+                  #0.0#-2.6929935812559425#-2.5
+                  -3.0832851705618527
                   ])
+    x_mle = np.array([-0.6974872 , -0.53696826, -0.72405219,  0.7278009 , -0.16637466,
+       -0.63867808, -1.62767928, -1.11891194, -3.42235663, -1.85612631,
+       -3.36291767, -2.407368  , -4.2448557 , -4.1330508 , -3.07197501])
 
     print 
     print '**' + '_'.join(paralog)+ '**', output_ctrl
@@ -216,19 +225,23 @@ if __name__ == '__main__':
 
     test = HMMJSGeneconv(save_file, newicktree, alignment_file, paralog, summary_path, x, save_path, IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file,
                          state_list, seq_index_file)
+    test.update_by_x(x_mle)
 
     self = test
 
     summary_file_1D = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_1D_summary.txt'
     summary_file_all_Dimension = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_all_summary.txt'
 
-    log_p_list = np.log(3.0/np.array(range(3, 501)))
-    plot_file = '../test/plot/HMM_' + '_'.join(paralog) + '_lnL_1D_surface.txt'
-    test.plot_tract_p(log_p_list, plot_file)
-    test.get_mle(display = True, two_step = True, One_Dimension = True)
-    test.get_summary(summary_file_1D)
+##    log_p_list = np.log(3.0/np.array(range(3, 501)))
+##    plot_file = '../test/plot/HMM_' + '_'.join(paralog) + '_lnL_1D_surface.txt'
+##    test.plot_tract_p(log_p_list, plot_file)
+##    test.get_mle(display = True, two_step = True, One_Dimension = True)
+##    test.get_summary(summary_file_1D)
 ##    test.get_mle(display = True, two_step = False, One_Dimension = False)
 ##    test.get_summary(summary_file_all_Dimension)
+
+    hess = test.get_Hessian(True)
+    
 
 
     
