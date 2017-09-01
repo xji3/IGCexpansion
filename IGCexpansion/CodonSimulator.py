@@ -1,8 +1,4 @@
-# A separate file for Simulator
-# This simulation should simulate multigene family evolution with
-# point mutation and IGC(interlocus gene conversion) processes
-# along a given species tree with gene duplication loss history and arbitrary family size
-# This simulator only simulates cdna for now
+# This is an almost duplicated file for Simulator where the unit is codon
 # Xiang Ji
 # xji3@ncsu.edu
 
@@ -217,7 +213,7 @@ class Simulator:
                     branch_IGC_tract_Q[i, j] = self.IGCModel.Q_tract[ordered_orlg[i], ordered_orlg[j]]
                     if i != j:
                         if branch_IGC_tract_Q[i, j] != 0:
-                            Total_IGC_init_Q[i, j] = branch_IGC_init_Q[i, j] * (self.nsites - 1 + 1.0 / branch_IGC_tract_Q[i, j])
+                            Total_IGC_init_Q[i, j] = branch_IGC_init_Q[i, j] * (self.nsites/3 - 1 + 1.0 / branch_IGC_tract_Q[i, j])
                     
             IGC_init_rate_diag = branch_IGC_init_Q.sum(axis = 1) # row sum
             Total_IGC_init_rate = Total_IGC_init_Q.sum()
@@ -400,9 +396,9 @@ class Simulator:
         # now sample a starting pos and tract length
         
         tract_p = sub_IGC_tract_Q[orlg_from_num, orlg_to_num]
-        init_prob_array = np.array([1.0 / tract_p] + [1.0] * (self.nsites - 1))
-        start_pos = draw_from_distribution(init_prob_array / sum(init_prob_array), 1, range(len(init_prob_array)))
-        tract_length = np.random.geometric(tract_p, 1)[0]
+        init_prob_array = np.array([1.0 / tract_p] + [1.0] * (self.nsites/3 - 1))
+        start_pos = draw_from_distribution(init_prob_array / sum(init_prob_array), 1, range(len(init_prob_array)))*3
+        tract_length = np.random.geometric(tract_p, 1)[0]*3
         stop_pos = start_pos + tract_length - 1  # tract_length is a positive integer
         if stop_pos > self.nsites:
             stop_pos = self.nsites - 1
@@ -516,7 +512,7 @@ if __name__ == '__main__':
     x_pm = np.log([0.4, 0.5, 0.2, 9.2, 1.0])
     rate_variation = False
 
-    x_IGC = [0.12, 0.01]
+    x_IGC = [0.2, 0.05]
     init_pm = 'One rate'
     tract_pm = 'One rate'
     pm_IGC = [init_pm, tract_pm]

@@ -177,72 +177,118 @@ class HMMJSGeneconv:
     
 
 if __name__ == '__main__':
-    pair = ["EDN", "ECP"]
-    paralog = pair
+##    pair = ["EDN", "ECP"]
+##    paralog = pair
+##    model = 'MG94'
+##    force = None
+##    nsites = None
+##    clock = None
+##
+##    state_list = ['No IGC event (Si = 0)','At least one IGC event (Si > 0)']
+##    newicktree = '../test/input_tree.newick'
+##    Force = None
+##    output_ctrl = ''
+##    summary_mat = []
+##    save_file = '../test/save/HMMJS_' + '_'.join(paralog) + '_MG94_nonclock_save.txt'
+##
+##    x = np.array([-6.974760482698901809e-01,
+##                  -5.370097148062192849e-01,
+##                  -7.240186071588703420e-01,
+##                  7.278666576839283309e-01,
+##                  -1.661538873324752974e-01,
+##                  -6.389150587062580877e-01,
+##                  -1.627854846878343364e+00,
+##                  -1.118866867842108759e+00,
+##                  -3.421887713565998190e+00,
+##                  -1.856026261560800084e+00,
+##                  -3.362580076646019211e+00,
+##                  -2.407034335517133528e+00,
+##                  -4.244048731094335558e+00,
+##                  -4.133421357939401020e+00,
+##                  #0.0#-2.6929935812559425#-2.5
+##                  -3.0832851705618527
+##                  ])
+##    x_mle = np.array([-0.6974872 , -0.53696826, -0.72405219,  0.7278009 , -0.16637466,
+##       -0.63867808, -1.62767928, -1.11891194, -3.42235663, -1.85612631,
+##       -3.36291767, -2.407368  , -4.2448557 , -4.1330508 , -3.07197501])
+##
+##    print 
+##    print '**' + '_'.join(paralog)+ '**', output_ctrl
+##    
+##    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+##    summary_path = '../test/Summary/'
+##    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+##    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+##    save_path = '../test/save/'
+##
+##    seq_index_file = '../test/' + '_'.join(paralog) + '_seq_index.txt'
+##
+##    test = HMMJSGeneconv(save_file, newicktree, alignment_file, paralog, summary_path, x, save_path, IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file,
+##                         state_list, seq_index_file)
+##    test.update_by_x(x_mle)
+##
+##    self = test
+##
+##    summary_file_1D = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_1D_summary.txt'
+##    summary_file_all_Dimension = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_all_summary.txt'
+##
+####    log_p_list = np.log(3.0/np.array(range(3, 501)))
+####    plot_file = '../test/plot/HMM_' + '_'.join(paralog) + '_lnL_1D_surface.txt'
+####    test.plot_tract_p(log_p_list, plot_file)
+####    test.get_mle(display = True, two_step = True, One_Dimension = True)
+####    test.get_summary(summary_file_1D)
+####    test.get_mle(display = True, two_step = False, One_Dimension = False)
+####    test.get_summary(summary_file_all_Dimension)
+##
+##    hess = test.get_Hessian(True)
+    
+
+######################################################################################
+######################################################################################
+######################################################################################
+    
+    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
+    alignment_file = '../test/YDR418W_YEL054C_Simulation.fasta'
+    paralog=['YDR418W', 'YEL054C']
     model = 'MG94'
     force = None
     nsites = None
     clock = None
-
     state_list = ['No IGC event (Si = 0)','At least one IGC event (Si > 0)']
-    newicktree = '../test/input_tree.newick'
-    Force = None
-    output_ctrl = ''
-    summary_mat = []
     save_file = '../test/save/HMMJS_' + '_'.join(paralog) + '_MG94_nonclock_save.txt'
-
-    x = np.array([-6.974760482698901809e-01,
-                  -5.370097148062192849e-01,
-                  -7.240186071588703420e-01,
-                  7.278666576839283309e-01,
-                  -1.661538873324752974e-01,
-                  -6.389150587062580877e-01,
-                  -1.627854846878343364e+00,
-                  -1.118866867842108759e+00,
-                  -3.421887713565998190e+00,
-                  -1.856026261560800084e+00,
-                  -3.362580076646019211e+00,
-                  -2.407034335517133528e+00,
-                  -4.244048731094335558e+00,
-                  -4.133421357939401020e+00,
-                  #0.0#-2.6929935812559425#-2.5
-                  -3.0832851705618527
-                  ])
-    x_mle = np.array([-0.6974872 , -0.53696826, -0.72405219,  0.7278009 , -0.16637466,
-       -0.63867808, -1.62767928, -1.11891194, -3.42235663, -1.85612631,
-       -3.36291767, -2.407368  , -4.2448557 , -4.1330508 , -3.07197501])
-
-    print 
-    print '**' + '_'.join(paralog)+ '**', output_ctrl
-    
-    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
     summary_path = '../test/Summary/'
-    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
-    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
     save_path = '../test/save/'
+    IGC_sitewise_lnL_file = '../test/Summary/Simulation_test_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+    NOIGC_sitewise_lnL_file = '../test/Summary/Simulation_test_NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
 
-    seq_index_file = '../test/' + '_'.join(paralog) + '_seq_index.txt'
+    x_mle = np.array([ -0.84490517,  -0.72519025,  -1.74714445,   2.62465942,
+        -0.42422119,   1.87579805,  -4.54256365,  -9.        ,
+        -4.29195431,  -4.23903611,  -6.02963425,  -6.08910566,
+        -5.32986981,  -5.01906984, -17.38161318,  -5.31747459,
+        -5.35151234,  -6.04604204, 0.0])
 
-    test = HMMJSGeneconv(save_file, newicktree, alignment_file, paralog, summary_path, x, save_path, IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file,
+
+    newicktree = '../test/YeastTree.newick'
+    DupLosList = '../test/YeastTestDupLost.txt'
+    Force = None
+    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+    node_to_pos = {'D1':0}
+    seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
+
+##    Ind_MG94_IGC = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/',
+##                             save_name = '../test/save/simulation_test_save.txt')
+##    Ind_MG94_IGC.get_mle(True, True, 0, 'BFGS')
+
+    test = HMMJSGeneconv(save_file, newicktree, alignment_file, paralog, summary_path, x_mle, save_path, IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file,
                          state_list, seq_index_file)
     test.update_by_x(x_mle)
+    test.get_mle(display = True, two_step = True, One_Dimension = True)
 
-    self = test
+    log_p_list = np.log(3.0/np.array(range(3, 501)))
+    plot_file = '../test/plot/Simulation_test_HMM_' + '_'.join(paralog) + '_lnL_1D_surface.txt'
+    test.plot_tract_p(log_p_list, plot_file)
 
-    summary_file_1D = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_1D_summary.txt'
-    summary_file_all_Dimension = '../test/Summary/HMM_' + '_'.join(paralog) + '_MG94_nonclock_all_summary.txt'
-
-##    log_p_list = np.log(3.0/np.array(range(3, 501)))
-##    plot_file = '../test/plot/HMM_' + '_'.join(paralog) + '_lnL_1D_surface.txt'
-##    test.plot_tract_p(log_p_list, plot_file)
-##    test.get_mle(display = True, two_step = True, One_Dimension = True)
-##    test.get_summary(summary_file_1D)
-##    test.get_mle(display = True, two_step = False, One_Dimension = False)
-##    test.get_summary(summary_file_all_Dimension)
-
-    hess = test.get_Hessian(True)
     
-
 
     
 

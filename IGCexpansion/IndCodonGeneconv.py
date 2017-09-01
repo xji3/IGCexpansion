@@ -1659,36 +1659,56 @@ if __name__ == '__main__':
 ######################################################################################
 ######################################################################################
     
-    paralog = ['EDN', 'ECP']
-    Force = None
-    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
-    newicktree = '../test/input_tree.newick'
-    Force = None
+##    paralog = ['EDN', 'ECP']
+##    Force = None
+##    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+##    newicktree = '../test/input_tree.newick'
+##    Force = None
+####    test.get_mle(True, True, 0, 'BFGS')
+####    test.get_individual_summary(summary_path = '../test/Summary/')
+####    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
+##
+##    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
+##    #scene = test.get_scene()
+##    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
+##    self = test
+##    #print (test._loglikelihood2())
 ##    test.get_mle(True, True, 0, 'BFGS')
-##    test.get_individual_summary(summary_path = '../test/Summary/')
-##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
-
-    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    #scene = test.get_scene()
-    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
-    self = test
-    #print (test._loglikelihood2())
-    test.get_mle(True, True, 0, 'BFGS')
-    #s1 = test.get_scene()
-    #s2 = test.get_NOIGC_scene()
-    #sitewise_ll = test._sitewise_loglikelihood(True)
-    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
-    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
-
-#    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, True)
-    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, False)
-    test.get_sitewise_loglikelihood_summary(NOIGC_sitewise_lnL_file, True)
-    outgroup_branch = [edge for edge in test.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
-    Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
-    print (test.tau, Total_blen)
-    
-##    for i in range(len(scene['process_definitions'][1]['row_states'])):
-##        print (scene['process_definitions'][1]['row_states'][i],\
-##              scene['process_definitions'][1]['column_states'][i],\
-##              scene['process_definitions'][1]['transition_rates'][i])
+##    #s1 = test.get_scene()
+##    #s2 = test.get_NOIGC_scene()
+##    #sitewise_ll = test._sitewise_loglikelihood(True)
+##    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+##    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+##
+###    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, True)
+##    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, False)
+##    test.get_sitewise_loglikelihood_summary(NOIGC_sitewise_lnL_file, True)
+##    outgroup_branch = [edge for edge in test.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
+##    Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
+##    print (test.tau, Total_blen)
 ##    
+####    for i in range(len(scene['process_definitions'][1]['row_states'])):
+####        print (scene['process_definitions'][1]['row_states'][i],\
+####              scene['process_definitions'][1]['column_states'][i],\
+####              scene['process_definitions'][1]['transition_rates'][i])
+####    
+
+######################################################################################
+######################################################################################
+######################################################################################
+    
+    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
+    alignment_file = '../test/YDR418W_YEL054C_Simulation.fasta'
+    paralog=['YDR418W', 'YEL054C']
+
+
+    newicktree = '../test/YeastTree.newick'
+    DupLosList = '../test/YeastTestDupLost.txt'
+    Force = None
+    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+    node_to_pos = {'D1':0}
+    seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
+
+    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/',
+                             save_name = '../test/save/simulation_test_save.txt')
+    test.get_mle(True, True, 0, 'BFGS')
