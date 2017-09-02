@@ -14,7 +14,7 @@ from operator import mul
 from itertools import product
 
 
-class Simulator:
+class CodonSimulator:
 
     def __init__(self, pm_model_name, x_pm, rate_variation,   # PM Model
                  x_IGC, pm_IGC,                               # IGC Tract Model
@@ -431,7 +431,7 @@ class Simulator:
         return seq, IGC_info
 
 
-    def output_seq(self):
+    def output_seq(self, new_format = False):
         # output sequence into seq_file using fasta format
         # use self.seq_index information to select sites being written into the file
         with open(self.seq_file, 'w+') as f:
@@ -439,18 +439,13 @@ class Simulator:
                 for orlg in self.node_to_seq[name]:
                     gene_name_list = [i for i in self.orlg_to_gene[orlg] if i[0] == name ]
                     assert(len(gene_name_list) == 1)
-                    f.write('>' + ''.join(gene_name_list[0]) + '\n')
+                    if new_format:
+                        f.write('>' + '__'.join(gene_name_list[0]) + '\n')
+                    else:
+                        f.write('>' + ''.join(gene_name_list[0]) + '\n')
                     f.write(''.join([self.node_to_seq[name][orlg][self.seq_index[i, 0] - 1] for i in range(len(self.seq_index))]) + '\n')
                     
             
-
-        
-        
-
-        
-        
-
-        
         
         
 if __name__ == '__main__':
@@ -530,7 +525,7 @@ if __name__ == '__main__':
                -5.460686727891754799e+00,
                -6.459940982759793116e+00]
     
-    test = Simulator(pm_model_name, x_pm, rate_variation,
+    test = CodonSimulator(pm_model_name, x_pm, rate_variation,
                      x_IGC, pm_IGC, tree_newick, DupLosList, x_rates,
                      terminal_node_list, node_to_pos, gene_to_orlg_file, seq_file, IGC_log_file, PM_log_file, seed_number, seq_index_file)
 

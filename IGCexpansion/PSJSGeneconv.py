@@ -397,6 +397,17 @@ class PSJSGeneconv:
         x_js[-2] = new_x_IGC[-2]
         return self.objective_wo_gradient(display, np.concatenate((x_js, x_rate)))
 
+    def plot_tract_p(self, log_p_list, plot_file):
+        ll_list = []
+        for log_p in log_p_list:
+            ll = -self.objective_tract_p(False, log_p)
+            ll_list.append(ll)
+
+        with open(plot_file, 'w+') as f:
+            f.write('# log_p \t lnL \t \n')
+            for it in range(len(log_p_list)):
+                f.write('\t'.join([str(log_p_list[it]), str(ll_list[it]), '\n']))
+
     def objective_2d_x_IGC(self, display, new_x_IGC):
         assert(self.psjsmodel.IGC_pm == 'One rate')
         # Only implemented for One rate model for now

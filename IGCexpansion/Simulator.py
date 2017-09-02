@@ -435,7 +435,7 @@ class Simulator:
         return seq, IGC_info
 
 
-    def output_seq(self):
+    def output_seq(self, new_format = False):
         # output sequence into seq_file using fasta format
         # use self.seq_index information to select sites being written into the file
         with open(self.seq_file, 'w+') as f:
@@ -443,19 +443,14 @@ class Simulator:
                 for orlg in self.node_to_seq[name]:
                     gene_name_list = [i for i in self.orlg_to_gene[orlg] if i[0] == name ]
                     assert(len(gene_name_list) == 1)
-                    f.write('>' + ''.join(gene_name_list[0]) + '\n')
+                    if new_format:
+                        f.write('>' + '__'.join(gene_name_list[0]) + '\n')
+                    else:
+                        f.write('>' + ''.join(gene_name_list[0]) + '\n')
                     f.write(''.join([self.node_to_seq[name][orlg][self.seq_index[i, 0] - 1] for i in range(len(self.seq_index))]) + '\n')
                     
             
 
-        
-        
-
-        
-        
-
-        
-        
         
 if __name__ == '__main__':
     gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
