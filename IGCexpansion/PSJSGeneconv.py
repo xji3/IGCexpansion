@@ -465,8 +465,16 @@ class PSJSGeneconv:
             f = partial(self.objective_wo_gradient, display)
 
         guess_x = self.x
+        
+        # only implemented 'One rate' case of IGC rate parameterization
+        # This is a lazy constraint that should be removed later
+        assert(len(self.psjsmodel.x_js) == len(self.psjsmodel.x_pm) + 2)
+        
         bnds = [(None, -0.001)] * 3
-        bnds.extend([(None, None)] * (len(self.x) - 3))
+        bnds.extend([(None, None)] * (len(self.psjsmodel.x_pm) - 3 + 1))
+        bnds.extend([(None, 0.0)])
+        bnds.extend([(None, None)] * (len(self.x) - len(self.psjsmodel.x_js)))
+
 ##        if self.root_by_dup:
 ##            bnds  = [(None, None)] * len(self.tree.edge_list)
 ##        else:
@@ -565,6 +573,7 @@ if __name__ == '__main__':
     x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, log_file, space_list = space_list)
+    self = test
 ##    scene = test.get_scene(469, None)
 
 ##    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
