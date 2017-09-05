@@ -17,8 +17,6 @@ import os
 from Common import *
 
 
-from TriGeneconv import *
-
 class PSJSGeneconv:
     auto_save_step = 2
     def __init__(self, alignment_file, gene_to_orlg_file, # Data input
