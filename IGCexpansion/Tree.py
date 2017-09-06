@@ -34,11 +34,12 @@ class Tree:
         
         self.n_orlg             = 0           # number of ortholog groups
         self.visited_DL_nodes   = list()
-        self.n_js               = None
-        self.get_tree()
+        self.n_js               = None       
 
         # Temp member for brute force construct configurations
         self.temp               = {'node_to_conf':[], 'dup_events':[], 'node_to_dup':[], 'n_orlg':[]}
+
+        self.get_tree()
 
 
 
@@ -52,7 +53,16 @@ class Tree:
         # get process function is implemented in Func.py
 
         # get node_to_conf
-        self.get_configurations()
+        #self.get_configurations() # comment out the old way of assigning configurations, but kept the code
+        self.get_configurations_temp()
+        # Now pick up the first minimum length configurations
+        length_list = [len(self.temp['node_to_conf'][i]['D1']) for i in range(len(self.temp['node_to_conf']))]
+        min_idx = length_list.index(min(length_list))
+        self.node_to_conf = self.temp['node_to_conf'][min_idx]
+        self.n_orlg = self.temp['n_orlg'][min_idx]
+        self.node_to_dup = self.temp['node_to_dup'][min_idx]
+        self.dup_events = self.temp['dup_events'][min_idx]
+        self.n_js = len(self.node_to_conf[self.node_to_conf.keys()[0]])
 
         # if 'Root' node is added as root node
         # there must be a duplication node directly after it and the Root node has no outgroup
@@ -216,7 +226,12 @@ class Tree:
         self.copy_configuration_from_parent(node_name)
 
     def is_configurations_same_size(self):
-        return len(set([len(self.node_to_conf[node]) for node in self.node_to_conf])) == 1
+        result = len(set([len(self.node_to_conf[node]) for node in self.node_to_conf])) < 2
+           
+        for node_to_conf in self.temp['node_to_conf']:
+            result = result and len(set([len(node_to_conf[node]) for node in node_to_conf])) < 2
+
+        return result
 
     def init_root_conf(self):
         self.node_to_conf[self.phylo_tree.root.name] = [[0, 1]]  # 0 is orlg number and 1 means it's alive
@@ -385,7 +400,7 @@ class Tree:
         assert(all([node in self.visited_DL_nodes for node in self.node_to_pos]))
         assert(set(self.visited_DL_nodes) == set(all_DP_nodes))
         assert(self.is_configurations_same_size())
-        self.n_js = len(self.node_to_conf[self.node_to_conf.keys()[0]])
+        
 
         
     def get_configuration_for_duplication_node_temp(self, node_name, orlg_pos):
@@ -599,41 +614,32 @@ if __name__ == '__main__':
         9:{'D1':0, 'D2':1, 'D3':0, 'D4':0},
         }
 
-#    for tree_num in range(10):
-    tree_num = 3
-    print 'Now visit tree topology: ', tree_num + 1, ' \n'
+    for tree_num in range(10):
+#    tree_num = 3
+        print 'Now visit tree topology: ', tree_num + 1, ' \n'
 
-    
-    tree_newick = '../test/sim_tree.newick'
-    terminal_node_list = ['Out', 'A', 'B']
-    node_to_pos = tree_to_node_to_pos[tree_num]
-    DupLosList = '../test/DupLostFiles/IGC_DupLost_' + str(tree_num + 1) + '.txt'
-
-    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-    
-    Phylo.draw_ascii(test.phylo_tree)
-    self = test
-
-    test.get_configurations()
-    #print test.dup_events
-    for i in test.node_to_conf:
-        if i in terminal_node_list:
-            print i, test.node_to_conf[i]
-
-    test.get_configurations_temp()
-
-    for i in range(len(test.temp['node_to_conf'])):
-        print
-        node_to_conf = test.temp['node_to_conf'][i]
-        node_to_dup  = test.temp['node_to_dup'][i]
-        dup_events   = test.temp['dup_events'][i]
-        for node in node_to_conf:
-            print node, node_to_conf[node]
-        print node_to_dup, '\n', dup_events
         
-    # Now show the min configuration length
-    print 'Minimum length of configuration: ', min([len(i['D1']) for i in test.temp['node_to_conf']]), '\n'
-    print 'Old length: ', len(test.node_to_conf['D1']), '\n'
+        tree_newick = '../test/sim_tree.newick'
+        terminal_node_list = ['Out', 'A', 'B']
+        node_to_pos = tree_to_node_to_pos[tree_num]
+        DupLosList = '../test/DupLostFiles/IGC_DupLost_' + str(tree_num + 1) + '.txt'
+
+        test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+        
+        Phylo.draw_ascii(test.phylo_tree)
+        self = test
+
+        test.get_configurations()
+        #print test.dup_events
+        for i in test.node_to_conf:
+            if i in terminal_node_list:
+                print i, test.node_to_conf[i]
+
+        print test.dup_events, test.node_to_dup
+
+        # Now show the min configuration length
+        print 'Minimum length of configuration: ', min([len(i['D1']) for i in test.temp['node_to_conf']]), '\n'
+        print 'Maximum length of configuration: ', max([len(i['D1']) for i in test.temp['node_to_conf']]), '\n'
 
 
 ##    tree_newick = '../test/YeastTree.newick'
