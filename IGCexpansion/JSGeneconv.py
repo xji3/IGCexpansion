@@ -389,7 +389,7 @@ class JSGeneconv:
 
         return -ll
             
-    def get_mle(self, display = True, derivative = True, method = 'L-BFGS-B', niter = 2000):
+    def get_mle(self, display = True, derivative = True, method = 'BFGS', niter = 2000):
         self.unpack_x(self.x)  # do one more update first
         if derivative:
             f = partial(self.objective_and_gradient, display)
@@ -405,7 +405,7 @@ class JSGeneconv:
 ##            bnds  = [(None, None)] * (len(self.tree.edge_list) - 1)
 
 
-        if method == 'L-BFGS-B':
+        if method == 'BFGS':
             if derivative:
                 result = scipy.optimize.minimize(f, guess_x, jac = True, method = 'L-BFGS-B', bounds = bnds)
             else:
