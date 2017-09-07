@@ -1,0 +1,5 @@
+N0_N1	D1
+N1_N2	D2
+N2_N4	D3
+N9_Macaque	D4
+N5_N6	L1

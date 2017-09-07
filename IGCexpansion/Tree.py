@@ -291,7 +291,10 @@ class Tree:
                 new_orlg_1 = self.n_orlg
                 new_orlg_2 = self.n_orlg + 1
                 self.n_orlg += 2
-                self.dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
+                if old_orlg in self.dup_events:
+                    self.dup_events[old_orlg].extend([new_orlg_1, new_orlg_2])
+                else:
+                    self.dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
                 self.node_to_dup[node_name] = [new_orlg_1, new_orlg_2]
 
                 # Step 2, update all other configurations
@@ -314,7 +317,10 @@ class Tree:
                 new_orlg_1 = self.n_orlg
                 new_orlg_2 = self.n_orlg + 1
                 self.n_orlg += 2
-                self.dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
+                if old_orlg in self.dup_events:
+                    self.dup_events[old_orlg].extend([new_orlg_1, new_orlg_2])
+                else:
+                    self.dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
                 self.node_to_dup[node_name] = [new_orlg_1, new_orlg_2]
 
                 # No need for Step 2: update all other configurations
@@ -408,7 +414,6 @@ class Tree:
         # for a duplication event that has parent node configuration [[0, 1], [0, 1], [0, 1], [1, 1]] and duplication 0->2, 3
         # this method outputs [[2, 1], [2, 1], [3, 1], [1, 1]], [[2, 1], [3, 1], [2, 1], [1, 1]] and [[3, 1], [2, 1], [2, 1], [1, 1]]
         # the idea is to pick up the smallest to save computation after constructing all possible configurations
-        assert(not any([node_name in node_to_conf for node_to_conf in self.temp['node_to_conf']]))
         parent_clade = self.find_parent_clade(node_name)
         assert(all([parent_clade.name in node_to_conf for node_to_conf in self.temp['node_to_conf']]))
 
@@ -444,7 +449,10 @@ class Tree:
                     new_orlg_1 = old_n_orlg
                     new_orlg_2 = old_n_orlg + 1
                     new_n_orlg += 2
-                    new_dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
+                    if old_orlg in new_dup_events:
+                        new_dup_events[old_orlg].extend([new_orlg_1, new_orlg_2])
+                    else:
+                        new_dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
                     new_node_to_dup[node_name] = [new_orlg_1, new_orlg_2]
 
                     # Step 2, update all other configurations
@@ -490,7 +498,10 @@ class Tree:
                             new_orlg_1 = old_n_orlg
                             new_orlg_2 = old_n_orlg + 1
                             new_n_orlg += 2
-                            new_dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
+                            if old_orlg in new_dup_events:
+                                new_dup_events[old_orlg].extend([new_orlg_1, new_orlg_2])
+                            else:
+                                new_dup_events[old_orlg] = [new_orlg_1, new_orlg_2]
                             new_node_to_dup[node_name] = [new_orlg_1, new_orlg_2]
                             
                             for pos in pos_list:
@@ -555,9 +566,10 @@ class Tree:
         Phylo.draw_ascii(self.phylo_tree)
         for node in sorted(self.node_to_conf.keys()):
             print node, self.node_to_conf[node]
-        print
+        print ' \nDuplication events: ', self.dup_events        
         return 'Tree newick file: ' + self.newicktree + '\n' + \
                'Tree duplos file: ' + self.duploslist + '\n'
+               
                
 
 
@@ -573,82 +585,115 @@ if __name__ == '__main__':
 ##    tree.get_tree()
 
 
-##########################################
-#############  Primate test Tree
-##########################################
-##    tree_newick = '../test/PrimateTest.newick'
-##    DupLosList = '../test/PrimateTestDupLost.txt'
-##    tree = Phylo.read( tree_newick, "newick")
-##    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':3, 'L1':2}
-##    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
-##    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-##    Phylo.draw_ascii(test.phylo_tree)
-##    self = test
-##
-##    test.get_configurations()
-##    print test.dup_events
-##    for i in test.node_to_conf:
-##        if i in terminal_node_list:
-##            print i, test.node_to_conf[i]
-##
-##
-##    test.get_configurations_temp()
-##    print test.temp, '\n'
-##    for node in test.temp['node_to_conf'][0]:
-##        print node, '\n', test.temp['node_to_conf'][0][node], '\n', test.node_to_conf[node]
+########################################
+###########  Primate test Tree
+########################################
+    tree_newick = '../test/PrimateTest.newick'
+    DupLosList = '../test/PrimateTestDupLost.txt'
+    tree = Phylo.read( tree_newick, "newick")
+    node_to_pos = {'D1':0, 'D2':0, 'D3':1, 'D4':3, 'L1':2}
+    terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
+    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+    self = test
+    print test
 
+
+##########################################
+#############  Simulation study Tree
+##########################################
+##    tree_to_node_to_pos = {
+##        0:{'D1':0, 'D2':0},
+##        1:{'D1':0, 'D2':1},
+##        2:{'D1':0, 'D2':1, 'D3':1},
+##        3:{'D1':0, 'D2':1, 'D3':0},
+##        4:{'D1':0, 'D2':0, 'D3':0},
+##        5:{'D1':0, 'D2':0, 'D3':1},
+##        6:{'D1':0, 'D2':1, 'D3':0, 'D4':1},
+##        7:{'D1':0, 'D2':0, 'D3':0, 'D4':1},
+##        8:{'D1':0, 'D2':0, 'D3':0, 'D4':0},
+##        9:{'D1':0, 'D2':1, 'D3':0, 'D4':0},
+##        }
+##
+##    for tree_num in range(10):
+###    tree_num = 3
+##        print 'Now visit tree topology: ', tree_num + 1, ' \n'
+##
+##        
+##        tree_newick = '../test/sim_tree.newick'
+##        terminal_node_list = ['Out', 'A', 'B']
+##        node_to_pos = tree_to_node_to_pos[tree_num]
+##        DupLosList = '../test/DupLostFiles/IGC_DupLost_' + str(tree_num + 1) + '.txt'
+##
+##        test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+##        
+##        Phylo.draw_ascii(test.phylo_tree)
+##        self = test
+##
+##        #print test.dup_events
+##        for i in test.node_to_conf:
+##            if i in terminal_node_list:
+##                print i, test.node_to_conf[i]
+##
+##        print test.dup_events, '\n', test.node_to_dup
+##
+##        # Now show the min configuration length
+##        print 'Minimum length of configuration: ', min([len(i['D1']) for i in test.temp['node_to_conf']]), '\n'
+##        print 'Maximum length of configuration: ', max([len(i['D1']) for i in test.temp['node_to_conf']]), '\n'
 
 ########################################
-###########  Simulation study Tree
+###########  ADH1 Genes Tree
 ########################################
-    tree_to_node_to_pos = {
-        0:{'D1':0, 'D2':0},
-        1:{'D1':0, 'D2':1},
-        2:{'D1':0, 'D2':1, 'D3':1},
-        3:{'D1':0, 'D2':1, 'D3':0},
-        4:{'D1':0, 'D2':0, 'D3':0},
-        5:{'D1':0, 'D2':0, 'D3':1},
-        6:{'D1':0, 'D2':1, 'D3':0, 'D4':1},
-        7:{'D1':0, 'D2':0, 'D3':0, 'D4':1},
-        8:{'D1':0, 'D2':0, 'D3':0, 'D4':0},
-        9:{'D1':0, 'D2':1, 'D3':0, 'D4':0},
-        }
+##    # P1
+##    for d2 in range(2):
+##        for d3 in range(3):
+##            for d4 in range(4):
+##                d_string = str(d2) + str(d3) + str(d4)
+##                #for l1 in range(4):
+##                l1 = 0
+##                l_string = str(l1)
+##
+##                print '\n ##################################\n Now print case D: ' + d_string + ' , L: ' + l_string + ' \n'
+##
+##                node_to_pos = {'D1':0, 'D2':int(d_string[0]), 'D3':int(d_string[1]), 'D4':int(d_string[2]), 'L1':int(l_string)}
+##                DupLosList = '../test/PrimateFullDupLost_P1.txt'
+##                tree_newick = '../test/Primatetree.newick'
+##                terminal_node_list = ['Chinese_Tree_Shrew', 'Bushbaby', 'Mouse_Lemur',
+##                                      'Tarsier', 'Marmoset', 'Vervet-AGM',
+##                                      'Olive_Baboon', 'Macaque', 'Gibbon',
+##                                      'Orangutan', 'Gorilla', 'Human']
+##                test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+##                print test
+##
+##    # P2
+##    for d2 in range(2):
+##        for d3 in range(3):
+##            for d4 in range(3):
+##                for d5 in range(4):
+##                    d_string = str(d2) + str(d3) + str(d4) + str(d5)
+##
+##                    print '\n ##################################\n Now print case D: ' + d_string + ' \n'
+##
+##                    node_to_pos = {'D1':0, 'D2':int(d_string[0]), 'D3':int(d_string[1]), 'D4':int(d_string[2]), 'D5':int(d_string[3])}
+##                    DupLosList = '../test/PrimateFullDupLost_P2.txt'
+##                    tree_newick = '../test/Primatetree.newick'
+##                    terminal_node_list = ['Chinese_Tree_Shrew', 'Bushbaby', 'Mouse_Lemur',
+##                                          'Tarsier', 'Marmoset', 'Vervet-AGM',
+##                                          'Olive_Baboon', 'Macaque', 'Gibbon',
+##                                          'Orangutan', 'Gorilla', 'Human']
+##                    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+##                    print test
 
-    for tree_num in range(10):
-#    tree_num = 3
-        print 'Now visit tree topology: ', tree_num + 1, ' \n'
-
-        
-        tree_newick = '../test/sim_tree.newick'
-        terminal_node_list = ['Out', 'A', 'B']
-        node_to_pos = tree_to_node_to_pos[tree_num]
-        DupLosList = '../test/DupLostFiles/IGC_DupLost_' + str(tree_num + 1) + '.txt'
-
-        test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-        
-        Phylo.draw_ascii(test.phylo_tree)
-        self = test
-
-        test.get_configurations()
-        #print test.dup_events
-        for i in test.node_to_conf:
-            if i in terminal_node_list:
-                print i, test.node_to_conf[i]
-
-        print test.dup_events, test.node_to_dup
-
-        # Now show the min configuration length
-        print 'Minimum length of configuration: ', min([len(i['D1']) for i in test.temp['node_to_conf']]), '\n'
-        print 'Maximum length of configuration: ', max([len(i['D1']) for i in test.temp['node_to_conf']]), '\n'
-
-
-##    tree_newick = '../test/YeastTree.newick'
-##    DupLosList = '../test/YeastTestDupLost.txt'
-##    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
-##    node_to_pos = {'D1':0}
-##    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-##    Phylo.draw_ascii(test.phylo_tree)
-##    
+########################################
+###########  Yeast Tree
+########################################        
+    
+    tree_newick = '../test/YeastTree.newick'
+    DupLosList = '../test/YeastTestDupLost.txt'
+    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+    node_to_pos = {'D1':0}
+    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+    print test
+    
 ##    test.get_configurations()
 ##
 ##    for i in test.node_to_conf:
