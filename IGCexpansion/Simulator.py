@@ -404,7 +404,7 @@ class Simulator:
         start_pos = draw_from_distribution(init_prob_array / sum(init_prob_array), 1, range(len(init_prob_array)))
         tract_length = np.random.geometric(tract_p, 1)[0]
         stop_pos = start_pos + tract_length - 1  # tract_length is a positive integer
-        if stop_pos > self.nsites:
+        if stop_pos > self.nsites - 1:
             stop_pos = self.nsites - 1
         #print start_pos, stop_pos, self.nsites
         seq, IGC_info = self.IGC_copy(start_pos, stop_pos, orlg_from, orlg_to, seq, display, tract_length)
