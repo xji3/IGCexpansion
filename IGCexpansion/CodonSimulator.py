@@ -99,7 +99,7 @@ class CodonSimulator:
         self.read_seq_index_file()
         # Now update log files
         with open(self.IGC_log_file, 'w+') as f:
-            f.write('\t'.join(['edge', 'time', 'orlg_from', 'orlg_to', 'start_pos', 'stop_pos', 'num_diff', 'template_seq', 'overide_seq']) + '\n')
+            f.write('\t'.join(['edge', 'time', 'orlg_from', 'orlg_to', 'tract_length', 'start_pos', 'stop_pos', 'num_diff', 'template_seq', 'overide_seq']) + '\n')
         with open(self.PM_log_file, 'w+') as g:
             g.write('\t'.join(['edge', 'time', 'mut_orlg', 'mut_pos', 'old_state', 'new_state']) + '\n')
             
@@ -403,12 +403,12 @@ class CodonSimulator:
         if stop_pos > self.nsites:
             stop_pos = self.nsites - 1
         #print start_pos, stop_pos, self.nsites
-        seq, IGC_info = self.IGC_copy(start_pos, stop_pos, orlg_from, orlg_to, seq, display)
+        seq, IGC_info = self.IGC_copy(start_pos, stop_pos, orlg_from, orlg_to, seq, display, tract_length)
 
         return seq, IGC_info
 
 
-    def IGC_copy(self, start_pos, stop_pos, orlg_from, orlg_to, seq, display):
+    def IGC_copy(self, start_pos, stop_pos, orlg_from, orlg_to, seq, display, tract_length):
         # make sure the two orlgs are in seq
         assert(orlg_from in seq and orlg_to in seq)
         template_seq = seq[orlg_from][start_pos:(stop_pos + 1)]
@@ -416,8 +416,7 @@ class CodonSimulator:
 
         num_diff = sum([template_seq[i] != overide_seq[i] for i in range(len(template_seq))])
 
-        # TODO: implement log
-        IGC_info = [str(orlg_from), str(orlg_to), str(start_pos), str(stop_pos), str(num_diff)]
+        IGC_info = [str(orlg_from), str(orlg_to), str(tract_length), str(start_pos), str(stop_pos), str(num_diff)]
         if display:
             print ' '.join(IGC_info)
 
