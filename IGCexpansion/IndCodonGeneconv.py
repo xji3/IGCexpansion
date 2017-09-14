@@ -910,10 +910,13 @@ class IndCodonGeneconv:
         if self.Model == 'MG94':
             self.processes = self.get_NOIGC_MG94Geneconv_and_MG94()
             process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
+            # translate prior_feasible_states into the new states
+            NOIGC_prior_feasible_states = [[61*i[0] + i[1]] for i in self.prior_feasible_states]
         else:
-            exit('Not implemented')
-        # translate prior_feasible_states into the new states
-        NOIGC_prior_feasible_states = [[61*i[0] + i[1]] for i in self.prior_feasible_states]
+            self.processes = self.get_NOIGC_HKYGeneconv()
+            process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
+            NOIGC_prior_feasible_states = [[4*i[0] + i[1]] for i in self.prior_feasible_states]
+        
         # Now change self.data
         self.get_NOIGC_data()
         scene = dict(
