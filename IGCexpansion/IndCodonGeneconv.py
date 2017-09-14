@@ -637,6 +637,103 @@ class IndCodonGeneconv:
             )
         # process_basic is for HKY_Basic which is equivalent to 4by4 rate matrix
         return [process_basic, process_geneconv]
+
+    def get_NOIGC_HKYGeneconv(self):
+        # Now this is a 4^2 + 1 = 17 state space model
+        Qbasic = self.get_HKYBasic()
+        row = []
+        col = []
+        rate_geneconv = []
+        rate_basic = []
+
+        for i, pair_from in enumerate(product('ACGT', repeat = 2)):
+            na, nb = pair_from
+            sa = self.nt_to_state[na]
+            sb = self.nt_to_state[nb]
+            if na != nb:
+                for nc in 'ACGT':
+                    if nc == na or nc == nb:
+                        continue
+                    sc = self.nt_to_state[nc]
+                    # (na, nb) to (na, nc)
+                    Qb = Qbasic[sb, sc]
+                    if Qb != 0:
+                        row.append([4*sa + sb]) # (sa, sb)
+                        col.append([4*sa + sc]) # (sa, sc)
+                        rate_geneconv.append(Qb)
+                        rate_basic.append(0.0)
+
+                    # (na, nb) to (nc, nb)
+                    if Qb != 0:
+                        row.append([4*sa + sb]) # (sa, sb)
+                        col.append([4*sa + sc]) # (sc, sb)
+                        rate_geneconv.append(Qb)
+                        rate_basic.append(0.0)
+
+                # (na, nb) to (na, na)
+                row.append([4*sa + sb]) # (sa, sb)
+                col.append([4*sa + sa]] # (sa, sa)
+                Qb = Qbasic[sb, sa]
+
+                rate_geneconv.append(Qb)
+                rate_basic.append(0.0)
+
+                # (na, nb) to (nb, nb)
+                row.append([4*sa + sb]) # (sa, sb)
+                col.append([4*sb + sb]) # (sb, sb)
+                Qb = Qbasic[sa, sb]
+                rate_geneconv.append(Qb)
+                rate_basic.append(0.0)
+
+                # (na, nb) to absorbing state of experiencing at least one IGC
+                row.append([4*sa + sb]) # (sa, sb)
+                col.append([16])        # absorbing state
+                rate_geneconv.append(2*self.tau)
+                rate_basic.append(0.0)
+            else:
+                for nc in 'ACGT':
+                    if nc == na:
+                        continue
+                    sc = self.nt_to_state[nc]
+
+                    Qb = Qbasic[sa, sc]
+                    if Qb != 0:
+
+                        # (na, na) to (na, nc)
+                        row.append([4*sa + sb]) # (sa, sb)
+                        col.append([4*sa + sc]) # (sa, sc)
+                        rate_geneconv.append(Qb)
+                        rate_basic.append(0.0)
+
+                        # (na, na) to (nc, na)
+                        row.append([4*sa + sb]) # (sa, sb)
+                        col.append([4*sc + sa]) # (sc, sa)
+                        rate_geneconv.append(Qb)
+                        rate_basic.append(0.0)
+
+                        # (na, na) to (nc, nc)
+                        row.append([4*sa + sb]) # (sa, sa)
+                        col.append([4*sc + sc]) # (sc, sc)
+                        rate_geneconv.append(0.0)
+                        rate_basic.append(Qb)
+
+                    # (na, na) to absorbing state
+                    row.append([4*sa + sb]) # (sa, sb)
+                    col.append([16])        # absorbing state
+                    rate_geneconv.append(2*self.tau)
+                    rate_basic.append(0.0)
+
+        process_geneconv = dict(
+            row = row,
+            col = col,
+            rate = rate_geneconv
+            )
+        process_basic = dict(
+            row = row,
+            col = col,
+            rate = rate_basic
+            )
+        return [process_basic, process_geneconv]
     
     def unpack_x_rates(self, transformation, Force_rates = None):  # TODO: Change it to fit general tree structure rather than cherry tree
         if transformation == 'log':
