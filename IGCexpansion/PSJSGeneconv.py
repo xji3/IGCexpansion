@@ -377,6 +377,8 @@ class PSJSGeneconv:
             print ('log likelihood = ', sum_f)
             print ('Current x array = ', self.x)
 
+        self.save_iteration(sum_f, x, [])
+
         return -sum_f
 
     def objective_tract_p(self, display, log_tract_p):
