@@ -391,7 +391,7 @@ class Simulator:
         np.fill_diagonal(sub_IGC_tract_Q, 0.0)  # fill diagonal entries with 0, just in case..
         
         # sample an IGC event orlg pair        
-        IGC_pos = draw_from_distribution(sub_total_IGC_init_Q.ravel(), 1, range(sub_total_IGC_init_Q.size))
+        IGC_pos = draw_from_distribution(sub_total_IGC_init_Q.ravel()/sum(sub_total_IGC_init_Q.ravel()), 1, range(sub_total_IGC_init_Q.size))
         orlg_from_num = int(floor(IGC_pos / sub_total_IGC_init_Q.ndim))
         orlg_to_num = IGC_pos - orlg_from_num * sub_total_IGC_init_Q.ndim
         orlg_from = ordered_orlg[orlg_from_num]
@@ -406,7 +406,7 @@ class Simulator:
         stop_pos = start_pos + tract_length - 1  # tract_length is a positive integer
         if stop_pos > self.nsites - 1:
             stop_pos = self.nsites - 1
-        #print start_pos, stop_pos, self.nsites
+        #print 'IGC', orlg_from, orlg_to, start_pos, stop_pos, self.nsites
         seq, IGC_info = self.IGC_copy(start_pos, stop_pos, orlg_from, orlg_to, seq, display, tract_length)
 
         return seq, IGC_info

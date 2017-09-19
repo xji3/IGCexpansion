@@ -55,6 +55,8 @@ def translate_two_state_to_four_nt(state):
 
 
 def draw_from_distribution(prob, size, values):
+    # convert into valid pmf first
+    prob = np.array(prob)/sum(prob)
     bins = np.add.accumulate(prob)
     if size == 1:
         return values[np.digitize(np.random.random_sample(size), bins)[0]]

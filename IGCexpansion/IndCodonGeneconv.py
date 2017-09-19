@@ -187,7 +187,15 @@ class IndCodonGeneconv:
         # Now convert alignment into state list
         # Need special treatment of outgroup species
         out_group = [edge for edge in self.edge_list if edge[0] == 'N0' and not str.isdigit(edge[1][1:])][0][1]
-        
+
+        # add HKY
+        if self.Model == 'MG94':
+            original_num_states = 61
+        elif self.Model == 'HKY':
+            original_num_states = 4
+        else:
+            sys.exit('Not Implemented!')
+            
         iid_observations = []
         for site in range(self.nsites):
             observations = []
@@ -197,7 +205,7 @@ class IndCodonGeneconv:
                     observation_paralog_2 = observation_paralog_1
                 else:
                     observation_paralog_2 = obs_to_state[self.name_to_seq[name + self.paralog[1]][site]]
-                observations.append(observation_paralog_1*61 + observation_paralog_2 )
+                observations.append(observation_paralog_1*original_num_states + observation_paralog_2 )
             iid_observations.append(observations)
         self.iid_observations = iid_observations
 
@@ -666,13 +674,13 @@ class IndCodonGeneconv:
                     # (na, nb) to (nc, nb)
                     if Qb != 0:
                         row.append([4*sa + sb]) # (sa, sb)
-                        col.append([4*sa + sc]) # (sc, sb)
+                        col.append([4*sc + sb]) # (sc, sb)
                         rate_geneconv.append(Qb)
                         rate_basic.append(0.0)
 
                 # (na, nb) to (na, na)
                 row.append([4*sa + sb]) # (sa, sb)
-                col.append([4*sa + sa]] # (sa, sa)
+                col.append([4*sa + sa]) # (sa, sa)
                 Qb = Qbasic[sb, sa]
 
                 rate_geneconv.append(Qb)
@@ -717,11 +725,11 @@ class IndCodonGeneconv:
                         rate_geneconv.append(0.0)
                         rate_basic.append(Qb)
 
-                    # (na, na) to absorbing state
-                    row.append([4*sa + sb]) # (sa, sb)
-                    col.append([16])        # absorbing state
-                    rate_geneconv.append(2*self.tau)
-                    rate_basic.append(0.0)
+                # (na, na) to absorbing state
+                row.append([4*sa + sb]) # (sa, sb)
+                col.append([16])        # absorbing state
+                rate_geneconv.append(2*self.tau)
+                rate_basic.append(0.0)
 
         process_geneconv = dict(
             row = row,
@@ -906,6 +914,8 @@ class IndCodonGeneconv:
             state_space_shape = [61**2 + 1]
         elif self.Model == 'HKY':
             state_space_shape = [17]
+        else:
+            sys.exit('Not Implemented!')
 
         if self.Model == 'MG94':
             self.processes = self.get_NOIGC_MG94Geneconv_and_MG94()
@@ -1759,56 +1769,57 @@ if __name__ == '__main__':
 ######################################################################################
 ######################################################################################
     
-##    paralog = ['EDN', 'ECP']
-##    Force = None
-##    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
-##    newicktree = '../test/input_tree.newick'
-##    Force = None
-####    test.get_mle(True, True, 0, 'BFGS')
-####    test.get_individual_summary(summary_path = '../test/Summary/')
-####    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
-##
-##    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-##    #scene = test.get_scene()
-##    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
-##    self = test
-##    #print (test._loglikelihood2())
+    paralog = ['EDN', 'ECP']
+    Force = None
+    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+    newicktree = '../test/input_tree.newick'
+    Force = None
+    model = 'HKY'
 ##    test.get_mle(True, True, 0, 'BFGS')
-##    #s1 = test.get_scene()
-##    #s2 = test.get_NOIGC_scene()
-##    #sitewise_ll = test._sitewise_loglikelihood(True)
-##    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
-##    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
-##
-###    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, True)
-##    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, False)
-##    test.get_sitewise_loglikelihood_summary(NOIGC_sitewise_lnL_file, True)
-##    outgroup_branch = [edge for edge in test.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
-##    Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
-##    print (test.tau, Total_blen)
-##    
-####    for i in range(len(scene['process_definitions'][1]['row_states'])):
-####        print (scene['process_definitions'][1]['row_states'][i],\
-####              scene['process_definitions'][1]['column_states'][i],\
-####              scene['process_definitions'][1]['transition_rates'][i])
+##    test.get_individual_summary(summary_path = '../test/Summary/')
+##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
+
+    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/')
+    #scene = test.get_scene()
+    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
+    self = test
+    #print (test._loglikelihood2())
+    #test.get_mle(True, True, 0, 'BFGS')
+    #s1 = test.get_scene()
+    #s2 = test.get_NOIGC_scene()
+    #sitewise_ll = test._sitewise_loglikelihood(True)
+    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_' + model + '_nonclock_sw_lnL.txt'
+    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_' + model + '_nonclock_sw_lnL.txt'
+
+#    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, True)
+    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file, False)
+    test.get_sitewise_loglikelihood_summary(NOIGC_sitewise_lnL_file, True)
+    outgroup_branch = [edge for edge in test.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
+    Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
+    print (test.tau, Total_blen)
+    
+##    for i in range(len(scene['process_definitions'][1]['row_states'])):
+##        print (scene['process_definitions'][1]['row_states'][i],\
+##              scene['process_definitions'][1]['column_states'][i],\
+##              scene['process_definitions'][1]['transition_rates'][i])
 ####    
 
 ######################################################################################
 ######################################################################################
 ######################################################################################
     
-    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
-    alignment_file = '../test/YDR418W_YEL054C_Simulation.fasta'
-    paralog=['YDR418W', 'YEL054C']
-
-
-    newicktree = '../test/YeastTree.newick'
-    DupLosList = '../test/YeastTestDupLost.txt'
-    Force = None
-    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
-    node_to_pos = {'D1':0}
-    seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
-
-    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/',
-                             save_name = '../test/save/simulation_test_save.txt')
-    test.get_mle(True, True, 0, 'BFGS')
+##    gene_to_orlg_file = '../test/YDR418W_YEL054C_GeneToOrlg.txt'
+##    alignment_file = '../test/YDR418W_YEL054C_Simulation.fasta'
+##    paralog=['YDR418W', 'YEL054C']
+##
+##
+##    newicktree = '../test/YeastTree.newick'
+##    DupLosList = '../test/YeastTestDupLost.txt'
+##    Force = None
+##    terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+##    node_to_pos = {'D1':0}
+##    seq_index_file = '../test/YDR418W_YEL054C_seq_index.txt'
+##
+##    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/',
+##                             save_name = '../test/save/simulation_test_save.txt')
+##    test.get_mle(True, True, 0, 'BFGS')

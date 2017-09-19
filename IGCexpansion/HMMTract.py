@@ -12,12 +12,14 @@ import os, sys
 
 class HMMTract:
     def __init__(self, IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file,
-                 State_List, Total_blen, tau, seq_index_file):
+                 State_List, Total_blen, tau, seq_index_file, model = 'MG94'):
         self.IGC_sitewise_lnL   = self.read_lnL(IGC_sitewise_lnL_file)
         self.NOIGC_sitewise_lnL = self.read_lnL(NOIGC_sitewise_lnL_file)
         self.StateList          = State_List
         self.L                  = Total_blen
-        self.seq_index          = self.read_seq_index_file(seq_index_file)       
+        self.model              = model
+        self.seq_index          = self.read_seq_index_file(seq_index_file)
+        
 
         # Now inferrence related parameters
         self.tau = tau         # estimated Tau value from MG94+IGC independent site model
@@ -42,7 +44,10 @@ class HMMTract:
         # nt_index, codon #, codon site for coding sequence
         seq_index = np.loadtxt(seq_index_file, dtype = int)
         # Dimension should match
-        assert(seq_index.shape[0] == len(self.IGC_sitewise_lnL) * 3)
+        if self.model == 'MG94':
+            assert(seq_index.shape[0] == len(self.IGC_sitewise_lnL) * 3)
+        elif self.model == 'HKY':
+            assert(seq_index.shape[0] == len(self.IGC_sitewise_lnL))
         return seq_index
 
     def init_parameters(self):
