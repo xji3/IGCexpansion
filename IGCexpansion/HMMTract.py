@@ -37,7 +37,7 @@ class HMMTract:
         self.Forward_mat  = None   # To store values in Forward algorithm
         self.Backward_mat = None   # To store values in Backward algorithm
 
-        self.init_parameters()
+        #self.init_parameters()
 
     def read_seq_index_file(self, seq_index_file):
         # The index should have columns:
@@ -74,7 +74,7 @@ class HMMTract:
         self.eta = np.exp(x[0])
         self.tract_p = np.exp(x[1])
         self.tau = self.eta / self.tract_p
-        self.get_Ptr_analytical()
+        #self.get_Ptr_analytical()
         self.get_Emi()
         
     def get_marginal_state_distn(self):
@@ -135,8 +135,8 @@ class HMMTract:
         for i in range(len(self.IGC_sitewise_lnL)):
             emission_0 = self.NOIGC_sitewise_lnL[i] - np.log(distn[0]) 
 
-            if 1.0 - np.exp(self.NOIGC_sitewise_lnL[i] - self.IGC_sitewise_lnL[i]) < 0:
-                print self.x, i, emission_0, self.IGC_sitewise_lnL[i], distn[0]
+            if self.NOIGC_sitewise_lnL[i] - self.IGC_sitewise_lnL[i] > 0:
+                print i, self.NOIGC_sitewise_lnL[i], self.IGC_sitewise_lnL[i], distn[0]
                 sys.exit('something is wrong')
                 #emission_1 = -10000.0
             else:
@@ -301,16 +301,19 @@ class HMMTract:
 if __name__ == '__main__':
     pair = ["EDN", "ECP"]
     paralog = pair
+    model = 'HKY'
     state_list = ['No IGC event (Si = 0)','At least one IGC event (Si > 0)']
-    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
-    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_MG94_nonclock_sw_lnL.txt'
+    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_' + model + '_nonclock_sw_lnL.txt'
+    NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_' + model + '_nonclock_sw_lnL.txt'
     seq_index_file = '../test/' + '_'.join(paralog) + '_seq_index.txt'
-    tau = 0.52798941015896717
+    tau = 0.52798941015896717 * 3
     Total_blen = 0.54043382072811319
     
-    test = HMMTract(IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file, state_list, Total_blen, tau, seq_index_file)
+    test = HMMTract(IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file, state_list, Total_blen, tau, seq_index_file, model)
     self = test
 
+    self.init_parameters()
 
-    test.get_mle(True, True)
+
+    #test.get_mle(True, True)
     

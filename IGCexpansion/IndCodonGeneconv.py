@@ -1797,7 +1797,23 @@ if __name__ == '__main__':
     outgroup_branch = [edge for edge in test.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
     Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
     print (test.tau, Total_blen)
+    process_basic, process_geneconv = test.get_NOIGC_HKYGeneconv()
     
+    for i in range(len(process_geneconv['rate'])):
+        row = process_geneconv['row'][i][0]
+        col = process_geneconv['col'][i][0]
+        if row<16 and col <16:
+            print (row ,col, process_geneconv['rate'][i],\
+                   'ACGT'[int(row/4)] + 'ACGT'[row%4], 'ACGT'[int(col/4)] + 'ACGT'[col%4], \
+                   test.pi, test.tau)
+        elif row==16:
+            print (row ,col, process_geneconv['rate'][i],\
+                   row, 'ACGT'[int(col/4)] + 'ACGT'[col%4], \
+                   test.pi, test.tau)
+        elif col == 16:
+            print (row ,col, process_geneconv['rate'][i],\
+                   'ACGT'[int(row/4)] + 'ACGT'[row%4], col, \
+                   test.pi, test.tau)
 ##    for i in range(len(scene['process_definitions'][1]['row_states'])):
 ##        print (scene['process_definitions'][1]['row_states'][i],\
 ##              scene['process_definitions'][1]['column_states'][i],\

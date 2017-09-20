@@ -845,7 +845,7 @@ class ReCodonGeneconv:
 
         return -ll
         
-    def get_mle(self, display = True, derivative = True, em_iterations = 0, method = 'basin-hopping', niter = 2000):
+    def get_mle(self, display = True, derivative = True, em_iterations = 0, method = 'BFGS', niter = 2000):
         if em_iterations > 0:
             ll = self._loglikelihood2()
             # http://jsonctmctree.readthedocs.org/en/latest/examples/hky_paralog/yeast_geneconv_zero_tau/index.html#em-for-edge-lengths-only
@@ -1538,46 +1538,71 @@ class ReCodonGeneconv:
             
     
 if __name__ == '__main__':
-    paralog = ['YLR406C', 'YDL075W']
-    Force = None
-    alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
-    newicktree = '../test/YeastTree.newick'
-    ##    test.get_individual_summary(summary_path = '../test/Summary/')
-    ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
-    # Force MG94:{5:0.0} HKY:{4:0.0}
-    
-    #MG94+tau
-    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-    MG94_tau.get_mle(True, True, 0, 'BFGS')
-    MG94_tau.site_reconstruction()
-    MG94_tau_series = MG94_tau.reconstruction_series
-    
-    #MG94
-    MG94 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = {5:0.0}, clock = None, save_path = '../test/save/')
-    MG94.get_mle(True, True, 0, 'BFGS')
-    MG94.site_reconstruction()
-    MG94_series = MG94.reconstruction_series
-    result = MG94_tau.find_differences_between(MG94_tau_series, MG94_series)
-    print(result)
-    
-    #HKY+tau
-    HKY_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
-    MG94_tau.get_mle(True, True, 0, 'BFGS')
-    HKY_tau.site_reconstruction()
-    HKY_tau_series = HKY_tau.reconstruction_series
-    
-    #MG94
-    HKY = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = {4:0.0}, clock = None, save_path = '../test/save/')
-    MG94.get_mle(True, True, 0, 'BFGS')
-    HKY.site_reconstruction()
-    HKY_series = HKY.reconstruction_series
-    result = HKY_tau.find_differences_between(HKY_tau_series, HKY_series)
-    print(result)
-    
-#test.get_sitewise_loglikelihood_summary('../test/YLR406C_YDL075W_sitewise_lnL.txt')
-
-##    for i in range(len(scene['process_definitions'][1]['row_states'])):
-##        print (scene['process_definitions'][1]['row_states'][i],\
-##              scene['process_definitions'][1]['column_states'][i],\
-##              scene['process_definitions'][1]['transition_rates'][i])
+##    paralog = ['YLR406C', 'YDL075W']
+##    Force = None
+##    alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
+##    newicktree = '../test/YeastTree.newick'
+##    ##    test.get_individual_summary(summary_path = '../test/Summary/')
+##    ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
+##    # Force MG94:{5:0.0} HKY:{4:0.0}
 ##    
+##    #MG94+tau
+##    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
+##    MG94_tau.get_mle(True, True, 0, 'BFGS')
+##    MG94_tau.site_reconstruction()
+##    MG94_tau_series = MG94_tau.reconstruction_series
+##    
+##    #MG94
+##    MG94 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = {5:0.0}, clock = None, save_path = '../test/save/')
+##    MG94.get_mle(True, True, 0, 'BFGS')
+##    MG94.site_reconstruction()
+##    MG94_series = MG94.reconstruction_series
+##    result = MG94_tau.find_differences_between(MG94_tau_series, MG94_series)
+##    print(result)
+##    
+##    #HKY+tau
+##    HKY_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = Force, clock = None, save_path = '../test/save/')
+##    MG94_tau.get_mle(True, True, 0, 'BFGS')
+##    HKY_tau.site_reconstruction()
+##    HKY_tau_series = HKY_tau.reconstruction_series
+##    
+##    #MG94
+##    HKY = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'HKY', Force = {4:0.0}, clock = None, save_path = '../test/save/')
+##    MG94.get_mle(True, True, 0, 'BFGS')
+##    HKY.site_reconstruction()
+##    HKY_series = HKY.reconstruction_series
+##    result = HKY_tau.find_differences_between(HKY_tau_series, HKY_series)
+##    print(result)
+    
+######################################################################################
+######################################################################################
+######################################################################################
+    
+    paralog = ['EDN', 'ECP']
+    Force = None
+    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+    newicktree = '../test/input_tree.newick'
+    Force = None
+    model = 'HKY'
+    save_name = '../test/save/Ind_HKY_EDN_ECP_nonclock_save.txt'
+##    test.get_mle(True, True, 0, 'BFGS')
+##    test.get_individual_summary(summary_path = '../test/Summary/')
+##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
+
+    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/', save_name = save_name)
+    #test.get_mle()
+    test._loglikelihood2()
+    #scene = test.get_scene()
+    #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
+    self = test
+    #print (test._loglikelihood2())
+    #test.get_mle(True, True, 0, 'BFGS')
+    #s1 = test.get_scene()
+    #s2 = test.get_NOIGC_scene()
+    #sitewise_ll = test._sitewise_loglikelihood(True)
+    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_' + model + '_nonclock_sw_lnL_check.txt'
+
+    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file)
+    outgroup_branch = [edge for edge in test.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
+    Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
+    print (test.tau, Total_blen)
