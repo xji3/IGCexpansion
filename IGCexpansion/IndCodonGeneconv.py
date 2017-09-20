@@ -672,6 +672,7 @@ class IndCodonGeneconv:
                         rate_basic.append(0.0)
 
                     # (na, nb) to (nc, nb)
+                    Qb = Qbasic[sa, sc]
                     if Qb != 0:
                         row.append([4*sa + sb]) # (sa, sb)
                         col.append([4*sc + sb]) # (sc, sb)
@@ -1783,6 +1784,7 @@ if __name__ == '__main__':
     #scene = test.get_scene()
     #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
+    print (test._loglikelihood2())
     #print (test._loglikelihood2())
     #test.get_mle(True, True, 0, 'BFGS')
     #s1 = test.get_scene()
@@ -1799,26 +1801,21 @@ if __name__ == '__main__':
     print (test.tau, Total_blen)
     process_basic, process_geneconv = test.get_NOIGC_HKYGeneconv()
     
-    for i in range(len(process_geneconv['rate'])):
-        row = process_geneconv['row'][i][0]
-        col = process_geneconv['col'][i][0]
-        if row<16 and col <16:
-            print (row ,col, process_geneconv['rate'][i],\
-                   'ACGT'[int(row/4)] + 'ACGT'[row%4], 'ACGT'[int(col/4)] + 'ACGT'[col%4], \
-                   test.pi, test.tau)
-        elif row==16:
-            print (row ,col, process_geneconv['rate'][i],\
-                   row, 'ACGT'[int(col/4)] + 'ACGT'[col%4], \
-                   test.pi, test.tau)
-        elif col == 16:
-            print (row ,col, process_geneconv['rate'][i],\
-                   'ACGT'[int(row/4)] + 'ACGT'[row%4], col, \
-                   test.pi, test.tau)
-##    for i in range(len(scene['process_definitions'][1]['row_states'])):
-##        print (scene['process_definitions'][1]['row_states'][i],\
-##              scene['process_definitions'][1]['column_states'][i],\
-##              scene['process_definitions'][1]['transition_rates'][i])
-####    
+##    for i in range(len(process_geneconv['rate'])):
+##        row = process_geneconv['row'][i][0]
+##        col = process_geneconv['col'][i][0]
+##        if row<16 and col <16:
+##            print (row ,col, process_geneconv['rate'][i],\
+##                   'ACGT'[int(row/4)] + 'ACGT'[row%4], 'ACGT'[int(col/4)] + 'ACGT'[col%4], \
+##                   test.pi, test.tau)
+##        elif row==16:
+##            print (row ,col, process_geneconv['rate'][i],\
+##                   row, 'ACGT'[int(col/4)] + 'ACGT'[col%4], \
+##                   test.pi, test.tau)
+##        elif col == 16:
+##            print (row ,col, process_geneconv['rate'][i],\
+##                   'ACGT'[int(row/4)] + 'ACGT'[row%4], col, \
+##                   test.pi, test.tau)
 
 ######################################################################################
 ######################################################################################

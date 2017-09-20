@@ -37,7 +37,7 @@ class HMMTract:
         self.Forward_mat  = None   # To store values in Forward algorithm
         self.Backward_mat = None   # To store values in Backward algorithm
 
-        #self.init_parameters()
+        self.init_parameters()
 
     def read_seq_index_file(self, seq_index_file):
         # The index should have columns:
@@ -159,11 +159,13 @@ class HMMTract:
         lnL_array[:, 0] = np.log(distn) + self.Emi[:, 0]
 
 
-
         # Now do the forward step
         for i in range(len(self.IGC_sitewise_lnL) - 1):
             # Now calculate ln transition probabilities
-            n = floor((self.seq_index[3*i + 3, 0] - self.seq_index[3*i, 0]) / 3)
+            if self.model == 'MG94':
+                n = floor((self.seq_index[3*i + 3, 0] - self.seq_index[3*i, 0]) / 3)
+            elif self.model == 'HKY':
+                n = self.seq_index[i+1, 0] - self.seq_index[i, 0]
             Ptr = self.get_Ptr_n_analytical(n)
             
             emission_0 = self.Emi[0, i + 1]
@@ -312,8 +314,5 @@ if __name__ == '__main__':
     test = HMMTract(IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file, state_list, Total_blen, tau, seq_index_file, model)
     self = test
 
-    self.init_parameters()
-
-
-    #test.get_mle(True, True)
+    test.get_mle(True, True)
     

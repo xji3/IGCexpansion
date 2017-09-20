@@ -240,13 +240,13 @@ if __name__ == '__main__':
     summary_file_1D = '../test/Summary/HMM_' + '_'.join(paralog) + '_' + model + '_nonclock_1D_summary.txt'
     summary_file_all_Dimension = '../test/Summary/HMM_' + '_'.join(paralog) + '_' + model + '_nonclock_all_summary.txt'
 
-##    log_p_list = np.log(3.0/np.array(range(3, 501)))
-##    plot_file = '../test/plot/HMM_' + '_'.join(paralog) + '_lnL_1D_surface.txt'
-##    test.plot_tract_p(log_p_list, plot_file)
-##    test.get_mle(display = True, two_step = True, One_Dimension = True)
-##    test.get_summary(summary_file_1D)
-##    test.get_mle(display = True, two_step = False, One_Dimension = False)
-##    test.get_summary(summary_file_all_Dimension)
+    log_p_list = np.log(3.0/np.array(range(3, 501)))
+    plot_file = '../test/plot/HMM_' + '_'.join(paralog) + '_' + model + '_lnL_1D_surface.txt'
+    test.plot_tract_p(log_p_list, plot_file)
+    test.get_mle(display = True, two_step = True, One_Dimension = True)
+    test.get_summary(summary_file_1D)
+    #test.get_mle(display = True, two_step = False, One_Dimension = False)
+    #test.get_summary(summary_file_all_Dimension)
 
     hess = test.get_Hessian(True)
     
