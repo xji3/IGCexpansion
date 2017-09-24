@@ -153,7 +153,13 @@ class PSJSModel:
         pos_list = [i for i in range(len(state_from)) if state_from[i] != state_to[i]]
 
         if self.IGC_pm == 'One rate':
-            IGC_init, IGC_p = np.exp(self.x_IGC)
+            if self.IGC_force is None:
+                IGC_init, IGC_p = np.exp(self.x_IGC)
+            else:
+                exp_x_IGC = np.exp(self.x_IGC)
+                for key in self.IGC_force:
+                    exp_x_IGC[key] = self.IGC_force[key]
+                IGC_init, IGC_p = exp_x_IGC
             # Now calculate IGC rate
             IGC_0_not_n = IGC_init / IGC_p * (1 - (1 - IGC_p) ** n)
             IGC_0_and_n = IGC_init / IGC_p * (1 - IGC_p) ** n

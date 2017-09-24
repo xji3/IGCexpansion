@@ -255,12 +255,18 @@ class Simulator:
                     current_seq, mutation_info = self.get_one_point_mutation(current_seq, seq_rate_dict, display)
                     to_write_info = ['_'.join(edge), str(cummulate_time)] + mutation_info
                     self.append_to_log_file(to_write_info, 'PM')
+                    # check if the seq in current_seq agrees with mutation_info
+                    # [str(mut_paralog), str(seq_pos), old_state, new_state]
+                    assert(current_seq[int(mutation_info[0])][int(mutation_info[1])]==mutation_info[3])
                     
                 elif event == 1:
                     # It's an IGC event
                     current_seq, IGC_info = self.get_one_IGC_event(current_seq, branch_IGC_init_Q, branch_IGC_tract_Q, Total_IGC_init_Q, ordered_orlg, display)
                     to_write_info = ['_'.join(edge), str(cummulate_time)] + IGC_info
                     self.append_to_log_file(to_write_info, 'IGC')
+                    # check if the seq in current_seq agrees with IGC_info
+                    # [str(orlg_from), str(orlg_to), str(tract_length), str(start_pos), str(stop_pos), str(num_diff), template_seq, overide_seq]
+                    assert(''.join(current_seq[int(IGC_info[1])][int(IGC_info[3]):int(IGC_info[4])+1]) == IGC_info[6])
                 else:
                     # draw from distribution failure
                     assert(False)
@@ -268,6 +274,10 @@ class Simulator:
         # Now need to pass the seq to new node
         # need to consider gene duplication loss events here
         self.pass_seq_to_node(current_seq, edge)
+
+        # More redundant checks
+        for orlg in current_seq:
+            assert(''.join(self.node_to_seq[edge[1]][orlg]) == ''.join(current_seq[orlg]))
 
     def pass_seq_to_node(self, seq, edge):
         father_node = edge[0]
@@ -409,6 +419,8 @@ class Simulator:
         #print 'IGC', orlg_from, orlg_to, start_pos, stop_pos, self.nsites
         seq, IGC_info = self.IGC_copy(start_pos, stop_pos, orlg_from, orlg_to, seq, display, tract_length)
 
+        # Now add in check
+        assert(all([seq[orlg_to][i] == seq[orlg_from][i] for i in range(start_pos, stop_pos + 1)]))
         return seq, IGC_info
 
 
@@ -506,8 +518,12 @@ if __name__ == '__main__':
 ##    edge = ('D1', 'N1')
 ##    test.sim_one_branch(edge, True)
 
-    pm_model_name = 'MG94'
-    x_pm = np.log([0.4, 0.5, 0.2, 9.2, 1.0])
+    #pm_model_name = 'MG94'
+    #x_pm = np.log([0.4, 0.5, 0.2, 9.2, 1.0])
+    #rate_variation = False
+
+    pm_model_name = 'HKY'
+    x_pm = np.log([0.4, 0.5, 0.2, 9.2])
     rate_variation = False
 
     x_IGC = [0.12, 0.01]
