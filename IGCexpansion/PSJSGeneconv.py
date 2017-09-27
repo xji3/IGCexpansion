@@ -130,10 +130,10 @@ class PSJSGeneconv:
     
     def get_scene(self, n, codon_site_pair = None):
         if self.psjsmodel.rate_variation:
-            assert(not codon_site_pair == None)
+            assert(not codon_site_pair is None)
         state_space_shape = self.psjsmodel.state_space_shape
         conf_list = count_process(self.tree.node_to_conf)
-        if codon_site_pair == None:
+        if codon_site_pair is None:
             process_definitions = [self.psjsmodel.get_PM_process_definition(), self.psjsmodel.get_IGC_process_definition(n)]
         else:
             process_definitions = [self.psjsmodel.get_PM_process_definition(codon_site_pair), self.psjsmodel.get_IGC_process_definition(n, codon_site_pair)]
@@ -167,7 +167,7 @@ class PSJSGeneconv:
         return scene
 
     def cal_iid_observations(self):
-        if self.iid_observations == None:
+        if self.iid_observations is None:
             if self.data.cdna:
                 self.observable_nodes, self.observable_axes, self.iid_observations = get_all_PS_iid_observations(self.data, self.tree, self.psjsmodel.PMModel.data_type)
                 if not self.psjsmodel.rate_variation:
@@ -248,7 +248,10 @@ class PSJSGeneconv:
         if self.psjsmodel.rate_variation:
             return ll, self.data.space_idx_pairs[codon_site_pair][n]
         else:
-            idx_pairs = [i for j in product(range(1, 4), repeat = 2) if n in self.data.two_sites_name_to_seq[j] for i in self.data.space_idx_pairs[j][n] ]
+            if self.data.cdna:
+                idx_pairs = [i for j in product(range(1, 4), repeat = 2) if n in self.data.two_sites_name_to_seq[j] for i in self.data.space_idx_pairs[j][n] ]
+            else:
+                idx_pairs = self.data.space_idx_pairs[n]
             return ll, idx_pairs
 
     def _sitewise_loglikelihood_for_all_n(self):
@@ -300,7 +303,7 @@ class PSJSGeneconv:
         other_derivs = []
 
         for i in range(m):
-            if self.force == None or not i in self.force:
+            if self.force is None or not i in self.force:
                 x_plus_delta = np.array(self.x)
                 x_plus_delta[i] += delta
                 self.unpack_x(x_plus_delta)
@@ -563,6 +566,7 @@ if __name__ == '__main__':
     IGC_pm = 'One rate'
     space_list = range(1, 330, 20)
     space_list = None
+    
 
     
     cdna = False
@@ -573,8 +577,19 @@ if __name__ == '__main__':
     log_file  = '../test/log/PSJS_HKY_YDR418W_YEL054C_nonclock_log.txt'
     summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
     x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3, 1.0 / 30.0 ])
+
+    cdna = True
+    allow_same_codon = True
+    rate_variation = True
+    x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244, 1.5, 5.0, 0.3, 1.0 / 30.0 ])
+    if rate_variation:
+        force = {6:0.0}
+    else:
+        force = {4:0.0}
+
+    save_file = '../test/save/PSJS_HKY_rv_YDR418W_YEL054C_nonclock_save.txt'
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-                      node_to_pos, terminal_node_list, save_file, log_file, space_list = space_list)
+                      node_to_pos, terminal_node_list, save_file, log_file, force = force, space_list = space_list)
     self = test
 ##    scene = test.get_scene(469, None)
 

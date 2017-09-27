@@ -28,7 +28,8 @@ class PMModel:
         self.parameter_list = None
         self.rate_variation = rate_variation      # a bool indicator of whether rate variation among codon sites is considered
 
-        self.normalizing_factor = None
+        self.normalizing_factor = None            # normalizing factor used in stationary distribution, should be 1 for HKY
+        self.expected_rate      = None            # normalizing factor for rate matrix Q unit
         self.init_Q()
 
 
@@ -93,10 +94,12 @@ class PMModel:
             ]) * np.array([self.parameters['Pi_' + nt] for nt in 'ACGT'])
         # assume PM at stationary
         stationary_distn = [ self.parameters['Pi_' + nt] for nt in 'ACGT' ]
+        assert(np.isclose(sum(stationary_distn), 1.0))
         self.normalizing_factor = sum(stationary_distn)
-        stationary_distn = np.array(stationary_distn) / self.normalizing_factor 
+        
         expected_rate = np.dot(stationary_distn, Qbasic.sum(axis = 1))
         self.Q_mut = Qbasic / expected_rate
+        self.expected_rate = expected_rate
 
     def init_MG94_Q(self):
         # This function initialize Q matrix for MG94 codon substitution model
@@ -149,6 +152,7 @@ class PMModel:
         stationary_distn = np.array(stationary_distn) / self.normalizing_factor
         expected_rate = np.dot(stationary_distn, Qbasic.sum(axis = 1))
         self.Q_mut = Qbasic / expected_rate
+        self.expected_rate = expected_rate
         
         
     def is_transversion(self, state_from, state_to):
@@ -238,7 +242,6 @@ class PMModel:
         return stationary_rate
         
         
-
     def get_HKY_stationary_distn(self, state):
         assert(-1 < state < 4)
         # 0:A, 1:C, 2:G, 3:T
@@ -254,6 +257,8 @@ class PMModel:
         elif codon_site == 3:
             assert(self.rate_variation)
             return self.Q_mut[state_from, state_to] * self.parameters['r3']
+        else:
+            sys.exit('Codon_site out of 3 is not allowed!')
 
     def __str__(self): # overide for print function
         return 'Point mutation model: ' + self.name + '\n' + \
