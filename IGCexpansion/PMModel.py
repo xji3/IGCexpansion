@@ -209,6 +209,7 @@ class PMModel:
 
 
     def unpack_frequency(self):
+    	#%AG, %A, %C
         x_process = np.exp(self.x_pm[:3])
         if not self.force == None:
             for i in range(3):
