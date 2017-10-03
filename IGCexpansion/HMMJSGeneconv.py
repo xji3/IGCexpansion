@@ -5,6 +5,7 @@ import sys
 sys.path.append('/usr/local/lib/python2.7/site-packages')
 from HMMTract import *
 from IndCodonGeneconv import IndCodonGeneconv
+from JSGeneconv import JSGeneconv
 from copy import deepcopy
 import numdifftools as nd
 
@@ -18,10 +19,21 @@ class HMMJSGeneconv:
                  State_List, seq_index_file,
                  model = 'MG94',
                  force = None, nsites = None, clock = None):
-        
-        self.MG94_IGC = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = force, clock = clock, save_name = save_path + '_'.join(paralog) + '_' + model + '_IGC_HMMJSGeneconv_save.txt')
+
+        if model == 'MG94':
+            self.MG94_IGC = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = force, clock = clock, save_name = save_path + '_'.join(paralog) + '_' + model + '_IGC_HMMJSGeneconv_save.txt')
+        elif model == 'HKY':
+            # x = x_js
+            if rate_variation:
+                x_js = x[:7]
+                save_name = save_path + '_'.join(paralog) + '_' + model + '_rv_IGC_HMMJSGeneconv_save.txt'
+            else:
+                x_js = x[:5]
+                save_name = save_path + '_'.join(paralog) + '_' + model + '_IGC_HMMJSGeneconv_save.txt'
+            self.MG94_IGC = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, newicktree, DupLosList, x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_name)
         self.MG94_IGC.update_by_x(x[:-1])
-        self.MG94_IGC._loglikelihood2()
+        self.MG94_IGC._loglikelihood()
         
         self.x= x
         # x = np.concatenate((self.MG94_IGC.x, np.log(tract_p)))
@@ -189,7 +201,7 @@ if __name__ == '__main__':
     Force = None
     output_ctrl = ''
     summary_mat = []
-    save_file = '../test/save/HMMJS_' + '_'.join(paralog) + '_' + model + '_nonclock_save.txt'
+    
 
 
     x = np.array([-6.974760482698901809e-01,
@@ -216,8 +228,36 @@ if __name__ == '__main__':
 
     print 
     print '**' + '_'.join(paralog)+ '**', output_ctrl
-    
-    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+
+    if model == 'MG94':
+        alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+        cdna = None
+        rate_variation = None
+        gene_to_orlg_file = None
+        DupLosList = None
+        terminal_node_list = None
+        node_to_pos = None
+        pm_model = None        
+        IGC_pm = None
+        seq_index_file = None
+        save_file = '../test/save/HMMJS_' + '_'.join(paralog) + '_' + model + '_nonclock_save.txt'
+    elif model == 'HKY':
+        alignment_file = '../test/EDN_ECP_Cleaned_NewFormat.fasta'
+        cdna = True
+        rate_variation = True
+        gene_to_orlg_file = '../test/' + '_'.join(paralog) +'_GeneToOrlg.txt'
+        DupLosList = '../test/EDN_ECP_DupLost.txt'
+        terminal_node_list = ['Tamarin', 'Macaque', 'Orangutan', 'Gorilla', 'Chimpanzee']
+        node_to_pos = {'D1':0}
+        pm_model = 'HKY'
+        if rate_variation:
+            save_file = '../test/save/HMMJS_' + '_'.join(paralog) + '_' + model + '_rv_nonclock_save.txt'
+        else:
+            save_file = '../test/save/HMMJS_' + '_'.join(paralog) + '_' + model + '_nonclock_save.txt'
+        
+        IGC_pm = 'One rate'
+        seq_index_file = '../test/' + '_'.join(paralog) +'_seq_index.txt'
+        
     summary_path = '../test/Summary/'
     IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_' + model + '_nonclock_sw_lnL.txt'
     NOIGC_sitewise_lnL_file = '../test/Summary/NOIGC_' + '_'.join(paralog) + '_' + model + '_nonclock_sw_lnL.txt'
@@ -225,14 +265,27 @@ if __name__ == '__main__':
 
     seq_index_file = '../test/' + '_'.join(paralog) + '_seq_index.txt'
 
-    Ind = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/')
-    Ind.get_mle()
+    if model == 'MG94':
+        Ind = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/')
+        Ind.get_mle()
 
-    x = np.concatenate((Ind.x, [0.0]))
+        x = np.concatenate((Ind.x, [0.0]))
+    elif model == 'HKY':
+        if rate_variation:
+            x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244, 0.5, 5.0, 0.3])
+        else:
+            x_js = np.log([ 0.5, 0.5, 0.5,  4.35588244,   0.3])
+            
+        Ind = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, newicktree, DupLosList, x_js, pm_model, IGC_pm,
+                         rate_variation, node_to_pos, terminal_node_list, save_file)
+        Ind.get_mle()
 
+        x = np.concatenate((Ind.x, [0.0]))
 
     test = HMMJSGeneconv(save_file, newicktree, alignment_file, paralog, summary_path, x, save_path, IGC_sitewise_lnL_file, NOIGC_sitewise_lnL_file,
-                         state_list, seq_index_file, model)
+                         state_list, seq_index_file, model,
+                         gene_to_orlg_file = gene_to_orlg_file, cdna = cdna, DupLosList = DupLosList, pm_model = pm_model, IGC_pm = IGC_pm,
+                         rate_variation = rate_variation, node_to_pos = node_to_pos, terminal_node_list = terminal_node_list)
     test.update_by_x(x)
 
     self = test

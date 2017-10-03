@@ -64,7 +64,8 @@ class JSGeneconv:
 
         assert(self.self_check())
         
-
+    def update_by_x(self, x):
+        self.unpack_x(x)
             
     def unpack_x(self, x):
         assert(len(x) == len(self.x)) # length must match
@@ -274,7 +275,6 @@ class JSGeneconv:
 
 
         if self.jsmodel.rate_variation:
-            edge_derivs = 0.0
             ll_list = []
             for codon_site_scene in scene:
                 j_in = {
@@ -474,9 +474,9 @@ if __name__ == '__main__':
     ###########EDN ECP
 #######################
     gene_to_orlg_file = '../test/EDN_ECP_GeneToOrlg.txt'
-    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+    alignment_file = '../test/EDN_ECP_Cleaned_NewFormat.fasta'
     tree_newick = '../test/input_tree.newick'
-    DupLosList = '../test/EDN_ECPDupLost.txt'
+    DupLosList = '../test/EDN_ECP_DupLost.txt'
     terminal_node_list = ['Chimpanzee', 'Gorilla', 'Orangutan', 'Macaque', 'Tamarin']
     node_to_pos = {'D1':0}
     seq_index_file = None
@@ -484,30 +484,30 @@ if __name__ == '__main__':
     IGC_pm = 'One rate'
     space_list = None
 
-    cdna = True
-    allow_same_codon = True
-    rate_variation = False
-    save_file = '../test/save/JS_HKY_EDN_ECP_nonclock_save.txt'
-    summary_file = '../test/Summary/JS_HKY_EDN_ECP_nonclock_summary.txt'
-    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244,  0.3])
-    force = None
-    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-                      node_to_pos, terminal_node_list, save_file, force)
-    test.get_mle()
-    test.get_individual_summary(summary_file)
-
-
-    cdna = True
-    allow_same_codon = True
-    rate_variation = False
-    save_file = '../test/save/Force_JS_HKY_EDN_ECP_nonclock_save.txt'
-    summary_file = '../test/Summary/Force_JS_HKY_EDN_ECP_nonclock_summary.txt'
-    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244,  0.3])
-    force = {4:0.0}
-    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-                      node_to_pos, terminal_node_list, save_file, force)
-    test.get_mle()
-    test.get_individual_summary(summary_file)
+##    cdna = True
+##    allow_same_codon = True
+##    rate_variation = False
+##    save_file = '../test/save/JS_HKY_EDN_ECP_nonclock_save.txt'
+##    summary_file = '../test/Summary/JS_HKY_EDN_ECP_nonclock_summary.txt'
+##    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244,  0.3])
+##    force = None
+##    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+##                      node_to_pos, terminal_node_list, save_file, force)
+##    test.get_mle()
+##    test.get_individual_summary(summary_file)
+##
+##
+##    cdna = True
+##    allow_same_codon = True
+##    rate_variation = False
+##    save_file = '../test/save/Force_JS_HKY_EDN_ECP_nonclock_save.txt'
+##    summary_file = '../test/Summary/Force_JS_HKY_EDN_ECP_nonclock_summary.txt'
+##    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244,  0.3])
+##    force = {4:0.0}
+##    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+##                      node_to_pos, terminal_node_list, save_file, force)
+##    test.get_mle()
+##    test.get_individual_summary(summary_file)
 
     cdna = True
     allow_same_codon = True
@@ -522,17 +522,17 @@ if __name__ == '__main__':
     test.get_individual_summary(summary_file)
 
 
-    cdna = True
-    allow_same_codon = True
-    rate_variation = True
-    save_file = '../test/save/Force_JS_HKY_rv_EDN_ECP_nonclock_save.txt'
-    summary_file = '../test/Summary/Force_JS_HKY_rv_EDN_ECP_nonclock_summary.txt'
-    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 9.0,  0.3])
-    force = {6:0.0}
-    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
-                      node_to_pos, terminal_node_list, save_file, force)
-    test.get_mle()
-    test.get_individual_summary(summary_file)
+##    cdna = True
+##    allow_same_codon = True
+##    rate_variation = True
+##    save_file = '../test/save/Force_JS_HKY_rv_EDN_ECP_nonclock_save.txt'
+##    summary_file = '../test/Summary/Force_JS_HKY_rv_EDN_ECP_nonclock_summary.txt'
+##    x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 9.0,  0.3])
+##    force = {6:0.0}
+##    test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+##                      node_to_pos, terminal_node_list, save_file, force)
+##    test.get_mle()
+##    test.get_individual_summary(summary_file)
 #########################
 ##    ###########Yeast
 #########################
