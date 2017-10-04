@@ -16,7 +16,7 @@ import ast
 #import matplotlib.pyplot as plt
 
 class IndCodonGeneconv:
-    def __init__(self, tree_newick, alignment, paralog, Model = 'MG94', nnsites = None, clock = False, Force = None, save_path = './save/', save_name = None, post_dup = 'N1'):
+    def __init__(self, tree_newick, alignment, paralog, Model = 'MG94', nnsites = None, clock = False, Force = None, save_path = './save/', save_name = None, post_dup = 'N1', rate_variation = False):
         self.newicktree  = tree_newick  # newick tree file loc
         self.seqloc      = alignment    # multiple sequence alignment, now need to remove gap before-hand
         self.paralog     = paralog      # parlaog list
@@ -58,6 +58,12 @@ class IndCodonGeneconv:
         self.observable_nodes = None    # list of extent species numbers (node_to_num)
         self.observable_axes  = None    # list of paralog numbers  
         self.iid_observations = None    # list of multivariate states
+        self.iid_observations_list = None # store data for each codon position
+
+        # Add a new variable for NOIGC storage
+        self.NOIGC_iid_observations_list = None  # only used for HKY + rate variation case
+        self.NOIGC_iid_observations      = None  # used for storing NOIGC related iid_observations
+        self.rate_variation              = rate_variation  # rv control
 
 
         # Rate matrix related variable
@@ -70,6 +76,8 @@ class IndCodonGeneconv:
         self.kappa          = 1.2       # real values
         self.omega          = 0.9       # real values
         self.tau            = 1.4       # real values
+        self.r2             = None      # real values
+        self.r3             = None      # real values
 
         self.processes      = None      # list of basic and geneconv rate matrices. Each matrix is a dictionary used for json parsing
 
@@ -142,16 +150,33 @@ class IndCodonGeneconv:
         suffix_to_axis = {n:i for (i, n) in enumerate(list(set(self.paralog))) }
         self.observable_nodes = [self.node_to_num[n[:-suffix_len]] for n in self.observable_names]
         self.observable_axes = [suffix_to_axis[s[-suffix_len:]] for s in self.observable_names]
+
         
         # Now convert alignment into state list
-        iid_observations = []
-        for site in range(self.nsites):
-            observations = []
-            for name in self.observable_names:
-                observation = obs_to_state[self.name_to_seq[name][site]]
-                observations.append(observation)
-            iid_observations.append(observations)
-        self.iid_observations = iid_observations
+        if self.rate_variation:
+            assert(self.nsites%3 == 0)
+            iid_observations_list = []
+            for codon_site in range(3):
+                iid_observations = []
+                for site_iter in range(self.nsites/3):
+                    site = site_iter*3 + codon_site
+                    observations = []
+                    for name in self.observable_names:
+                        observation = obs_to_state[self.name_to_seq[name][site]]
+                        observations.append(observation)
+                    iid_observations.append(observations)
+                iid_observations_list.append(iid_observations)
+            self.iid_observations_list = iid_observations_list
+        else:
+            iid_observations = []
+            for site in range(self.nsites):
+                observations = []
+                for name in self.observable_names:
+                    observation = obs_to_state[self.name_to_seq[name][site]]
+                    observations.append(observation)
+                iid_observations.append(observations)
+            self.iid_observations = iid_observations
+
 
     def get_NOIGC_data(self):
         seq_dict = SeqIO.to_dict(SeqIO.parse( self.seqloc, "fasta" ))
@@ -195,19 +220,37 @@ class IndCodonGeneconv:
             original_num_states = 4
         else:
             sys.exit('Not Implemented!')
-            
-        iid_observations = []
-        for site in range(self.nsites):
-            observations = []
-            for name in self.observable_names:
-                observation_paralog_1 = obs_to_state[self.name_to_seq[name + self.paralog[0]][site]]
-                if name == out_group:
-                    observation_paralog_2 = observation_paralog_1
-                else:
-                    observation_paralog_2 = obs_to_state[self.name_to_seq[name + self.paralog[1]][site]]
-                observations.append(observation_paralog_1*original_num_states + observation_paralog_2 )
-            iid_observations.append(observations)
-        self.iid_observations = iid_observations
+
+        if self.rate_variation:
+            NOIGC_iid_observations_list = []
+            for codon_site in range(3):
+                iid_observations = []
+                for site_iter in range(self.nsites/3):
+                    observations = []
+                    site = site_iter * 3 + codon_site
+                    for name in self.observable_names:
+                        observation_paralog_1 = obs_to_state[self.name_to_seq[name + self.paralog[0]][site]]
+                        if name == out_group:
+                            observation_paralog_2 = observation_paralog_1
+                        else:
+                            observation_paralog_2 = obs_to_state[self.name_to_seq[name + self.paralog[1]][site]]
+                        observations.append(observation_paralog_1*original_num_states + observation_paralog_2 )
+                    iid_observations.append(observations)
+                NOIGC_iid_observations_list.append(iid_observations)
+            self.NOIGC_iid_observations_list = NOIGC_iid_observations_list
+        else:
+            iid_observations = []
+            for site in range(self.nsites):
+                observations = []
+                for name in self.observable_names:
+                    observation_paralog_1 = obs_to_state[self.name_to_seq[name + self.paralog[0]][site]]
+                    if name == out_group:
+                        observation_paralog_2 = observation_paralog_1
+                    else:
+                        observation_paralog_2 = obs_to_state[self.name_to_seq[name + self.paralog[1]][site]]
+                    observations.append(observation_paralog_1*original_num_states + observation_paralog_2 )
+                iid_observations.append(observations)
+            self.NOIGC_iid_observations = iid_observations
 
     def get_initial_x_process(self, transformation = 'log'):
         
@@ -222,10 +265,18 @@ class IndCodonGeneconv:
             self.x_process = np.log(np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
                                   self.kappa, self.omega, self.tau]))
         elif self.Model == 'HKY':
-            # x_process[] = %AG, %A, %C, kappa, tau
-            self.omega = 1.0
-            self.x_process = np.log(np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
-                                  self.kappa, self.tau]))
+            if self.rate_variation:
+                # x_process[] = %AG, %A, %C, kappa, r2, r3, tau
+                self.omega = 1.0
+                self.r2 = 0.5
+                self.r3 = 1.5
+                self.x_process = np.log(np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
+                                      self.kappa, self.r2, self.r3, self.tau]))
+            else:
+                # x_process[] = %AG, %A, %C, kappa, tau
+                self.omega = 1.0
+                self.x_process = np.log(np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
+                                      self.kappa, self.tau]))
 
         self.x_rates = np.log(np.array([ 0.1 * self.edge_to_blen[edge] for edge in self.edge_to_blen.keys()]))
 
@@ -321,6 +372,7 @@ class IndCodonGeneconv:
     def update_by_x(self, x = None, transformation = 'log'):
         k = len(self.edge_to_blen)
         if x is not None:
+            assert(len(self.x) == len(x))
             self.x = x
         self.x_process, self.x_rates = self.x[:-k], self.x[-k:]
         Force_process = None
@@ -357,15 +409,29 @@ class IndCodonGeneconv:
             self.omega = x_process[4]
             self.tau = x_process[5]
         elif self.Model == 'HKY':
-            # x_process[] = %AG, %A, %C, kappa, tau
-            assert(len(self.x_process) == 5)
-            pi_a = x_process[0] * x_process[1]
-            pi_c = (1 - x_process[0]) * x_process[2]
-            pi_g = x_process[0] * (1 - x_process[1])
-            pi_t = (1 - x_process[0]) * (1 - x_process[2])
-            self.pi = [pi_a, pi_c, pi_g, pi_t]
-            self.kappa = x_process[3]
-            self.tau = x_process[4]
+            if self.rate_variation:
+                # x_process[] = %AG, %A, %C, kappa, r2, r3, tau
+                assert(len(self.x_process) == 7)
+                pi_a = x_process[0] * x_process[1]
+                pi_c = (1 - x_process[0]) * x_process[2]
+                pi_g = x_process[0] * (1 - x_process[1])
+                pi_t = (1 - x_process[0]) * (1 - x_process[2])
+                self.pi = [pi_a, pi_c, pi_g, pi_t]
+                self.kappa = x_process[3]
+                self.r2    = x_process[4]
+                self.r3    = x_process[5]
+                self.tau = x_process[6]
+            else:
+                # x_process[] = %AG, %A, %C, kappa, tau
+                assert(len(self.x_process) == 5)
+                pi_a = x_process[0] * x_process[1]
+                pi_c = (1 - x_process[0]) * x_process[2]
+                pi_g = x_process[0] * (1 - x_process[1])
+                pi_t = (1 - x_process[0]) * (1 - x_process[2])
+                self.pi = [pi_a, pi_c, pi_g, pi_t]
+                self.kappa = x_process[3]
+                self.tau = x_process[4]
+
 
         # Now update the prior distribution
         self.get_prior()
@@ -388,7 +454,10 @@ class IndCodonGeneconv:
         if self.Model == 'MG94':
             self.processes = self.get_MG94Geneconv_and_MG94()
         elif self.Model == 'HKY':
-            self.processes = self.get_HKYGeneconv()
+            if self.rate_variation:
+                self.processes = [self.get_HKYGeneconv(codon_site) for codon_site in range(1, 4)]
+            else:
+                self.processes = self.get_HKYGeneconv()
 
     def get_MG94Geneconv_and_MG94(self):
         Qbasic = self.get_MG94Basic()
@@ -603,9 +672,21 @@ class IndCodonGeneconv:
         return Qbasic
         
     
-    def get_HKYGeneconv(self):
+    def get_HKYGeneconv(self, codon_site = 1):
+        assert(0 < codon_site < 4)
+        if codon_site > 1:
+            assert(self.rate_variation)
         #print ('tau = ', self.tau)
-        Qbasic = self.get_HKYBasic()
+        if codon_site == 1:
+            relative_fixation_rate = 1.0
+        elif codon_site == 2:
+            relative_fixation_rate = self.r2
+        elif codon_site == 3:
+            relative_fixation_rate = self.r3
+        else:
+            raise Exception('Check get_HKYGeneconv input codon_site!')
+        
+        Qbasic = self.get_HKYBasic() * relative_fixation_rate
         row = []
         col = []
         rate_geneconv = []
@@ -646,9 +727,22 @@ class IndCodonGeneconv:
         # process_basic is for HKY_Basic which is equivalent to 4by4 rate matrix
         return [process_basic, process_geneconv]
 
-    def get_NOIGC_HKYGeneconv(self):
+    def get_NOIGC_HKYGeneconv(self, codon_site = 1):
+        assert(0 < codon_site < 4)
+        if codon_site > 1:
+            assert(self.rate_variation)
+
+        if codon_site == 1:
+            relative_fixation_rate = 1.0
+        elif codon_site == 2:
+            relative_fixation_rate = self.r2
+        elif codon_site == 3:
+            relative_fixation_rate = self.r3
+        else:
+            raise Exception('Check get_HKYGeneconv input codon_site!')
+        
         # Now this is a 4^2 + 1 = 17 state space model
-        Qbasic = self.get_HKYBasic()
+        Qbasic = self.get_HKYBasic() * relative_fixation_rate
         row = []
         col = []
         rate_geneconv = []
@@ -786,21 +880,43 @@ class IndCodonGeneconv:
             requests = [log_likelihood_request, derivatives_request]
         else:
             requests = [log_likelihood_request]
-        j_in = {
-            'scene' : self.scene_ll,
-            'requests' : requests
-            }
-        j_out = jsonctmctree.interface.process_json_in(j_in)
 
-        status = j_out['status']
-    
-        ll = j_out['responses'][0]
-        self.ll = ll
-        if edge_derivative:
-            edge_derivs = j_out['responses'][1]
+        if self.rate_variation:
+            ll = 0.0
+            if edge_derivative:
+                edge_derivs = np.array([0.0]*len(self.x_rates))
+            else:
+                edge_derivs = []
+
+            for codon_site in range(3):
+                j_in = {
+                    'scene' : scene[codon_site],
+                    'requests' : requests
+                    }
+                j_out = jsonctmctree.interface.process_json_in(j_in)
+
+                status = j_out['status']
+            
+                ll += j_out['responses'][0]
+                if edge_derivative:
+                    edge_derivs += j_out['responses'][1]
+            self.ll = ll
         else:
-            edge_derivs = []
+            j_in = {
+                'scene' : self.scene_ll,
+                'requests' : requests
+                }
+            j_out = jsonctmctree.interface.process_json_in(j_in)
 
+            status = j_out['status']
+        
+            ll = j_out['responses'][0]
+            self.ll = ll
+            if edge_derivative:
+                edge_derivs = j_out['responses'][1]
+            else:
+                edge_derivs = []
+                
         return ll, edge_derivs
 
     def _sitewise_loglikelihood(self, No_IGC):
@@ -808,20 +924,37 @@ class IndCodonGeneconv:
             scene_sitewise = self.get_NOIGC_scene()
         else:
             scene_sitewise = self.get_scene()
+
         
         log_likelihood_request = {'property':'dnnlogl'}
         requests = [log_likelihood_request]
-        
-        j_in = {
-            'scene' : scene_sitewise,
-            'requests' : requests
-            }
-        j_out = jsonctmctree.interface.process_json_in(j_in)
 
-        status = j_out['status']
-    
-        ll = j_out['responses'][0]
-        self.ll = ll
+        if self.rate_variation:
+            ll_list = []
+            for codon_iter in range(3):
+                j_in = {
+                    'scene' : scene_sitewise[codon_iter],
+                    'requests' : requests
+                    }
+                j_out = jsonctmctree.interface.process_json_in(j_in)
+
+                status = j_out['status']
+            
+                ll_list.append(j_out['responses'][0])
+            ll = []
+            for i in range(len(ll_list[0])):
+                ll.extend([ll_list[j][i] for j in range(3)])
+        else:
+            j_in = {
+                'scene' : scene_sitewise,
+                'requests' : requests
+                }
+            j_out = jsonctmctree.interface.process_json_in(j_in)
+
+            status = j_out['status']
+        
+            ll = j_out['responses'][0]
+
 
         return ll
 
@@ -840,27 +973,59 @@ class IndCodonGeneconv:
             state_space_shape = [61, 61]
         elif self.Model == 'HKY':
             state_space_shape = [4, 4]
-        process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
-        scene = dict(
-            node_count = len(self.edge_to_blen) + 1,
-            process_count = len(self.processes),
-            state_space_shape = state_space_shape,
-            tree = {
-                'row_nodes' : self.tree['row'],
-                'column_nodes' : self.tree['col'],
-                'edge_rate_scaling_factors' : self.tree['rate'],
-                'edge_processes' : self.tree['process']
-                },
-            root_prior = {'states':self.prior_feasible_states,
-                          'probabilities': self.prior_distribution},
-            process_definitions = process_definitions,
-            observed_data = {
-                'nodes':self.observable_nodes,
-                'variables':self.observable_axes,
-                'iid_observations':self.iid_observations
-                }            
-            )
-        return scene
+        else:
+            raise Exception('Model not implemented!')
+
+        if self.rate_variation:
+            assert(self.Model == 'HKY')
+            assert(len(self.processes) == len(self.iid_observations_list) == 3)
+            scene_list = []
+            for codon_site in range(3):
+                process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes[codon_site]]
+                scene = dict(
+                    node_count = len(self.edge_to_blen) + 1,
+                    process_count = len(self.processes),
+                    state_space_shape = state_space_shape,
+                    tree = {
+                        'row_nodes' : self.tree['row'],
+                        'column_nodes' : self.tree['col'],
+                        'edge_rate_scaling_factors' : self.tree['rate'],
+                        'edge_processes' : self.tree['process']
+                        },
+                    root_prior = {'states':self.prior_feasible_states,
+                                  'probabilities': self.prior_distribution},
+                    process_definitions = process_definitions,
+                    observed_data = {
+                        'nodes':self.observable_nodes,
+                        'variables':self.observable_axes,
+                        'iid_observations':self.iid_observations_list[codon_site]
+                        }            
+                    )
+                scene_list.append(scene)
+            return scene_list
+        else:
+            process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
+            scene = dict(
+                node_count = len(self.edge_to_blen) + 1,
+                process_count = len(self.processes),
+                state_space_shape = state_space_shape,
+                tree = {
+                    'row_nodes' : self.tree['row'],
+                    'column_nodes' : self.tree['col'],
+                    'edge_rate_scaling_factors' : self.tree['rate'],
+                    'edge_processes' : self.tree['process']
+                    },
+                root_prior = {'states':self.prior_feasible_states,
+                              'probabilities': self.prior_distribution},
+                process_definitions = process_definitions,
+                observed_data = {
+                    'nodes':self.observable_nodes,
+                    'variables':self.observable_axes,
+                    'iid_observations':self.iid_observations
+                    }            
+                )
+
+            return scene
 
     def get_NOIGC_scene(self):
         if self.Model == 'MG94':
@@ -875,33 +1040,66 @@ class IndCodonGeneconv:
             process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
             # translate prior_feasible_states into the new states
             NOIGC_prior_feasible_states = [[61*i[0] + i[1]] for i in self.prior_feasible_states]
-        else:
-            self.processes = self.get_NOIGC_HKYGeneconv()
-            process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
+        elif self.Model == 'HKY':
             NOIGC_prior_feasible_states = [[4*i[0] + i[1]] for i in self.prior_feasible_states]
-        
-        # Now change self.data
-        self.get_NOIGC_data()
-        scene = dict(
-            node_count = len(self.edge_to_blen) + 1,
-            process_count = len(self.processes),
-            state_space_shape = state_space_shape,
-            tree = {
-                'row_nodes' : self.tree['row'],
-                'column_nodes' : self.tree['col'],
-                'edge_rate_scaling_factors' : self.tree['rate'],
-                'edge_processes' : self.tree['process']
-                },
-            root_prior = {'states':NOIGC_prior_feasible_states,
-                          'probabilities': self.prior_distribution},
-            process_definitions = process_definitions,
-            observed_data = {
-                'nodes':self.observable_nodes,
-                'variables':self.observable_axes,
-                'iid_observations':self.iid_observations
-                }            
-            )
-        return scene
+            if self.rate_variation:
+                self.processes = [self.get_NOIGC_HKYGeneconv(codon_site) for codon_site in range(1, 4)]                
+            else:
+                self.processes = self.get_NOIGC_HKYGeneconv()
+                process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes]
+
+
+        if self.rate_variation:
+            # Now change self.data
+            self.get_NOIGC_data()
+            scene_list = []
+            for codon_iter in range(3):
+                process_definitions = [{'row_states':i['row'], 'column_states':i['col'], 'transition_rates':i['rate']} for i in self.processes[codon_iter]]
+                scene = dict(
+                    node_count = len(self.edge_to_blen) + 1,
+                    process_count = len(self.processes),
+                    state_space_shape = state_space_shape,
+                    tree = {
+                        'row_nodes' : self.tree['row'],
+                        'column_nodes' : self.tree['col'],
+                        'edge_rate_scaling_factors' : self.tree['rate'],
+                        'edge_processes' : self.tree['process']
+                        },
+                    root_prior = {'states':NOIGC_prior_feasible_states,
+                                  'probabilities': self.prior_distribution},
+                    process_definitions = process_definitions,
+                    observed_data = {
+                        'nodes':self.observable_nodes,
+                        'variables':self.observable_axes,
+                        'iid_observations':self.NOIGC_iid_observations_list[codon_iter]
+                        }            
+                    )
+                scene_list.append(scene)
+            return scene_list
+        else:
+            # Now change self.data
+            self.get_NOIGC_data()
+            scene = dict(
+                node_count = len(self.edge_to_blen) + 1,
+                process_count = len(self.processes),
+                state_space_shape = state_space_shape,
+                tree = {
+                    'row_nodes' : self.tree['row'],
+                    'column_nodes' : self.tree['col'],
+                    'edge_rate_scaling_factors' : self.tree['rate'],
+                    'edge_processes' : self.tree['process']
+                    },
+                root_prior = {'states':NOIGC_prior_feasible_states,
+                              'probabilities': self.prior_distribution},
+                process_definitions = process_definitions,
+                observed_data = {
+                    'nodes':self.observable_nodes,
+                    'variables':self.observable_axes,
+                    'iid_observations':self.NOIGC_iid_observations
+                    }            
+                )
+            return scene
+
 
     
 
@@ -1678,17 +1876,18 @@ if __name__ == '__main__':
     newicktree = '../test/input_tree.newick'
     Force = None
     model = 'HKY'
+    rate_variation = True
 ##    test.get_mle(True, True, 0, 'BFGS')
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 
-    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/')
+    test = IndCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_name = '../test/save/test_save.txt', rate_variation = rate_variation)
     #scene = test.get_scene()
     #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
     print (test._loglikelihood())
     #print (test._loglikelihood())
-    #test.get_mle(True, True, 0, 'BFGS')
+    test.get_mle(True, True, 0, 'BFGS')
     #s1 = test.get_scene()
     #s2 = test.get_NOIGC_scene()
     #sitewise_ll = test._sitewise_loglikelihood(True)
@@ -1702,6 +1901,7 @@ if __name__ == '__main__':
     Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
     print (test.tau, Total_blen)
     process_basic, process_geneconv = test.get_NOIGC_HKYGeneconv()
+    test.get_sitewise_loglikelihood_summary(NOIGC_sitewise_lnL_file, True)
     
 ##    for i in range(len(process_geneconv['rate'])):
 ##        row = process_geneconv['row'][i][0]
