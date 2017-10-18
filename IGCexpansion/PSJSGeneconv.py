@@ -384,6 +384,44 @@ class PSJSGeneconv:
 
         return -sum_f
 
+    def _loglikelihood_per_distance_tract_p(self, display, log_tract_p):
+        assert(self.psjsmodel.IGC_pm == 'One rate')
+        # Only implemented for One rate model for now
+        log_tau = self.psjsmodel.x_IGC[0] - self.psjsmodel.x_IGC[1]
+        new_x_IGC = [log_tau + log_tract_p, log_tract_p]
+        if self.root_by_dup:
+            x_rate = self.x[-len(self.tree.edge_list):]
+            x_js   = self.x[:(-len(self.tree.edge_list))]
+        else:
+            x_rate = self.x[-(len(self.tree.edge_list) - 1):]
+            x_js   = self.x[:-(len(self.tree.edge_list) - 1)]
+
+        x_js[-1] = new_x_IGC[-1]
+        x_js[-2] = new_x_IGC[-2]
+        
+        self.unpack_x(np.concatenate((x_js, x_rate)))
+
+        lnL_list = []
+        inc = 0.05
+        for it in range(len(self.data.space_list)):
+            n = sorted(self.data.space_list)[it]
+            if (it + 0.0) / len(self.data.space_list) > inc and display:
+                print(str(floor(inc * 100)) + '% finished,  n =', n)
+                inc += 0.2
+            f, g = self._loglikelihood_for_one_n(n, False)
+            lnL_list.append(f)
+
+        return lnL_list
+
+    def output_lnL_per_distance_tract_p_list(self, log_tract_p_list, output_file, display = True):
+        if not os.path.isfile(output_file):
+            with open(output_file, 'w+') as f:
+                f.write('# log_p\t' + '\t'.join([str(space) for space in self.data.space_list]) + '\n')
+        for log_tract_p in log_tract_p_list:
+            lnL_list = self._loglikelihood_per_distance_tract_p(display, log_tract_p)
+            with open(output_file, 'a') as f: 
+                f.write(str(log_tract_p) + '\t' + '\t'.join([str(lnL) for lnL in lnL_list]) + '\n')
+
     def objective_tract_p(self, display, log_tract_p):
         assert(self.psjsmodel.IGC_pm == 'One rate')
         # Only implemented for One rate model for now
@@ -591,6 +629,10 @@ if __name__ == '__main__':
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, log_file, force = force, space_list = space_list)
     self = test
+
+    log_tract_p_list = - np.log([5.0, 10.0])
+    grid_lnL_file = '../test/summary/PSJS_HKY_rv_YDR418W_YEL054C_nonclock_grid_lnL.txt'
+    test.output_lnL_per_distance_tract_p_list(log_tract_p_list, grid_lnL_file)
 ##    scene = test.get_scene(469, None)
 
 ##    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
@@ -634,8 +676,8 @@ if __name__ == '__main__':
     #print(test.objective_wo_gradient(True, test.x))
     #test.optimize_x_IGC(True)
     #print(test.loglikelihood_and_gradient_for_one_n(13))
-    pairwise_lnL_summary_file = summary_file.replace('_summary.txt', '_lnL_summary.txt')
-    test.get_pairwise_loglikelihood_summary(pairwise_lnL_summary_file)
+    #pairwise_lnL_summary_file = summary_file.replace('_summary.txt', '_lnL_summary.txt')
+    #test.get_pairwise_loglikelihood_summary(pairwise_lnL_summary_file)
 ##    ll, g = test.loglikelihood_and_gradient(True)
 ##    print( ll/(test.data.nsites - 1.0), g/(test.data.nsites - 1.0) )
 ##    for edge in test.tree.edge_list:
