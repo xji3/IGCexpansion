@@ -156,7 +156,7 @@ class HMMJSGeneconv:
 
     
     def plot_tract_p(self, log_p_list, plot_file):
-        self.MG94_IGC.get_mle()
+        #self.MG94_IGC.get_mle()
         self.x[:-1] = deepcopy(self.MG94_IGC.x)
         self.update_by_x(self.x)
         ll_list = []

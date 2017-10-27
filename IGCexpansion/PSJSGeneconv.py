@@ -416,7 +416,7 @@ class PSJSGeneconv:
     def output_lnL_per_distance_tract_p_list(self, log_tract_p_list, output_file, display = True):
         if not os.path.isfile(output_file):
             with open(output_file, 'w+') as f:
-                f.write('# log_p\t' + '\t'.join([str(space) for space in self.data.space_list]) + '\n')
+                f.write('log_p\t' + '\t'.join([str(space) for space in self.data.space_list]) + '\n')
         for log_tract_p in log_tract_p_list:
             lnL_list = self._loglikelihood_per_distance_tract_p(display, log_tract_p)
             with open(output_file, 'a') as f: 
@@ -500,12 +500,21 @@ class PSJSGeneconv:
         print (result)
         return result
             
-    def get_mle(self, display = True, derivative = True):
+    def get_mle(self, display = True, derivative = True, stringent_level = 'low'):
         self.unpack_x(self.x)  # do one more update first
         if derivative:
             f = partial(self.objective_and_gradient, display)
         else:
             f = partial(self.objective_wo_gradient, display)
+
+        if stringent_level == 'low':
+            factr = 1e12
+        elif stringent_level == 'moderate':
+            factr = 1e7
+        elif stringent_level == 'high':
+            factr = 10.0
+        else:
+            exit('Check stringent_level in get_mle() function!')
 
         guess_x = self.x
         
@@ -526,9 +535,9 @@ class PSJSGeneconv:
 
 
         if derivative:
-            result = scipy.optimize.minimize(f, guess_x, jac = True, method = 'L-BFGS-B', bounds = bnds)
+            result = scipy.optimize.minimize(f, guess_x, jac = True, method = 'L-BFGS-B', bounds = bnds, options={'ftol':factr*1e-08})
         else:
-            result = scipy.optimize.minimize(f, guess_x, jac = False, method = 'L-BFGS-B', bounds = bnds)
+            result = scipy.optimize.minimize(f, guess_x, jac = False, method = 'L-BFGS-B', bounds = bnds, options={'ftol':factr*1e-08})
 
         self.save_x()
         print(result)
@@ -543,11 +552,8 @@ class PSJSGeneconv:
         self.unpack_x(self.x)
         
     def get_summary(self):
-        if self.ll == None:
-            #self.ll = -1.0
-            self.objective_wo_gradient(False, self.x)
-            
-        summary_mat = [self.ll, self.data.nsites]
+        
+        summary_mat = [self.objective_wo_gradient(False, self.x), self.data.nsites]
         label = ['ll', 'length']
         
         for par in self.psjsmodel.PMModel.parameter_list:
