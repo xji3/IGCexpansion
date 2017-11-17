@@ -101,7 +101,7 @@ class PSJSModel:
     def init_models(self):
         self.unpack_x_js(self.x_js)
         if self.pm_model == 'HKY':
-            self.state_space_shape = [16 for i in range(self.n_js)]
+            self.state_space_shape = [4,4] * self.n_js
         else:
             sys.exit('The point mutation model has not been implemented.')
 
@@ -114,10 +114,10 @@ class PSJSModel:
 
     def is_transition_compatible(self, transition):
         # only consider two paralogs for now
-        assert(len(self.state_space_shape) == self.n_js)
+        assert(len(self.state_space_shape) == 2 * self.n_js)
         assert(len(transition) == 2)
         state_from, state_to = transition
-        assert(len(state_from) == len(state_to) == 2 * len(self.state_space_shape))
+        assert(len(state_from) == len(state_to) == len(self.state_space_shape))
         if state_from == state_to:
             return False
 
@@ -238,10 +238,10 @@ class PSJSModel:
     def is_compatible_pm_transition(self, transition):
         # This PM transition is for pre-duplication rate matrix construction
         # only consider two paralogs for now
-        assert(len(self.state_space_shape) == 2)
+        assert(len(self.state_space_shape) == 2*self.n_js)
         assert(len(transition) == 2)
         state_from, state_to = transition
-        assert(len(state_from) == len(state_to) == 2 * len(self.state_space_shape))
+        assert(len(state_from) == len(state_to) == len(self.state_space_shape))
         if state_from == state_to:
             return False
 
@@ -296,8 +296,8 @@ class PSJSModel:
         column_states = []
         transition_rates = []
         for row_state, col_state, transition_rate in self.get_IGC_transition_rates(n, codon_site_pair, proportion):
-            row_states.append(translate_four_nt_to_two_state(row_state))
-            column_states.append(translate_four_nt_to_two_state(col_state))
+            row_states.append(row_state)#translate_four_nt_to_two_state(row_state))
+            column_states.append(col_state)#translate_four_nt_to_two_state(col_state))
             transition_rates.append(transition_rate)
 
         if proportion:
@@ -318,8 +318,8 @@ class PSJSModel:
         column_states = []
         transition_rates = []
         for row_state, col_state, transition_rate in self.get_PM_transition_rates(codon_site_pair):
-            row_states.append(translate_four_nt_to_two_state(row_state))
-            column_states.append(translate_four_nt_to_two_state(col_state))
+            row_states.append(row_state)#translate_four_nt_to_two_state(row_state))
+            column_states.append(col_state)#translate_four_nt_to_two_state(col_state))
             transition_rates.append(transition_rate)
 
         process_definition = dict(
@@ -387,37 +387,37 @@ if __name__ == '__main__':
 
     
     state_from = (0,1,0,3)
-    for i in range(4):
-        for j in range(4):
-            for k in range(4):
-                for l in range(4):
-                    
-                    state_to = (i,j,k,l)
-                    num_diff = sum([state_from[it] != state_to[it] for it in range(4)])
-                    if num_diff > 3:
-                        continue
-                    elif num_diff == 1:
-                        for m in range(1, 4):
-                            for mm in range(1, 4):
-                                print state_from, state_to, (m, mm), test.cal_IGC_transition_rate([state_from, state_to], n, (m,mm)),\
-                                      test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)), \
-                                      test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)) * 1.2,\
-                                      test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)) * 2.5,\
-                                      (test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)) - IGC_0_not_n)*1.2 + IGC_0_not_n,\
-                                      (test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)) - IGC_0_not_n)*2.5 + IGC_0_not_n
-                        #continue
-                    elif num_diff == 2:
-                        continue
-                        for m in range(1, 4):
-                            for mm in range(1, 4):
-                                if state_to[0] == state_to[2] == state_from[0] and state_to[1] == state_to[3] == state_from[1]:
-                                    print state_from, state_to, test.cal_IGC_transition_rate([state_from, state_to], n, (m,mm))
-                                elif state_to[0] == state_to[2] == state_from[2] and state_to[1] == state_to[3] == state_from[3]:
-                                    print state_from, state_to, test.cal_IGC_transition_rate([state_from, state_to], n, (m,mm))
-                                else:
-                                    continue
-                                    #print state_from, state_to, test.is_transition_compatible([state_from, state_to])
-                    
+##    for i in range(4):
+##        for j in range(4):
+##            for k in range(4):
+##                for l in range(4):
+##                    
+##                    state_to = (i,j,k,l)
+##                    num_diff = sum([state_from[it] != state_to[it] for it in range(4)])
+##                    if num_diff > 3:
+##                        continue
+##                    elif num_diff == 1:
+##                        for m in range(1, 4):
+##                            for mm in range(1, 4):
+##                                print state_from, state_to, (m, mm), test.cal_IGC_transition_rate([state_from, state_to], n, (m,mm)),\
+##                                      test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)), \
+##                                      test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)) * 1.2,\
+##                                      test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)) * 2.5,\
+##                                      (test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)) - IGC_0_not_n)*1.2 + IGC_0_not_n,\
+##                                      (test.cal_IGC_transition_rate([state_from, state_to], n, (1,1)) - IGC_0_not_n)*2.5 + IGC_0_not_n
+##                        #continue
+##                    elif num_diff == 2:
+##                        continue
+##                        for m in range(1, 4):
+##                            for mm in range(1, 4):
+##                                if state_to[0] == state_to[2] == state_from[0] and state_to[1] == state_to[3] == state_from[1]:
+##                                    print state_from, state_to, test.cal_IGC_transition_rate([state_from, state_to], n, (m,mm))
+##                                elif state_to[0] == state_to[2] == state_from[2] and state_to[1] == state_to[3] == state_from[3]:
+##                                    print state_from, state_to, test.cal_IGC_transition_rate([state_from, state_to], n, (m,mm))
+##                                else:
+##                                    continue
+##                                    #print state_from, state_to, test.is_transition_compatible([state_from, state_to])
+##                    
 
 
 

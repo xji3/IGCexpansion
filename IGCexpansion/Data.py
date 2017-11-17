@@ -171,6 +171,7 @@ class Data:
         # space = 1 represents neighboring sites
         if data_type == 'nt':
             obs_to_state = {'ACGT'[nt]:nt for nt in range(4)}
+            obs_to_state['-'] = -1
         else:
             sys.exit('The data_type is not supported in Data class.')
 

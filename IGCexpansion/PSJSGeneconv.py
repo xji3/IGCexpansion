@@ -122,7 +122,7 @@ class PSJSGeneconv:
         for nt_a in range(4): # Only consider nucleotide model
             for nt_b in range(4):
                 js_state = (nt_a, nt_b, nt_a, nt_b)
-                prior_feasible_states.append(translate_four_nt_to_two_state(js_state))
+                prior_feasible_states.append(js_state)#translate_four_nt_to_two_state(js_state))
                 distn.append(self.psjsmodel.PMModel.get_stationary_distn(nt_a) * self.psjsmodel.PMModel.get_stationary_distn(nt_b))
 
         distn = np.array(distn) / sum(distn)
@@ -638,7 +638,12 @@ if __name__ == '__main__':
 
     log_tract_p_list = - np.log([5.0, 10.0])
     grid_lnL_file = '../test/summary/PSJS_HKY_rv_YDR418W_YEL054C_nonclock_grid_lnL.txt'
-    test.output_lnL_per_distance_tract_p_list(log_tract_p_list, grid_lnL_file)
+    print(test._loglikelihood(1, (1,2)))  # should be -5251.584676106582
+    print(test._loglikelihood(1, (2,3)))  # should be -5693.500662621693
+    print(test._loglikelihood(2, (1,3)))  # should be -5431.747983027612
+    #print(test.objective_wo_gradient(True, test.x)) # should be -941165.536943
+
+    #test.output_lnL_per_distance_tract_p_list(log_tract_p_list, grid_lnL_file)
 ##    scene = test.get_scene(469, None)
 
 ##    alignment_file = '../test/YDR418W_YEL054C_input.fasta'

@@ -51,7 +51,7 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
                     observed_nt = data.name_to_seq[name][data.codon_site_to_pos[codon_site][site]]
                     if name == 'distinct':
                         observation = -1
-                    elif observed_nt == 'n' or observed_nt == '-':
+                    elif observed_nt.lower() == 'n' or observed_nt == '-':
                         observation = -1
                     else:
                         observation = obs_to_state[observed_nt.upper()]
@@ -66,7 +66,7 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
             for name in observed_names:
                 if name == 'distinct':
                     observation = -1
-                elif data.name_to_seq[name][site] == 'n' or data.name_to_seq[name][site] == '-':
+                elif data.name_to_seq[name][site].lower() == 'n' or data.name_to_seq[name][site] == '-':
                     observation = -1
                 else:
                     observation = obs_to_state[data.name_to_seq[name][site].upper()]
@@ -100,7 +100,8 @@ def get_PS_iid_observations(data, tree, nsites, n, codon_site_pair = None, data_
         orlg_to_pos = tree.divide_configuration(tree.node_to_conf[terminal_node])
         assert(orlg in orlg_to_pos['extent'])
         for pos in orlg_to_pos['extent'][orlg]:
-            name_node_axes.append([name, tree.node_to_num[terminal_node], pos])
+            name_node_axes.append([name, tree.node_to_num[terminal_node], pos * 2])  # pos*2 for (4, 4, 4, 4), pos for (16, 16)
+            name_node_axes.append([name, tree.node_to_num[terminal_node], pos * 2 + 1])
 
         if not terminal_node in visited_terminal_nodes:
             for pos in orlg_to_pos['distinct']:
@@ -112,18 +113,22 @@ def get_PS_iid_observations(data, tree, nsites, n, codon_site_pair = None, data_
     observable_axes  = [item[2] for item in name_node_axes]
     observed_names   = [item[0] for item in name_node_axes]
 
+    # lazy compromise for changing state space shape from (16,16) back to (4,4,4,4)
+    lazy_observed_names = observed_names[0::2]
+
     iid_observations = []
     for site in range(nsites):
         observations = []
-        for name in observed_names:
+        for name in lazy_observed_names:
             if name == 'distinct':
                 sys.exit('There should not be distinction!')
             else:
                 if codon_site_pair == None:
-                    observation = translate_two_nt_to_one_state(data.two_sites_name_to_seq[n][name][site])
+                    observation = data.two_sites_name_to_seq[n][name][site]#translate_two_nt_to_one_state(data.two_sites_name_to_seq[n][name][site])
                 else:
-                    observation = translate_two_nt_to_one_state(data.two_sites_name_to_seq[codon_site_pair][n][name][site])
-            observations.append(observation)
+                    observation = data.two_sites_name_to_seq[codon_site_pair][n][name][site]#translate_two_nt_to_one_state(data.two_sites_name_to_seq[codon_site_pair][n][name][site])
+            #observations.append(observation) # this is for (16, 16)
+            observations.extend(observation)  # this is for (4,4,4,4)
         #print observations, observed_names
         iid_observations.append(observations)
 
