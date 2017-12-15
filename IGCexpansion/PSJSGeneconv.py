@@ -15,6 +15,7 @@ import scipy
 import scipy.optimize
 import os
 from Common import *
+import numdifftools as nd
 
 
 class PSJSGeneconv:
@@ -166,6 +167,118 @@ class PSJSGeneconv:
             )
         return scene
 
+    def get_scene_one_pair(self, n, pair_num, codon_site_pair = None):
+        if self.psjsmodel.rate_variation:
+            assert(not codon_site_pair is None)
+        state_space_shape = self.psjsmodel.state_space_shape
+        conf_list = count_process(self.tree.node_to_conf)
+        if codon_site_pair is None:
+            process_definitions = [self.psjsmodel.get_PM_process_definition(), self.psjsmodel.get_IGC_process_definition(n)]
+        else:
+            process_definitions = [self.psjsmodel.get_PM_process_definition(codon_site_pair), self.psjsmodel.get_IGC_process_definition(n, codon_site_pair)]
+        self.tree.get_tree_process(conf_list)
+
+        prior_feasible_states, distn = self.get_prior()
+        
+        if self.iid_observations == None:
+            self.cal_iid_observations()
+
+        if self.psjsmodel.rate_variation:
+            assert(pair_num < len(self.iid_observations[codon_site_pair][n]))
+            iid_observations = [self.iid_observations[codon_site_pair][n][pair_num]]
+        else:
+            assert(codon_site_pair == (1, 1) or codon_site_pair == None)
+            assert(pair_num < len(self.iid_observations[n]))
+            iid_observations = [self.iid_observations[n][pair_num]]
+            
+        scene = dict(
+            node_count = len(self.tree.node_to_num),
+            process_count = len(process_definitions),
+            state_space_shape = state_space_shape,
+            tree = self.tree.tree_json,
+            root_prior = {'states':prior_feasible_states,
+                          'probabilities':distn},
+            process_definitions = process_definitions,
+            observed_data = {
+                'nodes':self.observable_nodes,
+                'variables':self.observable_axes,
+                'iid_observations':iid_observations
+                }
+            )
+        return scene
+
+    def _loglikelihood_for_one_pair(self, x, pair_num, n, codon_site_pair):
+        # x = [tau, tract_p]
+        # update parameter values first
+        
+        new_x = np.concatenate((self.psjsmodel.x_pm, ([x[0] + x[1], x[1]]), self.x[len(self.psjsmodel.x_js):]))
+        self.unpack_x(new_x)
+
+        if self.psjsmodel.rate_variation:
+            assert(not codon_site_pair == None)
+            scene = self.get_scene_one_pair(n, pair_num, codon_site_pair)
+        else:
+            scene = self.get_scene_one_pair(n, pair_num)
+            
+        log_likelihood_request = {'property':'snnlogl'}
+        requests = [log_likelihood_request]
+        j_in = {
+            'scene' : scene,
+            'requests' : requests
+            }
+        j_out = jsonctmctree.interface.process_json_in(j_in)
+
+        status = j_out['status']
+    
+        ll = j_out['responses'][0]
+        #print(x, ll)
+        return ll
+
+    def gradient_and_hessian_2d_all_pairs(self, x):
+        # x = [tau, tract_p]
+        assert(len(x) == 2 and x[1] <= 0.0)
+        new_x = np.concatenate((self.psjsmodel.x_pm, ([x[0] + x[1], x[1]]), self.x[len(self.psjsmodel.x_js):]))
+        self.unpack_x(new_x)
+
+        gradient_list = []
+        hessian_list = []
+
+        df = nd.Gradient(self._loglikelihood_for_one_pair)
+        ddf = nd.Hessian(self._loglikelihood_for_one_pair)
+
+        num_visited_pairs = 0
+        inc = 0.005
+        if self.psjsmodel.rate_variation:
+            num_all_pairs = sum([len(self.iid_observations[codon_site_pair][n]) for codon_site_pair in self.iid_observations for n in self.iid_observations[codon_site_pair]])
+            for codon_site_pair in self.iid_observations.keys():
+                for n in self.iid_observations[codon_site_pair].keys():
+                    for pair_num in range(len(self.iid_observations[codon_site_pair][n])):
+                        gradient_list.append(df(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair))
+                        hessian_list.append(ddf(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair))
+                        num_visited_pairs += 1
+                        if (num_visited_pairs + 0.0)/(num_all_pairs + 0.0) > inc:
+                            print(str(inc*100.0) + '%')
+                            inc += 0.05
+        else:
+            num_all_pairs = sum([len(self.iid_observations[n]) for n in self.iid_observations])
+            for n in self.iid_observations.keys():
+                for pair_num in range(len(self.iid_observations[n])):
+                    gradient_list.append(df(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair))
+                    hessian_list.append(ddf(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair))
+                    num_visited_pairs += 1
+                    if (num_visited_pairs + 0.0)/(num_all_pairs + 0.0) > inc:
+                        print(str(inc*100.0) + '%')
+                        inc += 0.05
+        return gradient_list, hessian_list
+
+    def get_Godambe_matrix(self, x):
+        gradient_list, hessian_list = self.gradient_and_hessian_2d_all_pairs(x)
+        H = -sum(hessian_list) / float(len(hessian_list))
+        J = sum([np.outer(u, u) for u in gradient_list]) / float(len(gradient_list))
+        return np.matmul(H, np.linalg.solve(J, H))  # solve(J, H) = J^{-1}H
+        
+        
+    
     def cal_iid_observations(self):
         if self.iid_observations is None:
             if self.data.cdna:
@@ -631,6 +744,7 @@ if __name__ == '__main__':
     else:
         force = {4:0.0}
 
+
     save_file = '../test/save/PSJS_HKY_rv_YDR418W_YEL054C_nonclock_save.txt'
     test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, log_file, force = force, space_list = space_list)
@@ -641,7 +755,26 @@ if __name__ == '__main__':
     print(test._loglikelihood(1, (1,2)))  # should be -5251.584676106582
     print(test._loglikelihood(1, (2,3)))  # should be -5693.500662621693
     print(test._loglikelihood(2, (1,3)))  # should be -5431.747983027612
+
+    force = None
+    test = PSJSGeneconv(alignment_file, gene_to_orlg_file, seq_index_file, cdna, allow_same_codon, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
+                      node_to_pos, terminal_node_list, save_file, log_file, force = force, space_list = space_list)
+    self = test
+    x = np.log([4.0, 0.3])
+    n = 21
+    pair_num  = 2
+    codon_site_pair = (1,1)
+    print(test._loglikelihood_for_one_pair(x, pair_num, n, codon_site_pair))
+    print(test._loglikelihood_for_one_pair([ 1.38629436, -3.2039728 ], pair_num, n, codon_site_pair))
+    
+    a = test.gradient_and_hessian_2d_all_pairs(x)
+    b = test.get_Godambe_matrix(x)
+    
+    #df = nd.Gradient(test._loglikelihood_for_one_pair)
+    #print(df(x, pair_num = 2, n = 21, codon_site_pair= (1, 1)))
     #print(test.objective_wo_gradient(True, test.x)) # should be -941165.536943
+
+
 
     #test.output_lnL_per_distance_tract_p_list(log_tract_p_list, grid_lnL_file)
 ##    scene = test.get_scene(469, None)
