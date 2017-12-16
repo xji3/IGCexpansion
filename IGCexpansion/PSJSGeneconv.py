@@ -208,10 +208,12 @@ class PSJSGeneconv:
         return scene
 
     def _loglikelihood_for_one_pair(self, x, pair_num, n, codon_site_pair):
-        # x = [tau, tract_p]
         # update parameter values first
-        
-        new_x = np.concatenate((self.psjsmodel.x_pm, ([x[0] + x[1], x[1]]), self.x[len(self.psjsmodel.x_js):]))
+        # x = [ln(tau), ln(tract_p/(1-tract_p))]
+        assert(len(x) == 2)
+        new_x = np.concatenate((self.psjsmodel.x_pm, \
+                                ([x[0] + x[1] - np.log(1.0 + np.exp(x[1])), x[1] - np.log(1.0 + np.exp(x[1]))]),\
+                                self.x[len(self.psjsmodel.x_js):]))        
         self.unpack_x(new_x)
 
         if self.psjsmodel.rate_variation:
@@ -235,9 +237,11 @@ class PSJSGeneconv:
         return ll
 
     def gradient_and_hessian_2d_all_pairs(self, x):
-        # x = [tau, tract_p]
-        assert(len(x) == 2 and x[1] <= 0.0)
-        new_x = np.concatenate((self.psjsmodel.x_pm, ([x[0] + x[1], x[1]]), self.x[len(self.psjsmodel.x_js):]))
+        # x = [ln(tau), ln(tract_p/(1-tract_p))]
+        assert(len(x) == 2)
+        new_x = np.concatenate((self.psjsmodel.x_pm, \
+                                ([x[0] + x[1] - np.log(1.0 + np.exp(x[1])), x[1] - np.log(1.0 + np.exp(x[1]))]),\
+                                self.x[len(self.psjsmodel.x_js):]))
         self.unpack_x(new_x)
 
         gradient_list = []
@@ -253,8 +257,11 @@ class PSJSGeneconv:
             for codon_site_pair in self.iid_observations.keys():
                 for n in self.iid_observations[codon_site_pair].keys():
                     for pair_num in range(len(self.iid_observations[codon_site_pair][n])):
-                        gradient_list.append(df(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair))
-                        hessian_list.append(ddf(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair))
+                        gradient = df(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair)
+                        hessian = ddf(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair)
+                        gradient_list.append(gradient)
+                        hessian_list.append(hessian)
+                        print(gradient, hessian)
                         num_visited_pairs += 1
                         if (num_visited_pairs + 0.0)/(num_all_pairs + 0.0) > inc:
                             print(str(inc*100.0) + '%')
@@ -366,6 +373,90 @@ class PSJSGeneconv:
             else:
                 idx_pairs = self.data.space_idx_pairs[n]
             return ll, idx_pairs
+
+    def _sitewise_lnL_2d_x(self, x):
+        # x = [ln(tau), ln(tract_p/(1-tract_p))]
+        assert(len(x) == 2)
+        new_x = np.concatenate((self.psjsmodel.x_pm, \
+                                ([x[0] + x[1] - np.log(1.0 + np.exp(x[1])), x[1] - np.log(1.0 + np.exp(x[1]))]),\
+                                self.x[len(self.psjsmodel.x_js):]))
+        self.unpack_x(new_x)
+
+        pair_to_lnL = self._sitewise_loglikelihood_for_all_n()
+        return pair_to_lnL
+    
+    def _finite_difference_gradient_hessian_all(self, x, step = 1e-5):
+        assert(len(x) == 2)
+        step_x = np.array(x) * step
+        # Now finite difference for gradient
+        gradient = {}
+        xi = deepcopy(x)
+        for i in range(2):
+            xi[i] += step_x[i]
+            f_xi_plus = self._sitewise_lnL_2d_x(xi)
+            xi[i] -= 2.0*step_x[i]
+            f_xi_minus = self._sitewise_lnL_2d_x(xi)
+            xi[i] += step_x[i]
+            print('Gradient ' + str(50*i + 50) + '%')
+            for idx_pair in f_xi_plus.keys():
+                if idx_pair in gradient:
+                    gradient[idx_pair].append((f_xi_plus[idx_pair]-f_xi_minus[idx_pair])/(2.0*step_x[i]))
+                else:
+                    gradient[idx_pair] = [(f_xi_plus[idx_pair]-f_xi_minus[idx_pair])/(2.0*step_x[i])]
+        
+        # Now finite difference for hessian
+        hessian  = {}
+        for i in range(2):
+            step_i = step_x[i]
+            for j in range(2):
+                step_j = step_x[j]
+
+                xij = deepcopy(x)
+                if i == j:
+                    f_x = self._sitewise_lnL_2d_x(x)
+                    xij[i] += 2.0*step_i
+                    f_x_plus_2i = self._sitewise_lnL_2d_x(xij)
+                    xij[i] -= step_i
+                    f_x_plus_i = self._sitewise_lnL_2d_x(xij)
+                    xij[i] -= 2.0*step_i
+                    f_x_minus_i = self._sitewise_lnL_2d_x(xij)
+                    xij[i] -= step_i
+                    f_x_minus_2i = self._sitewise_lnL_2d_x(xij)
+                    xij[i] += 2.0 * step_i
+                    for idx_pair in f_x.keys():
+                        hessian_ij = (-f_x_plus_2i[idx_pair] + 16.*f_x_plus_i[idx_pair] - 30.0*f_x[idx_pair]\
+                                                      +16.*f_x_minus_i[idx_pair] - f_x_minus_2i[idx_pair])/(12.*step_i**2)
+                        if idx_pair in hessian:
+                            hessian[idx_pair].append(hessian_ij)
+                        else:
+                            hessian[idx_pair] = [hessian_ij]
+                else:
+                    xij[i] += step_i
+                    xij[j] += step_j
+                    f_x_p_i_p_j = self._sitewise_lnL_2d_x(xij)
+                    xij[i] -= 2.0 * step_i
+                    f_x_m_i_p_j = self._sitewise_lnL_2d_x(xij)
+                    xij[j] -= 2.0 * step_j
+                    f_x_m_i_m_j = self._sitewise_lnL_2d_x(xij)
+                    xij[i] += 2.0 * step_i
+                    f_x_p_i_m_j = self._sitewise_lnL_2d_x(xij)
+                    xij[i] -= step_i
+                    xij[j] += step_j
+                    for idx_pair in f_x_p_i_p_j.keys():
+                        hessian_ij = (f_x_p_i_p_j[idx_pair] - f_x_p_i_m_j - f_x_m_i_p_j + f_x_m_i_m_j) / (4.0 * step_i * step_j)
+                        if idx_pair in hessian:
+                            hessian[idx_pair].append(hessian_ij)
+                        else:
+                            hessian[idx_pair] = [hessian_ij]
+
+                print('Hesian ' + str(25*(2*i + j + 1)) + '%')
+
+        return gradient, hessian
+                    
+                    
+                
+        
+        
 
     def _sitewise_loglikelihood_for_all_n(self):
         pair_to_lnL = dict()
@@ -766,7 +857,8 @@ if __name__ == '__main__':
     codon_site_pair = (1,1)
     print(test._loglikelihood_for_one_pair(x, pair_num, n, codon_site_pair))
     print(test._loglikelihood_for_one_pair([ 1.38629436, -3.2039728 ], pair_num, n, codon_site_pair))
-    
+
+    g, h = test._finite_difference_gradient_hessian_all(x)
     a = test.gradient_and_hessian_2d_all_pairs(x)
     b = test.get_Godambe_matrix(x)
     
