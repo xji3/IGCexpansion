@@ -51,7 +51,7 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
                     observed_nt = data.name_to_seq[name][data.codon_site_to_pos[codon_site][site]]
                     if name == 'distinct':
                         observation = -1
-                    elif observed_nt.lower() == 'n' or observed_nt == '-':
+                    elif observed_nt.upper() == 'N' or observed_nt == '-':
                         observation = -1
                     else:
                         observation = obs_to_state[observed_nt.upper()]
@@ -66,7 +66,7 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
             for name in observed_names:
                 if name == 'distinct':
                     observation = -1
-                elif data.name_to_seq[name][site].lower() == 'n' or data.name_to_seq[name][site] == '-':
+                elif data.name_to_seq[name][site].upper() == 'N' or data.name_to_seq[name][site] == '-':
                     observation = -1
                 else:
                     observation = obs_to_state[data.name_to_seq[name][site].upper()]

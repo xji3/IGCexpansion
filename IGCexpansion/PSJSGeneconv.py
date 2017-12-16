@@ -387,7 +387,7 @@ class PSJSGeneconv:
     
     def _finite_difference_gradient_hessian_all(self, x, step = 1e-5):
         assert(len(x) == 2)
-        step_x = np.array(x) * step
+        step_x = abs(np.array(x) * step)
         # Now finite difference for gradient
         gradient = {}
         xi = deepcopy(x)
@@ -443,7 +443,7 @@ class PSJSGeneconv:
                     xij[i] -= step_i
                     xij[j] += step_j
                     for idx_pair in f_x_p_i_p_j.keys():
-                        hessian_ij = (f_x_p_i_p_j[idx_pair] - f_x_p_i_m_j - f_x_m_i_p_j + f_x_m_i_m_j) / (4.0 * step_i * step_j)
+                        hessian_ij = (f_x_p_i_p_j[idx_pair] - f_x_p_i_m_j[idx_pair] - f_x_m_i_p_j[idx_pair] + f_x_m_i_m_j[idx_pair]) / (4.0 * step_i * step_j)
                         if idx_pair in hessian:
                             hessian[idx_pair].append(hessian_ij)
                         else:
