@@ -279,7 +279,11 @@ class PSJSGeneconv:
         return gradient_list, hessian_list
 
     def get_Godambe_matrix(self, x):
-        gradient_list, hessian_list = self.gradient_and_hessian_2d_all_pairs(x)
+        #gradient_list, hessian_list = self.gradient_and_hessian_2d_all_pairs(x) 
+        gradient_dict, hessian_dict = self._finite_difference_gradient_hessian_all(x)
+        gradient_list = np.array([np.array(gradient_dict[i]) for i in gradient_dict])
+        hessian_list = np.array([np.array(hessian_dict[i]).reshape((2,2)) for i in gradient_dict])
+
         H = -sum(hessian_list) / float(len(hessian_list))
         J = sum([np.outer(u, u) for u in gradient_list]) / float(len(gradient_list))
         return np.matmul(H, np.linalg.solve(J, H))  # solve(J, H) = J^{-1}H
@@ -820,7 +824,7 @@ if __name__ == '__main__':
     cdna = False
     allow_same_codon = False
     rate_variation = False
-    alignment_file = '../test/YDR418W_YEL054C_input.fasta'
+    #alignment_file = '../test/YDR418W_YEL054C_input.fasta'
     save_file = '../test/save/PSJS_HKY_YDR418W_YEL054C_nonclock_save.txt'
     log_file  = '../test/log/PSJS_HKY_YDR418W_YEL054C_nonclock_log.txt'
     summary_file = '../test/Summary/PSJS_HKY_YDR418W_YEL054C_nonclock_summary.txt'
@@ -855,8 +859,8 @@ if __name__ == '__main__':
     n = 21
     pair_num  = 2
     codon_site_pair = (1,1)
-    print(test._loglikelihood_for_one_pair(x, pair_num, n, codon_site_pair))
-    print(test._loglikelihood_for_one_pair([ 1.38629436, -3.2039728 ], pair_num, n, codon_site_pair))
+    #print(test._loglikelihood_for_one_pair(x, pair_num, n, codon_site_pair))
+    #print(test._loglikelihood_for_one_pair([ 1.38629436, -3.2039728 ], pair_num, n, codon_site_pair))
 
     g, h = test._finite_difference_gradient_hessian_all(x)
     a = test.gradient_and_hessian_2d_all_pairs(x)
