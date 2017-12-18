@@ -15,7 +15,7 @@ import scipy
 import scipy.optimize
 import os
 from Common import *
-import numdifftools as nd
+#import numdifftools as nd
 
 
 class PSJSGeneconv:
@@ -865,7 +865,7 @@ if __name__ == '__main__':
     #print(test._loglikelihood_for_one_pair([ 1.38629436, -3.2039728 ], pair_num, n, codon_site_pair))
 
     g, h = test._finite_difference_gradient_hessian_all(x)
-    a = test.gradient_and_hessian_2d_all_pairs(x)
+    #a = test.gradient_and_hessian_2d_all_pairs(x)
     b = test.get_Godambe_matrix(x)
     
     #df = nd.Gradient(test._loglikelihood_for_one_pair)
