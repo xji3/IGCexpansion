@@ -458,8 +458,10 @@ class PSJSGeneconv:
         return gradient, hessian
                     
                     
-                
-        
+    def get_gradient_hessian(self, x, gradient_file, hessian_file):
+    	gradient, heesian = self._finite_difference_gradient_hessian_all(x)
+    	np.savetxt(open(gradient_file, 'w+'), np.array([gradient[i] for i in gradient]))
+    	np.savetxt(open(hessian_file, 'w+'), np.array([np.array(hessian[i]).reshape((2,2)) for i in hessian]))
         
 
     def _sitewise_loglikelihood_for_all_n(self):
