@@ -461,7 +461,7 @@ class PSJSGeneconv:
     def get_gradient_hessian(self, x, gradient_file, hessian_file):
     	gradient, hessian = self._finite_difference_gradient_hessian_all(x)
     	np.savetxt(open(gradient_file, 'w+'), np.array([gradient[i] for i in gradient]))
-    	np.savetxt(open(hessian_file, 'w+'), np.array([np.array(hessian[i]).reshape((2,2)) for i in hessian]))
+    	np.savetxt(open(hessian_file, 'w+'), np.array([np.array(hessian[i]) for i in hessian]))
         
 
     def _sitewise_loglikelihood_for_all_n(self):
@@ -867,6 +867,10 @@ if __name__ == '__main__':
     g, h = test._finite_difference_gradient_hessian_all(x)
     #a = test.gradient_and_hessian_2d_all_pairs(x)
     b = test.get_Godambe_matrix(x)
+    gradient_file = '../test/PSJS_HKY_rv_YDR418W_YEL054C_nonclock_gradient.txt'
+    hessian_file = '../test/PSJS_HKY_rv_YDR418W_YEL054C_nonclock_hessian.txt'
+    test.get_gradient_hessian(x, gradient_file, hessian_file)
+    
     
     #df = nd.Gradient(test._loglikelihood_for_one_pair)
     #print(df(x, pair_num = 2, n = 21, codon_site_pair= (1, 1)))
