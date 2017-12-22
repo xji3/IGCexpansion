@@ -307,7 +307,7 @@ class JSGeneconv:
         self.update_by_x(x)
         return self._sitewise_loglikelihood()
 
-    def _finite_difference_gradient_hessian_all(self, x, step = 1e-5):
+    def _finite_difference_gradient_hessian_all(self, x, step = 1e-5, display = False):
         assert(len(x) == len(self.x))
         step_x = abs(np.array(x) * step)
         # Now finite difference for gradient
@@ -319,7 +319,9 @@ class JSGeneconv:
             xi[i] -= 2.0*step_x[i]
             f_xi_minus = self._sitewise_objective(xi)
             xi[i] += step_x[i]
-            print('Gradient ' + str(100./len(x)*(i+1)) + '%')
+            if display:
+                print('Gradient ' + str(100./len(x)*(i+1)) + '%')
+            
             if gradient:
                 for j in range(len(gradient)):
                     gradient[j].append((f_xi_plus[j]-f_xi_minus[j])/(2.0*step_x[i]))
@@ -346,13 +348,13 @@ class JSGeneconv:
                     f_x_minus_2i = self._sitewise_objective(xij)
                     xij[i] += 2.0 * step_i
 
-                    hessian_ij = [[(-f_x_plus_2i[kk] + 16.*f_x_plus_i[kk] - 30.0*f_x[kk]\
-                                                                          +16.*f_x_minus_i[kk] - f_x_minus_2i[kk])/(12.*step_i**2)] for kk in range(len(f_x)) ]
+                    hessian_ij = [(-f_x_plus_2i[kk] + 16.*f_x_plus_i[kk] - 30.0*f_x[kk]\
+                                                                          +16.*f_x_minus_i[kk] - f_x_minus_2i[kk])/(12.*step_i**2) for kk in range(len(f_x)) ]
                     if hessian:
                         for k in range(len(hessian)):
                             hessian[k].append(hessian_ij[k])
                     else:
-                        hessian = hessian_ij
+                        hessian = [[hessian] for hessian in hessian_ij]
 
                 else:
                     xij[i] += step_i
@@ -367,15 +369,15 @@ class JSGeneconv:
                     xij[i] -= step_i
                     xij[j] += step_j
 
-                    hessian_ij = [[(-f_x_plus_2i[kk] + 16.*f_x_plus_i[kk] - 30.0*f_x[kk]\
-                                                                          +16.*f_x_minus_i[kk] - f_x_minus_2i[kk])/(12.*step_i**2)] for kk in range(len(f_x)) ]
+                    hessian_ij = [(-f_x_plus_2i[kk] + 16.*f_x_plus_i[kk] - 30.0*f_x[kk]\
+                                                                          +16.*f_x_minus_i[kk] - f_x_minus_2i[kk])/(12.*step_i**2) for kk in range(len(f_x)) ]
                     if hessian:
                         for k in range(len(hessian)):
                             hessian[k].append(hessian_ij[k])
                     else:
-                        hessian = hessian_ij
-
-            print('Hesian ' + str(100./(len(x)**2+0.)*(len(x)*i + j + 1.)) + '%')
+                        hessian = [[hessain] for hessian in hessian_ij]
+            if display:
+                print('Hesian ' + str(100./(len(x)**2+0.)*(len(x)*i + j + 1.)) + '%')
 
         return gradient, hessian
 
@@ -383,14 +385,19 @@ class JSGeneconv:
         np.savetxt(open(gradient_file, 'w+'), np.array(gradient))
         np.savetxt(open(hessian_file, 'w+'), np.array(hessian))
     
-    def get_Godambe_matrix(self, x):
+    def get_Godambe_matrix(self, x, gradient_file = None, hessian_file = None):
         #gradient_list, hessian_list = self.gradient_and_hessian_2d_all_pairs(x) 
-        gradient_list, hessian_list = self._finite_difference_gradient_hessian_all(x)
+        gradient_list, raw_hessian_list = self._finite_difference_gradient_hessian_all(x)
+        if gradient_file is not None and hessian_file is not None:
+            self.save_gradient_hessian(gradient_list, raw_hessian_list, gradient_file, hessian_file)
+
+        hessian_list = np.array([np.array(hessian).reshape((len(x),len(x))) for hessian in raw_hessian_list])
 
         H = -sum(hessian_list) / float(len(hessian_list))
         J = sum([np.outer(u, u) for u in gradient_list]) / float(len(gradient_list))
+
         return np.matmul(H, np.linalg.solve(J, H))  # solve(J, H) = J^{-1}H    
-    
+
 
     def get_sitewise_loglikelihood_summary(self, summary_file):
         ll = self._sitewise_loglikelihood()
@@ -609,7 +616,7 @@ if __name__ == '__main__':
                       node_to_pos, terminal_node_list, save_file, force)
     test.get_mle()
     test.get_individual_summary(summary_file)
-    g, h = test._finite_difference_gradient_hessian_all(test.x)
+    godambe = test.get_Godambe_matrix(test.x)
 
 ##    cdna = True
 ##    allow_same_codon = True
