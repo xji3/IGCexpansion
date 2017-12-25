@@ -15,6 +15,7 @@ import scipy.optimize
 import os
 from Common import *
 from math import floor
+import numdifftools as nd
 
 from TriGeneconv import *
 
@@ -183,6 +184,75 @@ class JSGeneconv:
                 )
             return scene
 
+    def get_scene_for_one_site(self, n):
+        state_space_shape = self.jsmodel.state_space_shape
+        conf_list = count_process(self.tree.node_to_conf)
+        
+        self.tree.get_tree_process(conf_list)
+
+        prior_feasible_states, distn = self.get_prior()
+
+        if self.iid_observations == None:
+            self.cal_iid_observations()
+            
+        if self.jsmodel.rate_variation:
+            codon_site = n%3 + 1
+            scene_list = []
+        
+            process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, codon_site = codon_site)
+            scene = dict(
+                node_count = len(self.tree.node_to_num),
+                process_count = len(process_definitions),
+                state_space_shape = state_space_shape,
+                tree = self.tree.tree_json,
+                root_prior = {'states':prior_feasible_states,
+                              'probabilities':distn},
+                process_definitions = process_definitions,
+                observed_data = {
+                    'nodes':self.observable_nodes,
+                    'variables':self.observable_axes,
+                    'iid_observations':[self.iid_observations[codon_site][n/3]]
+                    } 
+                )
+                
+        else:
+            process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel)
+            scene = dict(
+                node_count = len(self.tree.node_to_num),
+                process_count = len(process_definitions),
+                state_space_shape = state_space_shape,
+                tree = self.tree.tree_json,
+                root_prior = {'states':prior_feasible_states,
+                              'probabilities':distn},
+                process_definitions = process_definitions,
+                observed_data = {
+                    'nodes':self.observable_nodes,
+                    'variables':self.observable_axes,
+                    'iid_observations':[self.iid_observations[n]]
+                    }
+                )
+        return scene        
+
+    def _loglikelihood_for_one_site(self, n):
+        scene = self.get_scene_for_one_site(n)
+        log_likelihood_request = {'property':'snnlogl'}
+        derivatives_request = {'property':'sdnderi'}
+
+        requests = [log_likelihood_request]
+
+        j_in = {
+            'scene' : scene,
+            'requests' : requests
+            }
+        j_out = jsonctmctree.interface.process_json_in(j_in)
+
+        status = j_out['status']
+    
+        ll = j_out['responses'][0]
+        self.ll = ll
+
+        return ll
+
     def cal_iid_observations(self):
         if self.iid_observations == None:
             if self.data.cdna:
@@ -307,6 +377,35 @@ class JSGeneconv:
         self.update_by_x(x)
         return self._sitewise_loglikelihood()
 
+    def _objective_for_one_site(self, x, n):
+        self.update_by_x(x)
+        return self._loglikelihood_for_one_site(n)
+
+    def gradient_and_hessian(self, x):
+        assert(len(x) == len(self.x))
+
+        gradient_list = []
+        hessian_list = []
+
+        df = nd.Gradient(self._objective_for_one_site)
+        ddf = nd.Hessian(self._objective_for_one_site)
+
+        num_visited_pairs = 0
+        inc = 0.005
+        for n in range(self.data.nsites):
+                
+            gradient = df(x, n = n)
+            hessian = ddf(x, n = n)
+            gradient_list.append(gradient)
+            hessian_list.append(hessian)
+            print(gradient, hessian)
+            num_visited_pairs += 1
+            if (num_visited_pairs + 0.0)/(self.data.nsites + 0.0) > inc:
+                print(str(inc*100.0) + '%')
+                inc += 0.05        
+
+        return gradient_list, hessian_list
+
     def _finite_difference_gradient_hessian_all(self, x, step = 1e-5, display = False):
         assert(len(x) == len(self.x))
         step_x = abs(np.array(x) * step)
@@ -337,7 +436,7 @@ class JSGeneconv:
 
                 xij = deepcopy(x)
                 if i == j:
-                    f_x = self._sitewise_objective(x)
+                    f_x = self._sitewise_objective(xij)
                     xij[i] += 2.0*step_i
                     f_x_plus_2i = self._sitewise_objective(xij)
                     xij[i] -= step_i
@@ -369,8 +468,7 @@ class JSGeneconv:
                     xij[i] -= step_i
                     xij[j] += step_j
 
-                    hessian_ij = [(-f_x_plus_2i[kk] + 16.*f_x_plus_i[kk] - 30.0*f_x[kk]\
-                                                                          +16.*f_x_minus_i[kk] - f_x_minus_2i[kk])/(12.*step_i**2) for kk in range(len(f_x)) ]
+                    hessian_ij = [(f_x_p_i_p_j[kk] - f_x_p_i_m_j[kk] - f_x_m_i_p_j[kk] + f_x_m_i_m_j[kk]) / (4.0 * step_i * step_j) for kk in range(len(f_x_p_i_p_j))]
                     if hessian:
                         for k in range(len(hessian)):
                             hessian[k].append(hessian_ij[k])
@@ -385,9 +483,9 @@ class JSGeneconv:
         np.savetxt(open(gradient_file, 'w+'), np.array(gradient))
         np.savetxt(open(hessian_file, 'w+'), np.array(hessian))
     
-    def get_Godambe_matrix(self, x, gradient_file = None, hessian_file = None):
+    def get_Godambe_matrix(self, x, gradient_file = None, hessian_file = None, step = 1e-5):
         #gradient_list, hessian_list = self.gradient_and_hessian_2d_all_pairs(x) 
-        gradient_list, raw_hessian_list = self._finite_difference_gradient_hessian_all(x)
+        gradient_list, raw_hessian_list = self._finite_difference_gradient_hessian_all(x, step)
         if gradient_file is not None and hessian_file is not None:
             self.save_gradient_hessian(gradient_list, raw_hessian_list, gradient_file, hessian_file)
 
@@ -614,9 +712,11 @@ if __name__ == '__main__':
     force = None
     test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, force)
-    test.get_mle()
-    test.get_individual_summary(summary_file)
-    godambe = test.get_Godambe_matrix(test.x)
+    #test.get_mle()
+    #test.get_individual_summary(summary_file)
+    #godambe = test.get_Godambe_matrix(test.x)
+
+    g, h = test.gradient_and_hessian(test.x)
 
 ##    cdna = True
 ##    allow_same_codon = True
