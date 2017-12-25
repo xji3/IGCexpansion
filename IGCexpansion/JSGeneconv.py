@@ -15,7 +15,7 @@ import scipy.optimize
 import os
 from Common import *
 from math import floor
-import numdifftools as nd
+#import numdifftools as nd
 
 from TriGeneconv import *
 
