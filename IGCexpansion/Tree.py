@@ -92,7 +92,8 @@ class Tree:
         self.edge_to_blen = edge_to_blen
 
         # Now sort all nodes according to the degree where degree is as defined in graph theory
-        all_nodes = sorted(T.degree().items(), key = lambda node: node[1])
+        #all_nodes = sorted(T.degree().items(), key = lambda node: node[1])
+        all_nodes = sorted(T.degree().items())
         self.node_to_num = {n[0]:i for i, n in enumerate(all_nodes)}
         self.num_to_node = {i:n[0] for i, n in enumerate(all_nodes)}
         edge_list = sorted(edge_to_blen.keys())

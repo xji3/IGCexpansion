@@ -712,11 +712,11 @@ if __name__ == '__main__':
     force = None
     test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, force)
-    #test.get_mle()
-    #test.get_individual_summary(summary_file)
+    test.get_mle()
+    test.get_individual_summary(summary_file)
     #godambe = test.get_Godambe_matrix(test.x)
 
-    g, h = test.gradient_and_hessian(test.x)
+    #g, h = test.gradient_and_hessian(test.x)
 
 ##    cdna = True
 ##    allow_same_codon = True

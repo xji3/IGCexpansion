@@ -33,7 +33,8 @@ def get_iid_observations(data, tree, nsites, data_type = 'nt'):
                 name_node_axes.append(['distinct', tree.node_to_num[terminal_node], pos])
             visited_terminal_nodes.append(terminal_node)
         
-    name_node_axes = sorted(name_node_axes, key = lambda name:name[1]) # sort by terminal_node
+    #name_node_axes = sorted(name_node_axes, key = lambda name:name[1]) # sort by terminal_node
+    name_node_axes = sorted(name_node_axes) 
     observable_nodes = [item[1] for item in name_node_axes]
     observable_axes  = [item[2] for item in name_node_axes]
     observed_names   = [item[0] for item in name_node_axes]
