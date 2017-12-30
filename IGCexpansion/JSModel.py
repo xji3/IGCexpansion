@@ -259,6 +259,37 @@ class JSModel:
                         if self.is_transition_compatible([state_from, state_to], configuration):
                             yield state_from, state_to, self.cal_js_directional_transition_proportion([state_from, state_to], configuration, orlg_pair, codon_site)
 
+    def get_js_mutation_reduction(self, configuration, codon_site):
+        ortho_group_to_pos = divide_configuration(configuration)
+        for state_from in itertools.product(range(self.state_space_shape[0]), repeat = self.n_js):
+            for orlg in ortho_group_to_pos['extent']:
+                state_to = list(deepcopy(state_from))
+                for nt in range(self.state_space_shape[ortho_group_to_pos['extent'][orlg][0]]):
+                    for pos in ortho_group_to_pos['extent'][orlg]:
+                        state_to[pos] = nt                            
+                        if self.is_transition_compatible([state_from, state_to], configuration):
+                            IGC_rate = self.cal_js_transition_rate([state_from, state_to], configuration, codon_site, False)
+                            IGC_proportion = self.cal_js_transition_rate([state_from, state_to], configuration, codon_site, True)
+                            if IGC_rate > 0.0:
+                                mut_red = 1.0 - IGC_proportion
+                            else:
+                                mut_red = 0.0
+                            yield state_from, state_to, mut_red      
+
+    def get_mutation_reduction_definition(self, configuration, codon_site = 1):
+        row_states = []
+        column_states = []
+        transition_rates = []
+        for row_state, col_state, mut_red in self.get_js_mutation_reduction(configuration, codon_site):
+            row_states.append(deepcopy(row_state))
+            column_states.append(deepcopy(col_state))
+            transition_rates.append(mut_red)
+
+        process_definition = dict(
+            row_states = row_states,
+            column_states = column_states,
+            weights = transition_rates)
+        return process_definition       
 
     def get_process_definition(self, configuration, proportion = False, codon_site = 1):
         row_states = []

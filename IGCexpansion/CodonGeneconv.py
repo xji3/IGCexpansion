@@ -1248,6 +1248,22 @@ class ReCodonGeneconv:
                     col_states.append((sb, sb))
                     Qb = Qbasic[sa, sb]
                     proportions.append(Qb / (Qb + self.tau))
+                else:
+                    for nc in 'ACGT':
+                        if nc == na:
+                            continue
+                        sc = self.nt_to_state[nc]
+
+                        Qb = Qbasic[sa, sc]
+                        if Qb != 0.0:
+                            row_states.append((sa, sb))
+                            col_states.append((sa, sc))
+                            proportions.append(1.0)
+
+                            row_states.append((sa, sb))
+                            col_states.append((sc, sa))
+                            proportions.append(1.0)                           
+
                      
         return [{'row_states' : row_states, 'column_states' : col_states, 'weights' : proportions}]
 
@@ -1590,11 +1606,18 @@ if __name__ == '__main__':
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
 
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/', save_name = save_name)
-    #test.get_mle()
+    test.get_mle()
     test._loglikelihood2()
     #scene = test.get_scene()
     #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
+    test.update_by_x([-0.71465929, -0.5553989 , -0.6880269 ,  0.74694613,  
+        0.59096749, -2.64431859, -2.2659562 , -4.72944312, 
+        -2.96593134, -4.51067893,-3.50431105, -5.3839866 , -5.290299  ])
+    test.get_ExpectedNumGeneconv()
+    summary, label = test.get_summary(True)
+    for i, ss in enumerate(summary):
+        print(label[i], ss)
     #print (test._loglikelihood2())
     #test.get_mle(True, True, 0, 'BFGS')
     #s1 = test.get_scene()

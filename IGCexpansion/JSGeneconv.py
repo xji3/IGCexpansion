@@ -268,16 +268,56 @@ class JSGeneconv:
 
         
     def get_expectedNumGeneconv(self, display = False):
-        process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
-        requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-        scene = self.get_scene()
-        j_in = {'scene' : scene,
-                'requests':requests}
-        j_out = jsonctmctree.interface.process_json_in(j_in)
+		scene = self.get_scene()
+		if self.jsmodel.rate_variation:
+			ExpectedGeneconv_list = []
+			for codon_site_iter, codon_site_scene in enumerate(scene):
+				codon_site = codon_site_iter + 1
+				process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True, codon_site = codon_site)
+				requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+				j_in = {'scene' : codon_site_scene,
+				        'requests':requests}
+				j_out = jsonctmctree.interface.process_json_in(j_in)
+				status = j_out['status']
+				codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+				ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
+			self.ExpectedGeneconv = {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
 
-        status = j_out['status']
-        self.ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+		else:
+			process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
+			requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+			j_in = {'scene' : scene,
+			        'requests':requests}
+			j_out = jsonctmctree.interface.process_json_in(j_in)
 
+			status = j_out['status']
+			self.ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+
+    def get_expectedMutationNum(self, display = False):
+		scene = self.get_scene()
+		if self.jsmodel.rate_variation:
+			ExpectedGeneconv_list = []
+			for codon_site_iter, codon_site_scene in enumerate(scene):
+				codon_site = codon_site_iter + 1
+				process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel, codon_site = codon_site)
+				requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+				j_in = {'scene' : codon_site_scene,
+				        'requests':requests}
+				j_out = jsonctmctree.interface.process_json_in(j_in)
+				status = j_out['status']
+				codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+				ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
+			return {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
+
+		else:
+			process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel)
+			requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+			j_in = {'scene' : scene,
+			        'requests':requests}
+			j_out = jsonctmctree.interface.process_json_in(j_in)
+
+			status = j_out['status']
+			return {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
 
         
     def get_pairDirectionalExpectedNumGeneconv(self, orlg_pair, display = False):
@@ -646,10 +686,15 @@ class JSGeneconv:
             summary_mat.append(self.tree.edge_to_blen[edge])
             label.append('__'.join(edge))
 
-        if not self.ExpectedGeneconv == None:
+        if not self.ExpectedGeneconv is None:
             for edge in self.tree.edge_list:
                 label.append('__'.join(edge) + '__numIGC')
                 summary_mat.append(self.ExpectedGeneconv[edge])
+
+            ExpectedPointMutation = self.get_expectedMutationNum()
+            for edge in self.tree.edge_list:
+            	label.append('__'.join(edge) + '__numMut')
+            	summary_mat.append(ExpectedPointMutation[edge])
 
         return summary_mat, label
 
@@ -709,10 +754,25 @@ if __name__ == '__main__':
     save_file = '../test/save/JS_HKY_rv_EDN_ECP_nonclock_save.txt'
     summary_file = '../test/Summary/JS_HKY_rv_EDN_ECP_nonclock_summary.txt'
     x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8, 9.0,  0.3])
+
+    # rate_variation = False
+    # save_file = '../test/save/JS_HKY_EDN_ECP_nonclock_save.txt'
+    # summary_file = '../test/Summary/JS_HKY_EDN_ECP_nonclock_summary.txt'
+    # x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8])
+    
     force = None
     test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, force)
+    self = test
     test.get_mle()
+    # test.update_by_x([-0.71465929, -0.5553989 , -0.6880269 ,  0.74694613,  
+    #     0.59096749, -2.2659562 , -2.64431859, -2.96593134, -4.72944312, 
+    #      -4.51067893,-3.50431105, -5.3839866 , -5.290299  ])
+    test.get_expectedNumGeneconv()
+    b = test.get_expectedMutationNum()
+    summary, label = test.get_summary()
+    for i, ss in enumerate(summary):
+        print(label[i], ss)
     test.get_individual_summary(summary_file)
     #godambe = test.get_Godambe_matrix(test.x)
 

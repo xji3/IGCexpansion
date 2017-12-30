@@ -178,6 +178,16 @@ def get_process_definitions(tree, jsmodel, proportions = False, codon_site = 1):
         process_definitions.append(process)
     return process_definitions, conf_list
 
+def get_mutation_reduction_definitions(tree, jsmodel, codon_site = 1):
+    assert(isinstance(tree, Tree) and isinstance(jsmodel, JSModel))
+    conf_list = count_process(tree.node_to_conf)
+    process_definitions = []
+    for conf in conf_list:
+        #print conf
+        process = jsmodel.get_mutation_reduction_definition(conf, codon_site)
+        process_definitions.append(process)
+    return process_definitions, conf_list
+
 def get_directional_process_definitions(tree, jsmodel, orlg_pair):
     assert(isinstance(tree, Tree) and isinstance(jsmodel, JSModel))
     conf_list = count_process(tree.node_to_conf)
