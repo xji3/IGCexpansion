@@ -351,7 +351,9 @@ class JSModel:
 
         return Q_sparse
         
-
+    def __str__(self): # overide for print function
+        return  self.PMModel.__str__() + '\n' + \
+                self.IGCModel.__str__() + '\n'
 
 if __name__ == '__main__':
     pm_model = 'HKY'

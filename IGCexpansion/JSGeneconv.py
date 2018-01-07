@@ -63,6 +63,8 @@ class JSGeneconv:
         self.observable_nodes = None
         self.observable_axes  = None
 
+        self.is_mle           = False
+
         assert(self.self_check())
         
     def update_by_x(self, x):
@@ -660,6 +662,8 @@ class JSGeneconv:
 
         self.save_x()
         print(result)
+        if result['success']:
+            self.is_mle = True
         return result
 
     def save_x(self):
@@ -705,7 +709,9 @@ class JSGeneconv:
 
         np.savetxt(open(summary_file, 'w+'), summary.T, delimiter = ' ', footer = footer)
                     
-        
+    def __str__(self): # overide for print function
+        return  'Is MLE : ' + str(self.is_mle) + '\n\n' + \
+                self.jsmodel.__str__() + '\n'
 
 
 if __name__ == '__main__':
