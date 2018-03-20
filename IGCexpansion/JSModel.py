@@ -144,7 +144,7 @@ class JSModel:
         return indicator
 
     def is_state(self, state):
-        return all([-1 < state[i] < self.state_space_shape[i] for i in range(n_js)]) and len(state) == self.n_js    
+        return all([-1 < state[i] < self.state_space_shape[i] for i in range(self.n_js)]) and len(state) == self.n_js    
 
     def is_transition_compatible(self, transition, configuration):
         assert(len(transition) == 2) # transition should contain two states
