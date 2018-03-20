@@ -13,7 +13,7 @@ To uninstall:
 pip uninstall IGCexpansion
 `
 
-#####Dependence
+##### Dependence
 
 The code broke with the newest networkx package update that produce following error:
 
