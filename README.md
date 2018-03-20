@@ -14,6 +14,7 @@ pip uninstall IGCexpansion
 `
 
 #####Dependence
+
 The code broke with the newest networkx package update that produce following error:
 
 AttributeError: 'DiDegreeView' object has no attribute 'items'
