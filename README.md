@@ -19,7 +19,7 @@ The code broke with the newest networkx package update that produce following er
 
 AttributeError: 'DiDegreeView' object has no attribute 'items'
 
-This should be fixed now. If you are still seeing it, try:
+Unfortunately, the likelihood package also depends on networkx such that reverting back to an older version is necessary before modifying it which probably will never happen...
 
 `
 pip install --user networkx==1.11 --upgrade
