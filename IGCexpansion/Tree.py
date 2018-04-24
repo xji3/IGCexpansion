@@ -140,7 +140,7 @@ class Tree:
 
 
             
-                    
+
     def add_node(self, father_node_name, child_node_name, add_node):
         child_clade = self.find_clade(child_node_name)
 
@@ -743,3 +743,13 @@ if __name__ == '__main__':
 ##    for node in test.node_to_conf:
 ##        print node, test.node_to_conf[node]
 
+########################################
+###########  No outgroup tree
+########################################
+
+    tree_newick = '../test/NoOutGroupTree.newick'
+    DupLosList = '../test/NoOutGroupDupLost.txt'
+    terminal_node_list = ['castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
+    node_to_pos = {'D1': 0}
+    test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
+    print test
