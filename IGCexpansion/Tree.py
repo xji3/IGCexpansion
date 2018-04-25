@@ -749,7 +749,7 @@ if __name__ == '__main__':
 
     tree_newick = '../test/NoOutGroupTree.newick'
     DupLosList = '../test/NoOutGroupDupLost.txt'
-    terminal_node_list = ['castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
-    node_to_pos = {'D1': 0}
+    terminal_node_list = ['LmjF', 'LinJ', 'LtaP']
+    node_to_pos = {'D1': 0, 'D2':0, 'D3':0, 'D4':0}
     test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
     print test

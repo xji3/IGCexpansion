@@ -598,7 +598,7 @@ class JSGeneconv:
             print ('log likelihood = ', ll)
             print ('Edge derivatives = ', x_rate_derivs)
             print ('other derivatives:', other_derivs)
-            print ('Current exp x array = ', np.exp(self.x))
+            # print ('Current exp x array = ', np.exp(self.x))
             print ('PM parameters = ' + ' '.join([i + ':' + str(self.jsmodel.PMModel.parameters[i]) for i in self.jsmodel.PMModel.parameter_list]))
             print ('IGC parameters = ' + ' '.join([i + ':' + str(self.jsmodel.IGCModel.parameters[i]) for i in self.jsmodel.IGCModel.parameter_list]))
             print ('Edge lengths = ', self.tree.edge_to_blen)
