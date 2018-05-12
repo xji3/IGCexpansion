@@ -148,7 +148,7 @@ class Simulator:
             assert(len(seq_index) %3 == 0) 
             
         self.seq_index = seq_index
-        assert(self.seq_index[0][0] == 1) # position start from 1
+        # assert(self.seq_index[0][0] == 1) # position start from 1
         self.nsites = self.seq_index[-1][0] # simulate the total overspan of the sequence
 
     def sim_root(self):
