@@ -45,7 +45,8 @@ class Simulator:
         # Since my operation on the alignment is to remove codon columns that contain gaps,
         # the seq_index uses codon for unit when it's cdna
         self.seq_index_file = seq_index_file # seq_index file location
-        self.seq_index = None                # store sequence index information
+        self.seq_index      = None           # store sequence index information
+        self.pos_to_index   = None           # store the mapping between simulation seq position and the index file to count for introns
         
         self.nsites    = None                # number of nucleotide to simulate, must agree with the overall span of seq_index
         self.cdna      = cdna
@@ -145,10 +146,22 @@ class Simulator:
             seq_index[:, 1:] = -1
         else:
             # if it is protein coding sequence, then the length must be divisible by 3
-            assert(seq_index[-1][0] %3 == 0 and len(seq_index) %3 == 0)
+            assert(len(seq_index) %3 == 0)  # allow intron with any length
+
+        sim_pos = 0
+        pos_to_index = {}
+        for i in range(len(seq_index)):
+            while sim_pos + 1 < seq_index[i][0]:
+                #print i, sim_pos, seq_index[i][0]
+                pos_to_index[sim_pos] = (-1, -1)
+                sim_pos += 1
+
+            pos_to_index[sim_pos] = (seq_index[i][0], seq_index[i][2]) # store (alignment_position, codon_position)
+            sim_pos += 1
             
+        self.pos_to_index = pos_to_index
         self.seq_index = seq_index
-        assert(self.seq_index[0][0] == 1) # position start from 1
+        # allow position to start anywhere # assert(self.seq_index[0][0] == 1)
         self.nsites = self.seq_index[-1][0] # simulate the total overspan of the sequence
 
     def sim_root(self):
@@ -348,9 +361,9 @@ class Simulator:
             seq_rate = [PM_diag_rates[states.index(translated_seq[orlg][i])] for i in range(len(translated_seq[orlg]))]
             if self.PMModel.rate_variation:
                 assert(self.PMModel.data_type == 'nt')
-                for i in range(len(seq_rate) / 3):
-                    seq_rate[3 * i + 1] = seq_rate[3 * i + 1] * self.PMModel.parameters['r2']
-                    seq_rate[3 * i + 2] = seq_rate[3 * i + 2] * self.PMModel.parameters['r3']
+                for i in range(len(translated_seq[orlg])):
+                    if self.pos_to_index[i][1] in [2, 3]:
+                        seq_rate[i] = seq_rate[i] * self.PMModel.parameters['r' + str(self.pos_to_index[i][1])]
             seq_rate_dict[orlg] = seq_rate
             poisson_rate_sum += sum(seq_rate)
         return seq_rate_dict, poisson_rate_sum
