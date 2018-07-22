@@ -226,11 +226,13 @@ class Simulator:
             Total_IGC_init_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = np.floating)
             for i in range(len(ordered_orlg)):
                 for j in range(len(ordered_orlg)):
+                    if i == j:
+                        continue
+
                     branch_IGC_init_Q[i, j] = self.IGCModel.Q_init[ordered_orlg[i], ordered_orlg[j]]
                     branch_IGC_tract_Q[i, j] = self.IGCModel.Q_tract[ordered_orlg[i], ordered_orlg[j]]
-                    if i != j:
-                        if branch_IGC_tract_Q[i, j] != 0:
-                            Total_IGC_init_Q[i, j] = branch_IGC_init_Q[i, j] * (self.nsites - 1 + 1.0 / branch_IGC_tract_Q[i, j])
+                    if branch_IGC_tract_Q[i, j] != 0:
+                        Total_IGC_init_Q[i, j] = branch_IGC_init_Q[i, j] * (self.nsites - 1 + 1.0 / branch_IGC_tract_Q[i, j])
                     
             IGC_init_rate_diag = branch_IGC_init_Q.sum(axis = 1) # row sum
             Total_IGC_init_rate = Total_IGC_init_Q.sum()
