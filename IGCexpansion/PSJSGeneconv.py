@@ -673,8 +673,6 @@ class PSJSGeneconv:
         x_js[-2] = new_x_IGC[-2]
         return self.objective_wo_gradient(display, np.concatenate((x_js, x_rate)))
 
-        
-      
 
     def optimize_x_IGC(self, display = True, dimension = 1, method = 'L-BFGS-B'):
         if dimension == 1:
