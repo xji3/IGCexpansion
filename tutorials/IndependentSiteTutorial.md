@@ -40,10 +40,16 @@ This text file provides the duplication / loss events on each branch of the spec
 Each row starts with the branch name that consists the two node names with an underscore in between. 
 Following the branch name are all the events (both duplication and loss) on this branch by their chronological order and are separated by spaces.
 A duplication event is named with "D" + "duplication event number".
-A loss event is named with "L" + "loss event number". Therefore, this file defines the orthologous group (described in [gene\_to\_orlg\_file section](#gene_to_orlg)) on this tree
+A loss event is named with "L" + "loss event number". Therefore, this file defines the orthologous group (described in [gene\_to\_orlg\_file section](#gene_to_orlg)) on this tree.  
+
+The branches in this file are parsed by a strange order defined by the `terminal\_node\_list`.  For each terminal node in the list, the duplication/loss event parser travels from the root node to this terminal node and parses the duplication/loss events on un-visited branches.  For each event on the branch, the parser represents it by creating a new degree 2 node on the branch (which violates the newick format).
 
 Please use this [example DupLosList file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_DupLost.txt) as a reference.
+
 ##### <a name='gene_to_orlg'>gene\_to\_orlg\_file</a>
+
+Please use this [example gene\_to\_orlg file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_GeneToOrlg.txt) as a reference.
+
 ##### <a name='seq_index'>seq\_index\_file</a>
 
 
