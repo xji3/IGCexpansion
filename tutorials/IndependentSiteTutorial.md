@@ -18,9 +18,21 @@ This section describes the input files and their supposed format for running the
 
 ##### <a name='alignment'>alignment file</a>
 The alignment file is in fasta format.
+
 However, the name of the gene follows a rather weird rule:
-it is combined by the species name and gene name with a double underscore **"\__"** connecting them. For example, **Human** **EDN** gene would be denoted as **"Human\__EDN"** this way.  The double score is used to allow species / gene names to have single scores. For example, a **Tree\_Shrew** **EDN** gene would be **Tree\_Shrew__EDN**
+it is combined by the species name and gene name with a double underscore **"\__"** connecting them. For example, **Human** **EDN** gene would be denoted as **"Human\__EDN"** this way.  The double score is used to allow species / gene names to have single scores. For example, a **Tree\_Shrew** **EDN** gene would be **Tree\_Shrew__EDN**.  
+
+Please use this [example alignment file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_Cleaned_NewFormat.fasta) as a reference.
+
+
 ##### <a name='newick'>newick tree</a>
+
+The tree file describes the species tree in newick format.
+
+However, unlike usual newick files, all internal nodes have to be named in this tree file for later uses to define the duplication loss history along this species tree (to point events to the right branch). A convention I have been using is to name them by "N" + number, e.g. N0, N1... I usually start the numbering from the root to the tip.
+
+Please use this [example tree file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_tree.newick) as a reference.
+
 ##### <a name='DupLosList'>DupLosList</a>
 ##### <a name='gene_to_orlg'>gene_to_orlg_file</a>
 ##### <a name='seq_index'>seq_index_file</a>
