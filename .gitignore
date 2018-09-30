@@ -1,3 +1,8 @@
+# ignore save/ summary/ log/ folders in tutorial
+tutorials/IS_IGC/save/
+tutorials/IS_IGC/summary/
+tutorials/IS_IGC/log/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
