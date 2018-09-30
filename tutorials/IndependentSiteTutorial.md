@@ -34,7 +34,16 @@ However, unlike usual newick files, all internal nodes have to be named in this 
 Please use this [example tree file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_tree.newick) as a reference.
 
 ##### <a name='DupLosList'>DupLosList</a>
-##### <a name='gene_to_orlg'>gene_to_orlg_file</a>
-##### <a name='seq_index'>seq_index_file</a>
+
+This text file provides the duplication / loss events on each branch of the species tree.  
+
+Each row starts with the branch name that consists the two node names with an underscore in between. 
+Following the branch name are all the events (both duplication and loss) on this branch by their chronological order and are separated by spaces.
+A duplication event is named with "D" + "duplication event number".
+A loss event is named with "L" + "loss event number". Therefore, this file defines the orthologous group (described in [gene\_to\_orlg\_file section](#gene_to_orlg)) on this tree
+
+Please use this [example DupLosList file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_DupLost.txt) as a reference.
+##### <a name='gene_to_orlg'>gene\_to\_orlg\_file</a>
+##### <a name='seq_index'>seq\_index\_file</a>
 
 
