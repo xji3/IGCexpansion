@@ -3,10 +3,10 @@ The first version assumes one single duplication event without loss which the se
 
 ## New version
 
-I'll start with how to use the new version.  For independent site IGC model (IS-IGC), please refer to the [IS-IGC folder](/IS_IGC) for example input files with a python script that imports the package and runs the analysis.
+I'll start with how to use the new version.  For independent site IGC model (IS-IGC), please refer to the [IS-IGC folder](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC) for example input files with a python script that imports the package and runs the analysis.
 
 #### Input Files
-This section describes the input files and their supposed format for running the analysis.The table below summarizes all input files (as the variable name in the [script](/IS_IGC/Run_IS_IGC.py)) followed with their more detailed description.
+This section describes the input files and their supposed format for running the analysis.The table below summarizes all input files (as the variable name in the [script](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/Run_IS_IGC.py)) followed with their more detailed description.
 
 | File | Description |
 |-------------|:-------|
