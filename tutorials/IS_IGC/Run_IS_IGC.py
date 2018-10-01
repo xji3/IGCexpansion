@@ -4,6 +4,8 @@ import argparse, os
 import numpy as np
 
 def check_folder(folder_name):
+    # if the folder doesn't exist, 
+    # this function creats it by assuming the outer folder exists (potential bug...)
     if not os.path.isdir(folder_name):
         os.mkdir(folder_name)
 
@@ -20,10 +22,10 @@ if __name__ == '__main__':
     paralog = [paralog1, paralog2]
     rate_variation = True
 
-    gene_to_orlg_file = './' + '_'.join(paralog) + '_GeneToOrlg.txt'
     alignment_file =  './' + '_'.join(paralog) + '_Cleaned_NewFormat.fasta'
     newicktree = './' + '_'.join(paralog) + '_tree.newick'
     DupLosList = './' + '_'.join(paralog) + '_DupLost.txt'
+    gene_to_orlg_file = './' + '_'.join(paralog) + '_GeneToOrlg.txt'
     Force = None
     terminal_node_list = ['Tamarin', 'Macaque', 'Orangutan', 'Gorilla', 'Chimpanzee']
     # terminal_node_list = read_terminal_nodes(args.terminal_node_file)
@@ -31,9 +33,9 @@ if __name__ == '__main__':
     seq_index_file = './' + '_'.join(paralog) + '_seq_index.txt'
 
 
-###### Now get HKY+PSJS-IGC estimates
+###### Now get HKY+JS-IGC estimates
     IGC_pm = 'One rate'
-    pm_model = 'HKY'
+    pm_model = 'MG94'
     log_folder = './log'
     check_folder(log_folder)
     save_folder = './save'
