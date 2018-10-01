@@ -42,14 +42,37 @@ Following the branch name are all the events (both duplication and loss) on this
 A duplication event is named with "D" + "duplication event number".
 A loss event is named with "L" + "loss event number". Therefore, this file defines the orthologous group (described in [gene\_to\_orlg\_file section](#gene_to_orlg)) on this tree.  
 
-The branches in this file are parsed by a strange order defined by the `terminal\_node\_list`.  For each terminal node in the list, the duplication/loss event parser travels from the root node to this terminal node and parses the duplication/loss events on un-visited branches.  For each event on the branch, the parser represents it by creating a new degree 2 node on the branch (which violates the newick format).
+The branches in this file are parsed by a strange order defined by the `terminal_node_list`.  For each terminal node in the list, the duplication/loss event parser travels from the root node to this terminal node and parses the duplication/loss events on un-visited branches.  For each event on the branch, the parser represents it by creating a new degree 2 node on the branch (which violates the newick format).
+
+Orthologous groups (Orlg) are defined while parsing the duplication loss history on the species tree. I assume the Orlg always starts with one gene (multigene family of size one) with the max Orlg number N=1. As a convention of the python language, the numbering of Orlg starts from 0.  The `node_to_pos` dictionary defines the Orlg on the node that the specified event takes place.  For example, `D1:0` means that the first duplication event takes place at the first Orlg on this node.  When a duplication event happens, it produces two new Orlgs (N and N+1) and the max Orlg number N increments by 2 (N += 2).  
+
+<img src="Orlg_D1.png" alt="Orlg_D1" width="200"/>
+
+This Orlg configuration on each node (including internal speciation, duplication and loss nodes) gives the exact one-to-one orthologous mapping between genes.  A more complicated example considers the next duplication event when N=3.  Now there are two possible places (genes) where the duplication event can happen: Orlg1 and Orlg2.  When the duplication event happens at Orlg1 `D2:0`, the new configuration is [Orlg3, Orlg4, Orlg2] with N = 5.
+
+<img src="Orlg_D2_0.png" alt="Orlg_D2_0" width="200"/>
+
+When the duplication event happens at Orlg2 `D2:1`, the new configuration is [Orlg1, Orlg3, Orlg4] with N = 5.
+
+<img src="Orlg_D2_1.png" alt="Orlg_D2_0" width="200"/>
+
+Unlike duplication events that produce new Orlgs, the deletion events only flag Orlgs to be missing (in other words delete the Orlg on that branch).
+
+The last kind of internal nodes on the tree represents speciation events.  For the speciation nodes, the configuration is copied from its parent node and is passed onto its descendant nodes.
+
 
 Please use this [example DupLosList file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_DupLost.txt) as a reference.
 
 ##### <a name='gene_to_orlg'>gene\_to\_orlg\_file</a>
 
+This is probably the weirdest input of the current version.
+It is partly redundant with the DupLosList.  
+The Orlg configuration of the tip nodes are the same as their parent nodes.  This gene\_to\_orlg file gives the mapping between extant paralogs to their Orlgs.  The configuration of each species has to match that on the species tree defined by the DupLosList (this is redundant but I kept it for sanity checks).
+
 Please use this [example gene\_to\_orlg file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_GeneToOrlg.txt) as a reference.
 
 ##### <a name='seq_index'>seq\_index\_file</a>
+
+
 
 
