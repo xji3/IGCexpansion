@@ -46,15 +46,15 @@ The branches in this file are parsed by a strange order defined by the `terminal
 
 Orthologous groups (Orlg) are defined while parsing the duplication loss history on the species tree. I assume the Orlg always starts with one gene (multigene family of size one) with the max Orlg number N=1. As a convention of the python language, the numbering of Orlg starts from 0.  The `node_to_pos` dictionary defines the Orlg on the node that the specified event takes place.  For example, `D1:0` means that the first duplication event takes place at the first Orlg on this node.  When a duplication event happens, it produces two new Orlgs (N and N+1) and the max Orlg number N increments by 2 (N += 2).  
 
-<img src="Orlg_D1.png" alt="Orlg_D1" width="200"/>
+<img src="Orlg_D1.png" alt="Orlg_D1" width="400"/>
 
 This Orlg configuration on each node (including internal speciation, duplication and loss nodes) gives the exact one-to-one orthologous mapping between genes.  A more complicated example considers the next duplication event when N=3.  Now there are two possible places (genes) where the duplication event can happen: Orlg1 and Orlg2.  When the duplication event happens at Orlg1 `D2:0`, the new configuration is [Orlg3, Orlg4, Orlg2] with N = 5.
 
-<img src="Orlg_D2_0.png" alt="Orlg_D2_0" width="200"/>
+<img src="Orlg_D2_0.png" alt="Orlg_D2_0" width="400"/>
 
 When the duplication event happens at Orlg2 `D2:1`, the new configuration is [Orlg1, Orlg3, Orlg4] with N = 5.
 
-<img src="Orlg_D2_1.png" alt="Orlg_D2_0" width="200"/>
+<img src="Orlg_D2_1.png" alt="Orlg_D2_0" width="400"/>
 
 Unlike duplication events that produce new Orlgs, the deletion events only flag Orlgs to be missing (in other words delete the Orlg on that branch).
 
