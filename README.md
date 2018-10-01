@@ -44,7 +44,7 @@ Python 2.7
 	` _(hard to uninstall)_  
 
 
-3, Similarly install any other python packages
+3. Similarly install any other python packages
 	
 	`
 	pip install --user networkx==1.11 --upgrade
@@ -55,7 +55,7 @@ Python 2.7
 	`
 
 
-4, edit `tutorials/IS_IGC/Run_IS_IGC.py` to perform analyses.
+4. edit `tutorials/IS_IGC/Run_IS_IGC.py` to perform analyses.
 
 
 To uninstall:
