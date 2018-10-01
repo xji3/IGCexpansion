@@ -60,9 +60,7 @@ Python 2.7
 
 To uninstall:
 	
-	`
 	pip uninstall IGCexpansion
-	`
 
 
 ##### Tutorials
