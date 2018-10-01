@@ -73,6 +73,10 @@ Please use this [example gene\_to\_orlg file](https://github.com/xji3/IGCexpansi
 
 ##### <a name='seq_index'>seq\_index\_file</a>
 
+This file tells the program where each column in the multiple sequence alignment is on the reference gene sequence (we don't need to worry for this if there were no indels). The current approach is pretty crude that assumes there are no gaps on the reference sequence...
 
+Anyway, the first column of the seq_index file represents the corresponding sequence position on the reference gene.  For protein coding genes, the second column shows the codon number and the third column shows the codon position.
+
+Please use this [example seq\_index file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_seq_index.txt) as a reference.
 
 
