@@ -1,7 +1,10 @@
 # ignore save/ summary/ log/ folders in tutorial
-tutorials/IS_IGC/save/
-tutorials/IS_IGC/summary/
-tutorials/IS_IGC/log/
+tutorials/IS_IGC_New/save/
+tutorials/IS_IGC_New/summary/
+tutorials/IS_IGC_New/log/
+tutorials/IS_IGC_Old/save/
+tutorials/IS_IGC_Old/summary/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
