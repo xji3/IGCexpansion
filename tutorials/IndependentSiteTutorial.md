@@ -1,5 +1,7 @@
 There are two versions of the softwawre that both implement the independent site IGC expansion.
-The first version assumes one single duplication event without loss which the second version does not.
+The first version assumes one single duplication event without loss events. The second version is supposed to relax this constraint on the gene duplication loss history.
+
+Another difference is that the new version only supports nucleotide substitution model whereas the old version supports both nucleotide substitution model and codon model.  The reason is that the size of the state space increase exponentially with the number of contemporaneous paralogs.  When using a codon subsitution model as a base point mutation model to add IGC in, the maximum possible number of paralog to consider is only 2.  There is no point of considering more than two paralogs with the codon based models. 
 
 ## New version
 
@@ -79,4 +81,12 @@ Anyway, the first column of the seq_index file represents the corresponding sequ
 
 Please use this [example seq\_index file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New/EDN_ECP_seq_index.txt) as a reference.
 
+## Old version
+
+Although being the old versoin, the input files are pretty similar (but less) to those of the "new" version.
+
+The alignment file is also in fasta format.
+The gene names are made by directly concatenate the species name with the paralog name.  The program will trim off the paralog name after reading in.  The 'strange' requirement is that it assumes the two paralog names are of the same length.
+
+For independent site IGC model (IS-IGC) with either HKY or MG94 model as the base point mutation model, please refer to the [IS-IGC-Old folder](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_Old) for example input files with a python script that imports the package and runs the analysis.
 
