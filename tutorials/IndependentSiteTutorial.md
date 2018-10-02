@@ -3,10 +3,10 @@ The first version assumes one single duplication event without loss which the se
 
 ## New version
 
-I'll start with how to use the new version.  For independent site IGC model (IS-IGC), please refer to the [IS-IGC folder](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC) for example input files with a python script that imports the package and runs the analysis.
+I'll start with how to use the new version.  For independent site IGC model (IS-IGC), please refer to the [IS-IGC folder](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New) for example input files with a python script that imports the package and runs the analysis.
 
 #### Input Files
-This section describes the input files and their supposed format for running the analysis.The table below summarizes all input files (as the variable name in the [script](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/Run_IS_IGC.py)) followed with their more detailed descriptions.
+This section describes the input files and their supposed format for running the analysis.The table below summarizes all input files (as the variable name in the [script](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New/Run_IS_IGC_New.py)) followed with their more detailed descriptions.
 
 | File | Description |
 |-------------|:-------|
@@ -22,7 +22,7 @@ The alignment file is in fasta format.
 However, the name of the gene follows a rather weird rule:
 it is combined by the species name and gene name with a double underscore **"\__"** connecting them. For example, **Human** **EDN** gene would be denoted as **"Human\__EDN"** this way.  The double score is used to allow species / gene names to have single scores. For example, a **Tree\_Shrew** **EDN** gene would be **Tree\_Shrew__EDN**.  
 
-Please use this [example alignment file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_Cleaned_NewFormat.fasta) as a reference.
+Please use this [example alignment file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New/EDN_ECP_Cleaned_NewFormat.fasta) as a reference.
 
 
 ##### <a name='newick'>newick tree</a>
@@ -31,7 +31,7 @@ The tree file describes the species tree in newick format.
 
 However, unlike usual newick files, all internal nodes have to be named in this tree file for later uses to define the duplication loss history along this species tree (to point events to the right branch). A convention I have been using is to name them by "N" + number, e.g. N0, N1... I usually start the numbering from the root to the tip.
 
-Please use this [example tree file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_tree.newick) as a reference.
+Please use this [example tree file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New/EDN_ECP_tree.newick) as a reference.
 
 ##### <a name='DupLosList'>DupLosList</a>
 
@@ -61,7 +61,7 @@ Unlike duplication events that produce new Orlgs, the deletion events only flag 
 The last kind of internal nodes on the tree represents speciation events.  For the speciation nodes, the configuration is copied from its parent node and is passed onto its descendant nodes.
 
 
-Please use this [example DupLosList file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_DupLost.txt) as a reference.
+Please use this [example DupLosList file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New/EDN_ECP_DupLost.txt) as a reference.
 
 ##### <a name='gene_to_orlg'>gene\_to\_orlg\_file</a>
 
@@ -69,7 +69,7 @@ This is probably the weirdest input of the current version.
 It is partly redundant with the DupLosList.  
 The Orlg configuration of the tip nodes are the same as their parent nodes.  This gene\_to\_orlg file gives the mapping between extant paralogs to their Orlgs.  The configuration of each species has to match that on the species tree defined by the DupLosList (this is redundant but I kept it for sanity checks).
 
-Please use this [example gene\_to\_orlg file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_GeneToOrlg.txt) as a reference.
+Please use this [example gene\_to\_orlg file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New/EDN_ECP_GeneToOrlg.txt) as a reference.
 
 ##### <a name='seq_index'>seq\_index\_file</a>
 
@@ -77,6 +77,6 @@ This file tells the program where each column in the multiple sequence alignment
 
 Anyway, the first column of the seq_index file represents the corresponding sequence position on the reference gene.  For protein coding genes, the second column shows the codon number and the third column shows the codon position.
 
-Please use this [example seq\_index file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC/EDN_ECP_seq_index.txt) as a reference.
+Please use this [example seq\_index file](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New/EDN_ECP_seq_index.txt) as a reference.
 
 
