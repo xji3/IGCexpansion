@@ -753,7 +753,7 @@ class PSJSGeneconv:
 
     def save_x(self):
         save = self.x
-        np.savetxt(open(self.save_file, 'w+'), save.T)
+        np.savetxt(self.save_file, save.T)
 
     def initialize_by_save(self):
         self.x = np.loadtxt(open(self.save_file, 'r'))
