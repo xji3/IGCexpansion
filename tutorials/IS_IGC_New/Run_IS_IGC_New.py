@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
 ###### Now get HKY+JS-IGC estimates
     IGC_pm = 'One rate'
-    pm_model = 'MG94'
+    pm_model = 'HKY'
     log_folder = './log'
     check_folder(log_folder)
     save_folder = './save'
