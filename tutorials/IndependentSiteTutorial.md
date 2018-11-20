@@ -7,6 +7,13 @@ Another difference is that the new version only supports nucleotide substitution
 
 I'll start with how to use the new version.  For independent site IGC model (IS-IGC), please refer to the [IS-IGC folder](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New) for example input files with a python script that imports the package and runs the analysis.
 
+#### Run the Tutorial
+
+```
+cd IGCexpansion/tutorials/IS_IGC_New
+python Run_IS_IGC_New.py
+```
+
 #### Input Files
 This section describes the input files and their supposed format for running the analysis.The table below summarizes all input files (as the variable name in the [script](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_New/Run_IS_IGC_New.py)) followed with their more detailed descriptions.
 
@@ -89,4 +96,11 @@ The alignment file is also in fasta format.
 The gene names are made by directly concatenate the species name with the paralog name.  The program will trim off the paralog name after reading in.  The 'strange' requirement is that it assumes the two paralog names are of the same length.
 
 For independent site IGC model (IS-IGC) with either HKY or MG94 model as the base point mutation model, please refer to the [IS-IGC-Old folder](https://github.com/xji3/IGCexpansion/tree/master/tutorials/IS_IGC_Old) for example input files with a python script that imports the package and runs the analysis.
+
+#### Run the Tutorial
+
+```
+cd IGCexpansion/tutorials/IS_IGC_Old
+python Run_IS_IGC_Old.py
+```
 
