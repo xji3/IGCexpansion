@@ -545,10 +545,10 @@ class PSJSGeneconv:
             sum_g += g
 
         # Now record lnL in self.ll
-        self.ll = -f
+        self.ll = -sum_f
         if display:
-            print ('Sum log likelihood = ', sum_f)
-            print ('All derivatives = ', sum_g)
+            print ('Sum log likelihood = ', -sum_f)
+            print ('All derivatives = ', -sum_g)
             print ('Current exp x array = ', np.exp(self.x))
             print ('PM parameters = ' + ' '.join([i + ':' + str(self.psjsmodel.PMModel.parameters[i]) for i in self.psjsmodel.PMModel.parameter_list]))
             print ('Edge lengths = ', self.tree.edge_to_blen)
@@ -708,7 +708,7 @@ class PSJSGeneconv:
         print (result)
         return result
             
-    def get_mle(self, display = True, derivative = True, stringent_level = 'low'):
+    def get_mle(self, display = True, derivative = True, stringent_level = 'high'):
         self.unpack_x(self.x)  # do one more update first
         if derivative:
             f = partial(self.objective_and_gradient, display)
