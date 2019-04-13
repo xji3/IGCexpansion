@@ -716,11 +716,11 @@ class PSJSGeneconv:
             f = partial(self.objective_wo_gradient, display)
 
         if stringent_level == 'low':
-            factr = 1e12
+            factr = 1e11
         elif stringent_level == 'moderate':
-            factr = 1e7
+            factr = 1e5
         elif stringent_level == 'high':
-            factr = 10.0
+            factr = 1e-1
         else:
             exit('Check stringent_level in get_mle() function!')
 
