@@ -125,8 +125,8 @@ if __name__ == '__main__':
     re = self.get_scene()
     list_for_iid = re["observed_data"]["iid_observations"]
     list_commonan = []
-    # for i in range(len(list_for_iid)):
-    for i in range(3):
+    for i in range(len(list_for_iid)):
+    # for i in range(3):
         re["observed_data"]["iid_observations"] = [list_for_iid[i]]
 
         requests = [
@@ -139,16 +139,16 @@ if __name__ == '__main__':
         j_out = jsonctmctree.interface.process_json_in(j_in)
         j_out_matrix = np.array(j_out["responses"][0][0])
         list_commonan.append(j_out_matrix)
-        print(re["observed_data"]["iid_observations"])
+        # print(re["observed_data"]["iid_observations"])
     #  print(aa["process_definitions"][0]["row_states"])
     #  print(aa["process_definitions"][0]["column_states"])
     #  print(aa["process_definitions"][0]["transition_rates"])
     list_node=get_interior_node(re)
     dict=self.get_dict_trans()
     len_node=len(list_node)
-    len_se=3
+    len_se=len(list_commonan)
     get_maxpro=get_maxpro(list_commonan,list_node)
-    print(get_maxpro[2][2]%61)
+    # print(get_maxpro[2][2]%61)
     translate=translate_into_seq(promax=get_maxpro,len_node=len_node,dict=dict,model=model,len_se=len_se)
     print(translate)
 
