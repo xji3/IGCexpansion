@@ -14,7 +14,6 @@ from IGCexpansion.CodonGeneconFunc import *
 import argparse
 #from jsonctmctree.extras import optimize_em
 import ast
-import numpy as np
 
 #import matplotlib.pyplot as plt
 
@@ -1488,7 +1487,7 @@ class ReCodonGeneconv:
             j_out = jsonctmctree.interface.process_json_in(j_in)
             
             status = j_out['status']
-            states_matrix=np.array(j_out["responses"][0])
+            states_matrix = np.array(j_out['responses'][0])
             #iid_obs * states * sites, we want to find the states to make the number biggest
             maxprob_number = np.zeros((self.nsites,len(self.node_to_num)))
             for sites in range(self.nsites):
@@ -1552,9 +1551,6 @@ class ReCodonGeneconv:
         filename.write(repr(result))
         filename.close()
         return result
-
-    def get_dict_trans(self):
-        return self.state_to_codon
             
     
 if __name__ == '__main__':
