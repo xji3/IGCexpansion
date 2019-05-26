@@ -1553,8 +1553,6 @@ class ReCodonGeneconv:
         filename.close()
         return result
 
-    def get_dict_trans(self):
-        return self.state_to_codon
             
     
 if __name__ == '__main__':
