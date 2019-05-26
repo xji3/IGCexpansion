@@ -48,6 +48,7 @@ class AncestralState:
         self.node_length=0
         self.sites_length=0
 
+
         if isinstance(geneconv, JSGeneconv):
             raise RuntimeError('Not yet implemented!')
 
@@ -110,6 +111,7 @@ class AncestralState:
             node_state_prob_dict[self.num_to_node[node_num]] =state_prob_dict
         return node_state_prob_dict
 
+
     def get_maxpro(self):
 
         if self.ancestral_state_response is None:
@@ -152,12 +154,14 @@ class AncestralState:
 
 
 
+
     def get_num_to_state(self):
         if self.num_to_state is None:
             if self.geneconv.Model == 'HKY':
                 states = 'ACGT'
             elif self.geneconv.Model == 'MG94':
                 states = geneconv.codon_nonstop
+            self.num_to_state = {num:state for num, state in enumerate(product(states, repeat = 2))}
             self.num_to_state = {num:state for num, state in enumerate(product(states, repeat = 2))}
         return self.num_to_state
 
@@ -188,6 +192,7 @@ if __name__ == '__main__':
     site_num = 0
     node_state_prob_dict = test.get_site_ancestral_dist(site_num)
     print(len(self.translate_into_seq()))
+
 
 
 ##    aa = 0
@@ -225,3 +230,4 @@ if __name__ == '__main__':
 ##    # print(get_maxpro[2][2]%61)
 ##    translate=translate_into_seq(promax=get_maxpro,len_node=len_node,dict=dict,model=model,len_se=len_se)
 ##    print(translate)
+
