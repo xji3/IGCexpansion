@@ -1,5 +1,6 @@
 # ignore pycharm related compiles
 IGCexpansion/.idea/
+.idea/
 
 # ignore save/ summary/ log/ folders in tutorial
 tutorials/IS_IGC_New/save/
