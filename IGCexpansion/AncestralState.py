@@ -46,8 +46,8 @@ class AncestralState:
         self.num_to_state             = None
         self.num_to_node              = None
         self.node_length=0
-        self.sites_length=0
-
+        self.sites_length = self.geneconv.nsites
+        self.Model=self.geneconv.Model
 
         if isinstance(geneconv, JSGeneconv):
             raise RuntimeError('Not yet implemented!')
@@ -118,7 +118,6 @@ class AncestralState:
             self.ancestral_state_response = self.get_ancestral_state_response()
 
         self.node_length=len(self.get_num_to_node())
-        self.sites_length=self.geneconv.nsites
         sites = np.zeros(shape=(self.node_length,self.sites_length ))
         for site in range(self.sites_length):
             for node in range(self.node_length):
@@ -129,7 +128,7 @@ class AncestralState:
         promax=self.get_maxpro()
         list = []
 
-        if self.geneconv.Model == 'MG94':
+        if self.Model == 'MG94':
             dict = self.geneconv.state_to_codon
             for i in range(self.node_length):
                 p0 = "paralog0:"
@@ -157,9 +156,9 @@ class AncestralState:
 
     def get_num_to_state(self):
         if self.num_to_state is None:
-            if self.geneconv.Model == 'HKY':
+            if self.Model == 'HKY':
                 states = 'ACGT'
-            elif self.geneconv.Model == 'MG94':
+            elif self.Model == 'MG94':
                 states = geneconv.codon_nonstop
             self.num_to_state = {num:state for num, state in enumerate(product(states, repeat = 2))}
             self.num_to_state = {num:state for num, state in enumerate(product(states, repeat = 2))}
@@ -170,6 +169,27 @@ class AncestralState:
             self.num_to_node = self.geneconv.num_to_node
         return self.num_to_node
 
+    def get_marginal(self,node):
+        if self.ancestral_state_response is None:
+            self.ancestral_state_response = self.get_ancestral_state_response()
+
+        if self.Model=='MG94':
+            marginal_sites = np.zeros(shape=(self.sites_length,61))
+            for site in range(self.sites_length):
+                i=0
+                for marginal in range(61):
+                    marginal_sites[site][marginal] = sum(np.array(self.ancestral_state_response[site])[i:i+61, node])
+                    i=i+61
+
+        else:
+            marginal_sites = np.zeros(shape=(self.sites_length, 4))
+            for site in range(self.sites_length):
+                i = 0
+                for marginal in range(4):
+                    marginal_sites[site][marginal] = sum(np.array(self.ancestral_state_response[site])[i:i + 4, node])
+                    i = i + 4
+
+        return marginal_sites
 
 if __name__ == '__main__':
     #######################
@@ -192,6 +212,26 @@ if __name__ == '__main__':
     site_num = 0
     node_state_prob_dict = test.get_site_ancestral_dist(site_num)
     print(len(self.translate_into_seq()))
+    print(sum(np.array(self.ancestral_state_response[0])[0:0+61, 0]))
+    print(self.get_marginal(0))
+
+
+
+    Force1 = {4:0}
+    model = 'HKY'
+    save_name = '../test/save/Ind_' + model + '_EDN_ECP_nonclock_save.txt'
+
+    geneconv1 = ReCodonGeneconv(newicktree, alignment_file, paralog, Model=model, Force=Force1, clock=None,
+                               save_path='../test/save/', save_name=save_name)
+    test1 = AncestralState(geneconv1)
+    self1 = test1
+    scene1 = test.get_scene()
+
+    site_num = 0
+    node_state_prob_dict = test1.get_site_ancestral_dist(site_num)
+    print(len(self1.translate_into_seq()))
+    print(sum(np.array(self1.ancestral_state_response[0])[0:0+61, 0]))
+    print(self1.get_marginal(0))
 
 
 
