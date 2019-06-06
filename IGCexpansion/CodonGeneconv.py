@@ -100,10 +100,8 @@ class ReCodonGeneconv:
         self.get_tree()
         self.get_data()
         self.get_initial_x_process()
-        if self.save_name == None:
-            save_file = self.gen_save_file_name()
-        else:
-            save_file = self.save_name
+        save_file = self.get_save_file_name()
+
         if os.path.isfile(save_file):  # if the save txt file exists and not empty, then read in parameter values
             if os.stat(save_file).st_size > 0:
                 self.initialize_by_save(save_file)
@@ -143,13 +141,10 @@ class ReCodonGeneconv:
         print ('number of sites to be analyzed: ', self.nsites)
 
         # assign observable parameters
-        suffix_len = len(self.paralog[0])
-        self.observable_names = [n for n in self.name_to_seq.keys() if n[:-suffix_len] in self.node_to_num.keys()]
-        paralog_len = [len(a) for a in self.paralog]
-        assert(paralog_len[1:] == paralog_len[:-1])  # check if all paralog names have same length
-        suffix_to_axis = {n:i for (i, n) in enumerate(list(set(self.paralog))) }
-        self.observable_nodes = [self.node_to_num[n[:-suffix_len]] for n in self.observable_names]
-        self.observable_axes = [suffix_to_axis[s[-suffix_len:]] for s in self.observable_names]
+        self.observable_names = [n for n in self.name_to_seq.keys() if self.separate_species_paralog_names(n)[0] in self.node_to_num.keys()]
+        suffix_to_axis = {n:i for (i, n) in enumerate(list(set(self.paralog)))}
+        self.observable_nodes = [self.node_to_num[self.separate_species_paralog_names(n)[0]] for n in self.observable_names]
+        self.observable_axes = [suffix_to_axis[self.separate_species_paralog_names(s)[1]] for s in self.observable_names]
         
         # Now convert alignment into state list
         iid_observations = []
@@ -160,6 +155,12 @@ class ReCodonGeneconv:
                 observations.append(observation)
             iid_observations.append(observations)
         self.iid_observations = iid_observations
+
+    def separate_species_paralog_names(self, seq_name):
+        assert(seq_name in self.name_to_seq)  # check if it is a valid sequence name
+        matched_paralog = [paralog for paralog in self.paralog if paralog in seq_name]
+        # check if there is exactly one paralog name in the sequence name
+        return [seq_name.replace(matched_paralog[0], ''), matched_paralog[0]]
 
     def get_initial_x_process(self, transformation = 'log'):
         
@@ -1435,23 +1436,26 @@ class ReCodonGeneconv:
         footer = ' '.join(label)  # row labels
         np.savetxt(open(summary_file, 'w+'), summary.T, delimiter = ' ', footer = footer)
 
-    def gen_save_file_name(self):
-        prefix_save = self.save_path + self.Model
-        if self.Force:
-            prefix_save = prefix_save + '_Force'
+    def get_save_file_name(self):
+        if self.save_name is None:
+            prefix_save = self.save_path + self.Model
+            if self.Force:
+                prefix_save = prefix_save + '_Force'
 
-##        if self.Dir:
-##            prefix_save = prefix_save + '_Dir'
-##
-##        if self.gBGC:
-##            prefix_save = prefix_save + '_gBGC'
+    ##        if self.Dir:
+    ##            prefix_save = prefix_save + '_Dir'
+    ##
+    ##        if self.gBGC:
+    ##            prefix_save = prefix_save + '_gBGC'
 
-        if self.clock:
-            suffix_save = '_clock_save.txt'
+            if self.clock:
+                suffix_save = '_clock_save.txt'
+            else:
+                suffix_save = '_nonclock_save.txt'
+
+            save_file = prefix_save +'_' + '_'.join(self.paralog) + suffix_save
         else:
-            suffix_save = '_nonclock_save.txt'
-
-        save_file = prefix_save +'_' + '_'.join(self.paralog) + suffix_save
+            save_file = self.save_name
         return save_file
 
     def save_x(self):
@@ -1460,12 +1464,9 @@ class ReCodonGeneconv:
         else:
             save = self.x
 
-        if self.save_name == None:
-            save_file = self.gen_save_file_name()
-        else:
-            save_file = self.save_name
+        save_file = self.get_save_file_name()
             
-        np.savetxt(open(save_file, 'w+'), save.T)
+        np.savetxt(save_file, save.T)
 
     def initialize_by_save(self, save_file):
             
@@ -1476,82 +1477,7 @@ class ReCodonGeneconv:
             self.x = np.loadtxt(open(save_file, 'r'))
             self.update_by_x()
             
-    def site_reconstruction(self, package = 'new', display = False):#前面三个是不要的
-        if package == 'new':
-            self.scene_ll = self.get_scene()
-            requests = [{'property' : "DNDNODE"}]
-            j_in = {
-                'scene' : self.scene_ll,
-                'requests' : requests
-                }        
-            j_out = jsonctmctree.interface.process_json_in(j_in)
-            
-            status = j_out['status']
-            states_matrix = np.array(j_out['responses'][0])
-            #iid_obs * states * sites, we want to find the states to make the number biggest
-            maxprob_number = np.zeros((self.nsites,len(self.node_to_num)))
-            for sites in range(self.nsites):
-                for nodes_num in range(len(self.node_to_num)):
-                    if self.Model == 'HKY':
-                        maxprob_number[sites][nodes_num] = np.argmax(states_matrix[sites,0:16,nodes_num])
-                    elif self.Model == 'MG94':
-                        maxprob_number[sites][nodes_num] = np.argmax(states_matrix[sites,0:3721,nodes_num])
-            self.get_reconstruction_result(states_matrix, maxprob_number, DNA_or_protein = 'DNA')            
-        else:
-            print ('Need to implement this for old package')
-        
-    def get_reconstruction_result(self, states_matrix, maxmatrix, DNA_or_protein = 'DNA'):
-        site_differences = [len(set(maxmatrix[sites])) for sites in range(self.nsites)]#TODO: sitedifferences in different paralogs
-        if self.Model == 'HKY':
-            if self.tau == 0:
-                self.reconstruction_series = {'model':'HKY', 'data': [], 'treename': self.newicktree}
-            else:
-                self.reconstruction_series = {'model':'HKY+IGC', 'data': [], 'treename': self.newicktree}
-            for nodes_num in range(len(self.node_to_num)):
-                self.reconstruction_series['data'].append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
-                for sites in range(3,self.nsites):
-                    state_1, state_2 = divmod(maxmatrix[sites][nodes_num], 4)
-                    state_1 = int(state_1)
-                    state_2 = int(state_2)
-                    self.reconstruction_series['data'][nodes_num][self.paralog[0]]+=self.state_to_nt[state_1]
-                    self.reconstruction_series['data'][nodes_num][self.paralog[1]]+=self.state_to_nt[state_2]
-        elif self.Model == 'MG94':
-            if self.tau == 0:
-                self.reconstruction_series = {'model':'MG94', 'data':[], 'treename': self.newicktree}
-            else:
-                self.reconstruction_series = {'model':'MG94+IGC', 'data':[], 'treename': self.newicktree}
-            for nodes_num in range(len(self.node_to_num)):
-                self.reconstruction_series['data'].append({"name":self.num_to_node[nodes_num], self.paralog[0]:"", self.paralog[1]:""})
-                for sites in range(1,self.nsites):
-                    state_1, state_2 = divmod(maxmatrix[sites][nodes_num], 61)
-                    state_1 = int(state_1)
-                    state_2 = int(state_2)
-                    self.reconstruction_series['data'][nodes_num][self.paralog[0]]+=self.state_to_codon[state_1]
-                    self.reconstruction_series['data'][nodes_num][self.paralog[1]]+=self.state_to_codon[state_2]
-        
-    def find_differences_between(self, reconstruction_series1, reconstruction_series2):#the series must from one tree
-        assert(len(reconstruction_series1['data'])==len(reconstruction_series2['data']))
-        filename = open('../test/Ancestral_reconstruction/' + 'ancestral_reconstruction_' + self.paralog[0] + '_' + self.paralog[1] + '_' + reconstruction_series1['model'] + '_' + reconstruction_series2['model'] +'.txt' ,'w')
-        result = {}
-        flag = 0
-        for nodes_num in range(len(reconstruction_series1['data'])):
-            for paralog in self.paralog:
-                result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog] = {'location':[], 'model_1': [], 'model_2': [], 'differences': 0}
-                for sites in range(len(reconstruction_series1['data'][nodes_num])):
-                    if reconstruction_series1['data'][nodes_num][paralog][sites] == reconstruction_series2['data'][nodes_num][paralog][sites]:
-                        continue
-                    else:
-                        result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['location'].append(sites)
-                        result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['model_1'].append(reconstruction_series1['data'][nodes_num][paralog][sites])
-                        result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['model_2'].append(reconstruction_series2['data'][nodes_num][paralog][sites])
-                        result[reconstruction_series1['data'][nodes_num]['name'] + '_' + paralog]['differences'] += 1
-                        flag += 1
-                        print (flag)
-        filename.write('Total differences:' + str(flag)+ '\n')
-        filename.write(repr(result))
-        filename.close()
-        return result       
-            
+          
     
 if __name__ == '__main__':
 ##    paralog = ['YLR406C', 'YDL075W']
@@ -1611,21 +1537,4 @@ if __name__ == '__main__':
     #scene = test.get_scene()
     #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
     self = test
-    test.update_by_x([-0.71465929, -0.5553989 , -0.6880269 ,  0.74694613,  
-        0.59096749, -2.64431859, -2.2659562 , -4.72944312, 
-        -2.96593134, -4.51067893,-3.50431105, -5.3839866 , -5.290299  ])
-    test.get_ExpectedNumGeneconv()
-    summary, label = test.get_summary(True)
-    for i, ss in enumerate(summary):
-        print(label[i], ss)
-    #print (test._loglikelihood2())
-    #test.get_mle(True, True, 0, 'BFGS')
-    #s1 = test.get_scene()
-    #s2 = test.get_NOIGC_scene()
-    #sitewise_ll = test._sitewise_loglikelihood(True)
-    IGC_sitewise_lnL_file = '../test/Summary/' + '_'.join(paralog) + '_' + model + '_nonclock_sw_lnL_check.txt'
-
-    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file)
-    outgroup_branch = [edge for edge in test.edge_list if edge[0] == 'N0' and edge[1] != 'N1'][0]
-    Total_blen = sum([test.edge_to_blen[edge] for edge in test.edge_list if edge != outgroup_branch])
-    print (test.tau, Total_blen)
+    
