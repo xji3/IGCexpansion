@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-   
-
 # Uses Alex Griffing's JsonCTMCTree package for likelihood and gradient calculation
 # Re-write of my previous CodonGeneconv class
 # commit number: Oct 22nd, 2014 for old package
@@ -1475,9 +1473,7 @@ class ReCodonGeneconv:
             self.update_by_x_clock()
         else:
             self.x = np.loadtxt(open(save_file, 'r'))
-            self.update_by_x()
-            
-          
+            self.update_by_x()     
     
 if __name__ == '__main__':
 ##    paralog = ['YLR406C', 'YDL075W']
