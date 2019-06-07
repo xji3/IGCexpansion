@@ -1522,11 +1522,13 @@ if __name__ == '__main__':
     
     paralog = ['EDN', 'ECP']
     Force = None
-    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
-    newicktree = '../test/input_tree.newick'
+##    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+##    newicktree = '../test/input_tree.newick'
+    alignment_file = '../test/EDN_ECP_Outgroup_test.fasta'
+    newicktree = '../test/Outgroup_test_tree.newick'
     Force = None
-    model = 'HKY'
-    save_name = '../test/save/Ind_HKY_EDN_ECP_nonclock_save.txt'
+    model = 'MG94'
+    save_name = '../test/save/Ind_' + model + '_EDN_ECP_nonclock_Outgroup_test_save.txt'
 ##    test.get_mle(True, True, 0, 'BFGS')
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
