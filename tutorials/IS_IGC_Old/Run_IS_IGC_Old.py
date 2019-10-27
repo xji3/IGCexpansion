@@ -26,8 +26,3 @@ if __name__ == '__main__':
     test.get_mle()
     test.get_ExpectedNumGeneconv()
     test.get_individual_summary(summary_path = summary_folder)
-    
-    IGC_sitewise_lnL_file = summary_folder + model + '_'.join(paralog) + '_nonclock_sitewise_lnL_summary.txt'
-    test.get_sitewise_loglikelihood_summary(IGC_sitewise_lnL_file)
-    
-    test.get_SitewisePosteriorSummary(summary_path = summary_folder)
