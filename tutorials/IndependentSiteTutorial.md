@@ -103,4 +103,19 @@ For independent site IGC model (IS-IGC) with either HKY or MG94 model as the bas
 cd IGCexpansion/tutorials/IS_IGC_Old
 python Run_IS_IGC_Old.py
 ```
-
+#### Output files
+
+The results are saved in a summary text file.
+The file contains a column of numbers followed by a row of names for each number in the column.
+The default summary file contains the maximum likelihood estimates (MLE) of all the parameters in the model.
+
+
+If the `get_ExpectedNumGeneconv()` function is called before generating the summary, there will be additional numbers for expected number of certain transitions in the suumary file.
+In this case, these numbers are:
+
+1. Expected IGC rate on each branch.  Format of `branch name` + `tau`.
+2. Expected number of IGC transitions on each branch from the first paralog to the second paralog.  Format of `branch name` + `1->2`.
+3. Expected number of IGC transitions on each branch from the second paralog to the first paralog.  Format of `branch name` + `2->1`.
+4. Expected number of Point mutations on each branch.  Format of `branch name` + `mut`.
+
+
