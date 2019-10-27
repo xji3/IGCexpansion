@@ -25,4 +25,4 @@ if __name__ == '__main__':
     test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/', save_name = save_name)
     test.get_mle()
     test.get_ExpectedNumGeneconv()
-    test.get_individual_summary(summary_path = summary_folder)
+    test.get_summary(True)
