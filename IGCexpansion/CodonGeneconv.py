@@ -8,7 +8,7 @@
   
 
 from __future__ import print_function, absolute_import
-from IGCexpansion.CodonGeneconFunc import *
+from CodonGeneconFunc import *
 import argparse
 #from jsonctmctree.extras import optimize_em
 import ast
@@ -114,7 +114,7 @@ class ReCodonGeneconv:
     def nts_to_codons(self):
         for name in self.name_to_seq.keys():
             assert(len(self.name_to_seq[name]) % 3 == 0)
-            tmp_seq = [self.name_to_seq[name][3 * j : 3 * j + 3] for j in range(len(self.name_to_seq[name]) / 3 )]
+            tmp_seq = [self.name_to_seq[name][3 * j : 3 * j + 3] for j in range(int(len(self.name_to_seq[name]) / 3) )]
             self.name_to_seq[name] = tmp_seq
        
     def get_data(self):
@@ -132,7 +132,7 @@ class ReCodonGeneconv:
 
         # change the number of sites for calculation if requested
         if self.nsites is None:
-            self.nsites = len(self.name_to_seq[self.name_to_seq.keys()[0]])
+            self.nsites = len(self.name_to_seq[list(self.name_to_seq.keys())[0]])
         else:
             for name in self.name_to_seq:
                 self.name_to_seq[name] = self.name_to_seq[name][: self.nsites]
@@ -327,7 +327,7 @@ class ReCodonGeneconv:
     def get_prior(self):
         if self.Model == 'MG94':
             self.prior_feasible_states = [(self.codon_to_state[codon], self.codon_to_state[codon]) for codon in self.codon_nonstop]
-            distn = [ reduce(mul, [self.pi['ACGT'.index(b)]  for b in codon], 1) for codon in self.codon_nonstop ]
+            distn = [reduce(mul, [self.pi['ACGT'.index(b)]  for b in codon], 1) for codon in self.codon_nonstop ]
             distn = np.array(distn) / sum(distn)
         elif self.Model == 'HKY':
             self.prior_feasible_states = [(self.nt_to_state[nt], self.nt_to_state[nt]) for nt in 'ACGT']

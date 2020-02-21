@@ -217,10 +217,10 @@ if __name__ == '__main__':
     tree = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
     data = Data(alignment_file, gene_to_orlg_file)
     
-    print tree.dup_events
+    print (tree.dup_events)
     for i in tree.node_to_conf:
         if i in terminal_node_list:
-            print i, tree.node_to_conf[i]
+            print(i, tree.node_to_conf[i])
 
     pm_model = 'HKY'
     x_js = np.log([0.3, 0.5, 0.2, 9.5, 4.9])

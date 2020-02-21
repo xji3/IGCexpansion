@@ -6,7 +6,7 @@
 
 from operator import mul
 from itertools import product
-from functools import partial
+from functools import partial, reduce
 from copy import deepcopy
 import os, sys
 
@@ -138,7 +138,7 @@ def read_newick(newick_file, post_dup = 'N1'):
     tree = Phylo.read(newick_file, 'newick', rooted=True)
 
     # locate 1st post-duplication node
-    post_dup_clade = tree.find_clades(post_dup).next()
+    post_dup_clade = list(tree.find_clades(post_dup))[0]
 
     # if the root node is the 1st post-duplication node,
     # then add a duplication node before the root
