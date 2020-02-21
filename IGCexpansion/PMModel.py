@@ -7,15 +7,15 @@ from copy import deepcopy
 from operator import mul
 from itertools import product
 
+bases = 'tcag'.upper()
+codons = [a + b + c for a in bases for b in bases for c in bases]
+amino_acids = [amino_acid for amino_acid in 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG']
 
 class PMModel:
     supported = ['HKY', 'MG94']                   # supported models
     # Constants for Sequence operations
-    bases = 'tcag'.upper()
-    codons = [a+b+c for a in bases for b in bases for c in bases]
-    amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
     codon_table = dict(zip(codons, amino_acids))
-    codon_nonstop = [codons[i] for i in range(len(codons)) if codon_table[codons[i]] != '*']
+    codon_nonstop = [codons[i] for i in range(len(codons)) if amino_acids[i] != '*']
     
     def __init__(self, model_name, x_pm, rate_variation, force = None):
         self.name           = model_name          # name of supported models

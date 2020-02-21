@@ -11,11 +11,10 @@ from Tree import Tree
 from PMModel import PMModel
 from Common import divide_configuration, draw_from_distribution
 import numpy as np
-import cPickle, os
+import os
 from copy import deepcopy
 from math import floor
 from operator import mul
-from itertools import product
 
 
 class Simulator:
@@ -72,9 +71,9 @@ class Simulator:
             
 
     def __str__(self):  # overide for print function
-        print self.PMModel
-        print self.IGCModel
-        print self.tree
+        print(self.PMModel)
+        print(self.IGCModel)
+        print(self.tree)
 
         return 'IGC simulator output seq: ' + self.seq_file + '\n' + \
                'IGC log file: ' + self.IGC_log_file + '\n' +\
@@ -85,7 +84,7 @@ class Simulator:
 
     def get_gene_to_orlg(self):  # copied from data class
         assert(os.path.isfile(self.gene_to_orlg_file))
-        with open(self.gene_to_orlg_file, 'rb') as f:
+        with open(self.gene_to_orlg_file, 'r') as f:
             for line in f:
                 items = line.split()
                 if items:
@@ -201,7 +200,7 @@ class Simulator:
                     edge = (father_clade.name, clade.name)
                     self.sim_one_branch(edge, display)
                 else:
-                    print 'The node cannot be recognised!'
+                    print('The node cannot be recognised!')
                     assert(False)
             
     def sim_one_branch(self, edge, display):
@@ -255,7 +254,7 @@ class Simulator:
 
             cummulate_time += np.random.exponential(1.0 / Total_rate)
             if display:
-                print cummulate_time
+                print(cummulate_time)
            
 
             if cummulate_time > blen :
@@ -408,7 +407,7 @@ class Simulator:
         # mutation_orlg, mut_pos, old_state, new_state
         mutation_info = [str(mut_paralog), str(seq_pos), old_state, new_state]
         if display:
-            print ' '.join(mutation_info)
+            print(' '.join(mutation_info))
 
         return seq, mutation_info
 
@@ -449,10 +448,10 @@ class Simulator:
 
         IGC_info = [str(orlg_from), str(orlg_to), str(tract_length), str(start_pos), str(stop_pos), str(num_diff)]
         if display:
-            print ' '.join(IGC_info)
+            print(' '.join(IGC_info))
 
         # Now perform the IGC event
-            print ''.join(template_seq), ''.join(overide_seq)
+            print(''.join(template_seq), ''.join(overide_seq))
 
         IGC_info.extend([''.join(template_seq), ''.join(overide_seq)])
         for i in range(start_pos, stop_pos + 1):
@@ -564,7 +563,7 @@ if __name__ == '__main__':
                      terminal_node_list, node_to_pos, gene_to_orlg_file, seq_file, IGC_log_file, PM_log_file, seed_number, seq_index_file)
 
     self = test
-    print test
+    print(test)
     display = True
     
     test.sim_root()

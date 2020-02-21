@@ -62,14 +62,14 @@ class Tree:
         self.n_orlg = self.temp['n_orlg'][min_idx]
         self.node_to_dup = self.temp['node_to_dup'][min_idx]
         self.dup_events = self.temp['dup_events'][min_idx]
-        self.n_js = len(self.node_to_conf[self.node_to_conf.keys()[0]])
+        self.n_js = len(self.node_to_conf[list(self.node_to_conf.keys())[0]])
 
         # if 'Root' node is added as root node
         # there must be a duplication node directly after it and the Root node has no outgroup
         # delete the Root node after all configuration
         if self.phylo_tree.root.name == 'Root':
             assert(len(self.phylo_tree.root.clades) == 1)
-            print 'Now remove root node and start with first duplication node'
+            print('Now remove root node and start with first duplication node')
             self.node_to_conf.pop(self.phylo_tree.root.name)
             self.root_with_duplication(self.phylo_tree.root.clades[0].name)
             
@@ -123,11 +123,13 @@ class Tree:
             
     def add_duplos_nodes(self):
         assert(os.path.isfile(self.duploslist))
-        with open(self.duploslist, 'rb') as f:
+        with open(self.duploslist, 'r') as f:
             for line in f:
                 items = line.split()
                 if items:
                     branch = items[0]
+                    print(branch)
+                    print(items)
                     first_ = branch.find('_')
                     father_node_name = branch[:first_]
                     child_node_name = branch[(first_ + 1):]
@@ -257,7 +259,7 @@ class Tree:
             elif self.is_terminal_node(clade.name):
                 self.get_configuration_for_terminal_node(clade.name)
             else:
-                print 'The node cannot be recognised!'       
+                print('The node cannot be recognised!')
 
     def get_configurations(self):
         all_DP_nodes = [node for node in self.node_to_num if self.is_duplication_node(node) or self.is_deletion_node(node)]
@@ -370,7 +372,7 @@ class Tree:
                 elif self.is_terminal_node(clade.name):
                     self.get_configuration_for_terminal_node_temp(clade.name)
                 else:
-                    print 'The node cannot be recognised!'
+                    print('The node cannot be recognised!')
         
     def get_configuration_for_terminal_node_temp(self, node_name):
         # A terminal node copies its configuration from its parent node
@@ -532,7 +534,7 @@ class Tree:
             
     def divide_positions(self, pos_list):
         results = []
-        for k, g in groupby(enumerate(pos_list), lambda (i, x):i-x):
+        for k, g in groupby(enumerate(pos_list), lambda i:i[0]-i[1]):
             results.append(map(itemgetter(1), g))
         return results
 
@@ -567,8 +569,8 @@ class Tree:
     def __str__(self):  # overide for print function
         Phylo.draw_ascii(self.phylo_tree)
         for node in sorted(self.node_to_conf.keys()):
-            print node, self.node_to_conf[node]
-        print ' \nDuplication events: ', self.dup_events        
+            print(node, self.node_to_conf[node])
+        print(' \nDuplication events: ', self.dup_events)
         return 'Tree newick file: ' + self.newicktree + '\n' + \
                'Tree duplos file: ' + self.duploslist + '\n'
                
@@ -597,7 +599,7 @@ if __name__ == '__main__':
     terminal_node_list = ['Chinese_Tree_Shrew', 'Macaque', 'Olive_Baboon', 'Orangutan', 'Gorilla', 'Human']
     test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
     self = test
-    print test
+    print (test)
 
 
 ##########################################
@@ -694,7 +696,7 @@ if __name__ == '__main__':
     terminal_node_list = ['kluyveri', 'castellii', 'bayanus', 'kudriavzevii', 'mikatae', 'paradoxus', 'cerevisiae']
     node_to_pos = {'D1':0}
     test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-    print test
+    print(test)
     
 ##    test.get_configurations()
 ##
@@ -752,4 +754,4 @@ if __name__ == '__main__':
     terminal_node_list = ['LmjF', 'LinJ', 'LtaP']
     node_to_pos = {'D1': 0, 'D2':0, 'D3':0, 'D4':0}
     test = Tree(tree_newick, DupLosList, terminal_node_list, node_to_pos)
-    print test
+    print (test)
