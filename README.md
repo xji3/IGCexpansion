@@ -10,19 +10,21 @@ engine by Alex Griffing)
 
 [Biopython](http://biopython.org/wiki/Biopython) (you could install it by `pip install --user Biopython`)
 
-[networkx](https://networkx.github.io/) version 1.1 `pip install --user networkx==1.11 --upgrade` 
+[networkx](https://networkx.github.io/)
+`pip install --user networkx`
 
 #### Coding Language
 Python 2.7
+Python 3.5 or higher
 
 #### Installatoin
 
 0. To install python packages, you need to use [pip](https://pip.pypa.io/en/stable/installing/) (package management). 
 
-1. Install jsonctmctree package:
+1. Install jsonctmctree package (that slightly modifies the original package from Alex Griffing):
 	
 	`
-	pip install --user git+https://github.com/argriffing/jsonctmctree.git
+	pip install --user git+https://github.com/xji3/jsonctmctree.git
 	`
 
 2. Install IGCexpansion package:
@@ -49,7 +51,7 @@ Python 2.7
 3. Similarly install any other python packages
 	
 	`
-	pip install --user networkx==1.11 --upgrade
+	pip install --user networkx
 	`
 	
 	`
