@@ -1476,19 +1476,19 @@ class ReCodonGeneconv:
             self.update_by_x()     
     
 if __name__ == '__main__':
-##    paralog = ['YLR406C', 'YDL075W']
-##    Force = None
-##    alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
-##    newicktree = '../test/YeastTree.newick'
-##    ##    test.get_individual_summary(summary_path = '../test/Summary/')
-##    ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
-##    # Force MG94:{5:0.0} HKY:{4:0.0}
-##    
-##    #MG94+tau
-##    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
-##    MG94_tau.get_mle(True, True, 0, 'BFGS')
-##    MG94_tau.site_reconstruction()
-##    MG94_tau_series = MG94_tau.reconstruction_series
+    paralog = ['YLR406C', 'YDL075W']
+    Force = None
+    alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
+    newicktree = '../test/YeastTree.newick'
+    ##    test.get_individual_summary(summary_path = '../test/Summary/')
+    ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
+    # Force MG94:{5:0.0} HKY:{4:0.0}
+
+    #MG94+tau
+    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
+    MG94_tau.get_mle(True, True, 0, 'BFGS')
+    # MG94_tau.site_reconstruction()
+    # MG94_tau_series = MG94_tau.reconstruction_series
 ##    
 ##    #MG94
 ##    MG94 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = {5:0.0}, clock = None, save_path = '../test/save/')
@@ -1516,23 +1516,23 @@ if __name__ == '__main__':
 ######################################################################################
 ######################################################################################
     
-    paralog = ['EDN', 'ECP']
-    Force = None
-##    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
-##    newicktree = '../test/input_tree.newick'
-    alignment_file = '../test/EDN_ECP_Outgroup_test.fasta'
-    newicktree = '../test/Outgroup_test_tree.newick'
-    Force = None
-    model = 'MG94'
-    save_name = '../test/save/Ind_' + model + '_EDN_ECP_nonclock_Outgroup_test_save.txt'
+    # paralog = ['EDN', 'ECP']
+    # Force = None
+    # ##    alignment_file = '../test/EDN_ECP_Cleaned.fasta'
+    # ##    newicktree = '../test/input_tree.newick'
+    # alignment_file = '../test/EDN_ECP_Outgroup_test.fasta'
+    # newicktree = '../test/Outgroup_test_tree.newick'
+    # Force = None
+    # model = 'MG94'
+    # save_name = '../test/save/Ind_' + model + '_EDN_ECP_nonclock_Outgroup_test_save.txt'
+    #
+    # test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/', save_name = save_name)
+    # test.get_mle()
 ##    test.get_mle(True, True, 0, 'BFGS')
 ##    test.get_individual_summary(summary_path = '../test/Summary/')
 ##    test.get_SitewisePosteriorSummary(summary_path = '../test/Summary/')
-
-    test = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = model, Force = Force, clock = None, save_path = '../test/save/', save_name = save_name)
-    test.get_mle()
-    test._loglikelihood2()
+    # test._loglikelihood2()
     #scene = test.get_scene()
     #test.update_by_x(np.concatenate((np.log([0.1, 0.9, 0.3, 11.0, 3.4]), test.x_rates)))
-    self = test
+
     
