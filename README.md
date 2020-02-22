@@ -1,4 +1,6 @@
 # IGCexpansion
+[![Build Status](https://travis-ci.com/xji3/IGCexpansion.svg?branch=master)](https://travis-ci.com/xji3/IGCexpansion)
+
 IGC expansion development folder
 
 ##### Dependent software: 
