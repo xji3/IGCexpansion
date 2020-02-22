@@ -1,3 +1,4 @@
 #!/bin/bash
-python IGCexpansion/Simulator.py
+cd IGCexpansion
+python Simulator.py
 
