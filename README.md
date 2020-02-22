@@ -8,10 +8,17 @@ IGC expansion development folder
 [jsonctmctree package](http://jsonctmctree.readthedocs.org/en/latest/) (powerful likelihood  calculation 
 engine by Alex Griffing)
 
-[Biopython](http://biopython.org/wiki/Biopython) (you could install it by `pip install --user Biopython`)
-
+[Biopython](http://biopython.org/wiki/Biopython)
 [networkx](https://networkx.github.io/)
-`pip install --user networkx`
+[numpy](https://numpy.org/)
+[scipy](https://www.scipy.org/)
+
+(you could install them by
+
+`
+pip install --user Biopython networkx numpy scipy
+`)
+
 
 #### Coding Language
 Python 2.7
