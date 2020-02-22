@@ -231,7 +231,7 @@ if __name__ == '__main__':
 
     conf_list = count_process(tree.node_to_conf)
     accessible_orlg_pair = get_accessible_orlg_pair(conf_list)
-    print accessible_orlg_pair, len(accessible_orlg_pair)
+    print(accessible_orlg_pair, len(accessible_orlg_pair))
     
 
 
