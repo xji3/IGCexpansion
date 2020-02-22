@@ -1,0 +1,5 @@
+Biopython
+networkx==1.11
+numpy
+scipy
+
