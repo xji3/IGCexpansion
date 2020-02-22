@@ -9,6 +9,7 @@ install:
   - pip install git+https://github.com/xji3/jsonctmctree.git
   - pip install -r requirements.txt
   - pip install .
-#script:
-#  - pytest
+script:
+  - test.sh
+
 
