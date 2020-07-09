@@ -21,9 +21,8 @@ pip install --user Biopython networkx numpy scipy
 
 
 #### Coding Language
-Python 2.7
 
-Python 3.5 or higher
+Python 3.6 or higher
 
 
 #### Preparation
