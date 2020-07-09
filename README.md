@@ -3,9 +3,9 @@
 
 IGC expansion development folder
 
-##### Dependent software: 
+##### Dependent software:
 
-[jsonctmctree package](http://jsonctmctree.readthedocs.org/en/latest/) (powerful likelihood  calculation 
+[jsonctmctree package](http://jsonctmctree.readthedocs.org/en/latest/) (powerful likelihood  calculation
 engine by Alex Griffing)
 
 [Biopython](http://biopython.org/wiki/Biopython)
@@ -25,54 +25,67 @@ Python 2.7
 
 Python 3.5 or higher
 
-#### Installatoin
 
-0. To install python packages, you need to use [pip](https://pip.pypa.io/en/stable/installing/) (package management). 
+#### Preparation
 
-1. Install jsonctmctree package (that slightly modifies the original package from Alex Griffing):
-	
-	`
-	pip install --user git+https://github.com/xji3/jsonctmctree.git
-	`
+*Mac OS / Linux*
+
+1. To install python packages, you need to use [pip](https://pip.pypa.io/en/stable/installing/) (package management).
+
+2. You might need to install [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
+
+*Windows*
+
+1. I recommand using [Anaconda](https://www.anaconda.com/products/individual#windows) on Windows that ships with pip functionality and many more useful features.
+
+2. You still need to install [git](https://git-scm.com/download/win)
+
+
+#### Install python packages
+
+1. Install jsonctmctree package by Alex Griffing (slightly modified for version updates):
+
+`
+pip install --user git+https://github.com/xji3/jsonctmctree.git
+`
 
 2. Install IGCexpansion package:
-	
-	`
-	git clone https://github.com/xji3/IGCexpansion.git
-	`
-	
-	`
-	cd IGCexpansion
-	`
-	
-	`
-	pip install --user .
-	`  _(preferred)_
-	
-	or
-	
-	`
-	python setup.py install
-	` _(hard to uninstall)_  
 
+`
+pip install --user git+https://github.com/xji3/IGCexpansion.git
+`
 
-3. Similarly install any other python packages
-	
-	`
-	pip install --user networkx
-	`
-	
-	`
-	pip install --user Biopython
-	`
+3. Similarly install any other python packages (they should have been installed with IGCexpansion already)
 
+`
+pip install --user networkx
+`
 
-4. edit `tutorials/IS_IGC/Run_IS_IGC.py` to perform analyses.
-
+`
+pip install --user Biopython
+`
 
 To uninstall:
-	
-	pip uninstall IGCexpansion
+
+`
+pip uninstall IGCexpansion
+`
+
+##### Getting a local copy of the package
+
+`
+git clone https://github.com/xji3/IGCexpansion.git
+`
+
+You can now run the tutorial file or edit it to perform analyses.
+
+`
+cd IGCexpansion/tutorials/IS_IGC
+`
+
+`
+python Run_IS_IGC.py
+`
 
 
 ##### Tutorials
