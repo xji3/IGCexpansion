@@ -192,7 +192,7 @@ class ReCodonGeneconv:
 
         if self.clock:   # set-up x_clock if it's a clock model
             l = len(self.edge_to_blen) / 2 + 1               # number of leaves
-            self.x_Lr = np.log(np.ones((l)) * 0.6)
+            self.x_Lr = np.log(np.ones(int(l)) * 0.6)
 
             if transformation == 'log':
                 self.x_clock = np.concatenate((self.x_process, self.x_Lr))
@@ -206,7 +206,7 @@ class ReCodonGeneconv:
         self.update_by_x(transformation = transformation)
         
     def update_by_x_clock(self, x_clock = None, transformation = 'log'):
-        if not x_clock == None:
+        if not x_clock is None:
             self.x_clock = x_clock
         self.unpack_x_clock(transformation = transformation)
         self.update_by_x(transformation = transformation)
@@ -214,7 +214,8 @@ class ReCodonGeneconv:
     def unpack_x_clock(self, transformation):
         assert(self.clock)
         nEdge = len(self.edge_to_blen)  # number of edges
-        l = nEdge / 2 + 1               # number of leaves
+        assert(nEdge % 2 == 0)
+        l = int(nEdge / 2) + 1               # number of leaves
         k = l - 1   # number of internal nodes. The notation here is inconsistent with Alex's for trying to match my notes.
         if transformation == 'log':
             self.x_process, self.x_Lr = self.x_clock[:-l], np.exp(self.x_clock[-l:])
@@ -803,7 +804,7 @@ class ReCodonGeneconv:
         g_clock = np.concatenate( (np.array(other_derives), np.array(Lr_derives)))
 
         if display:
-            print ('log likelihood = ', f)
+            print ('log likelihood = ', -f)
             print ('Lr derivatives = ', Lr_derives)
             print ('other derivatives = ', other_derives)
             print ('Current x_clock array = ', self.x_clock)
@@ -888,8 +889,10 @@ class ReCodonGeneconv:
             else:
                 f = partial(self.objective_wo_derivative, display)
             guess_x = self.x_clock
-            bnds.extend([(None, None)] * (len(self.x_clock) - 2 - (len(self.edge_to_blen) / 2 + 1)))
-            bnds.extend([(-10, 0.0)] * (len(self.edge_to_blen) / 2))
+            assert(len(self.edge_to_blen) % 2 == 0)
+            l = int(len(self.edge_to_blen) / 2)
+            bnds.extend([(None, None)] * (len(self.x_clock) - 2 - ( l + 1)))
+            bnds.extend([(-10, 0.0)] * l)
         if method == 'BFGS':
             if derivative:
                 result = scipy.optimize.minimize(f, guess_x, jac = True, method = 'L-BFGS-B', bounds = bnds)
@@ -1485,7 +1488,7 @@ if __name__ == '__main__':
     # Force MG94:{5:0.0} HKY:{4:0.0}
 
     #MG94+tau
-    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = None, save_path = '../test/save/')
+    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = True, save_path = '../test/save/')
     MG94_tau.get_mle(True, True, 0, 'BFGS')
     # MG94_tau.site_reconstruction()
     # MG94_tau_series = MG94_tau.reconstruction_series
