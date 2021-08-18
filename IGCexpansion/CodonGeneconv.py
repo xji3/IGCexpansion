@@ -1023,8 +1023,8 @@ class ReCodonGeneconv:
         if package == 'new':
             self.scene_ll = self.get_scene()
             if self.Model == 'MG94':
-                syn_heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.codon_to_state)), repeat = 2)) if a != b and self.isSynonymous(a, b)]
-                nonsyn_heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.codon_to_state)), repeat = 2)) if a != b and not self.isSynonymous(a, b)]
+                syn_heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.codon_to_state)), repeat = 2)) if a != b and self.isSynonymous(self.codon_nonstop[a], self.codon_nonstop[b])]
+                nonsyn_heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.codon_to_state)), repeat = 2)) if a != b and not self.isSynonymous(self.codon_nonstop[a], self.codon_nonstop[b])]
                 dwell_request = [dict(
                     property='SDWDWEL',
                     state_reduction=dict(
@@ -1522,7 +1522,8 @@ if __name__ == '__main__':
 
     #MG94+tau
     MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
-    MG94_tau.get_mle(True, True, 0, 'BFGS')
+    # MG94_tau.get_mle(True, True, 0, 'BFGS')
+    MG94_tau._loglikelihood2()
     MG94_tau.get_summary(True)
     # MG94_tau.site_reconstruction()
     # MG94_tau_series = MG94_tau.reconstruction_series
