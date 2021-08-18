@@ -1443,9 +1443,6 @@ class ReCodonGeneconv:
             label.extend([(a, b, 'tau') for (a, b) in self.edge_list])
             out.extend([self.ExpectedGeneconv[i] / (self.edge_to_blen[i] * (self.ExpectedDwellTime[0][i]+self.omega*self.ExpectedDwellTime[1][i])) \
                             if (self.ExpectedDwellTime[0][i]+self.omega*self.ExpectedDwellTime[1][i]) != 0 else 0 for i in self.edge_list])
-            label.extend([(a, b, 'test_tau') for (a, b) in self.edge_list])
-            out.extend([self.ExpectedGeneconv[i] / (self.edge_to_blen[i] * (self.ExpectedDwellTime[0][i]+self.ExpectedDwellTime[1][i])) \
-                            if (self.ExpectedDwellTime[0][i]+self.ExpectedDwellTime[1][i]) != 0 else 0 for i in self.edge_list])
 
     def get_individual_summary(self, summary_path, file_name = None):
         if file_name == None:
@@ -1468,7 +1465,7 @@ class ReCodonGeneconv:
         label = res[1]
             
         footer = ' '.join(label)  # row labels
-        np.savetxt(open(summary_file, 'w+'), summary.T, delimiter = ' ', footer = footer)
+        np.savetxt(summary_file, summary.T, delimiter = ' ', footer = footer)
 
     def get_save_file_name(self):
         if self.save_name is None:
@@ -1524,7 +1521,7 @@ if __name__ == '__main__':
     MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
     # MG94_tau.get_mle(True, True, 0, 'BFGS')
     MG94_tau._loglikelihood2()
-    MG94_tau.get_summary(True)
+    MG94_tau.get_individual_summary('../test/save/')
     # MG94_tau.site_reconstruction()
     # MG94_tau_series = MG94_tau.reconstruction_series
 ##    
