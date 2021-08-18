@@ -1015,21 +1015,39 @@ class ReCodonGeneconv:
         else:
             print ('Need to implement this for old package')
 
+    def isSynonymous(self, first_codon, second_codon):
+        return self.codon_table[first_codon] == self.codon_table[second_codon]
+
     def _ExpectedHetDwellTime(self, package = 'new', display = False):
         
         if package == 'new':
             self.scene_ll = self.get_scene()
-            if self.Model == 'MG94':                                
-                heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.codon_to_state)), repeat = 2)) if a != b]
+            if self.Model == 'MG94':
+                syn_heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.codon_to_state)), repeat = 2)) if a != b and self.isSynonymous(a, b)]
+                nonsyn_heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.codon_to_state)), repeat = 2)) if a != b and not self.isSynonymous(a, b)]
+                dwell_request = [dict(
+                    property='SDWDWEL',
+                    state_reduction=dict(
+                        states=syn_heterogeneous_states,
+                        weights=[2] * len(syn_heterogeneous_states)
+                    )),
+                    dict(
+                        property='SDWDWEL',
+                        state_reduction=dict(
+                            states=nonsyn_heterogeneous_states,
+                            weights=[2] * len(nonsyn_heterogeneous_states)
+                        ))
+                ]
+
             elif self.Model == 'HKY':
                 heterogeneous_states = [(a, b) for (a, b) in list(product(range(len(self.nt_to_state)), repeat = 2)) if a != b]
-            dwell_request = [dict(
-                property = 'SDWDWEL',
-                state_reduction = dict(
-                    states = heterogeneous_states,
-                    weights = [2] * len(heterogeneous_states)
-                )
-            )]
+                dwell_request = [dict(
+                    property = 'SDWDWEL',
+                    state_reduction = dict(
+                        states = heterogeneous_states,
+                        weights = [2] * len(heterogeneous_states)
+                    )
+                )]
             
             j_in = {
                 'scene' : self.scene_ll,
@@ -1037,8 +1055,7 @@ class ReCodonGeneconv:
                 }        
             j_out = jsonctmctree.interface.process_json_in(j_in)
 
-            status = j_out['status']
-            ExpectedDwellTime = {self.edge_list[i] : j_out['responses'][0][i] for i in range(len(self.edge_list))}
+            ExpectedDwellTime = [{self.edge_list[i] : j_out['responses'][j][i] for i in range(len(self.edge_list))} for j in range(len(j_out))]
             return ExpectedDwellTime
         else:
             print ('Need to implement this for old package')
@@ -1382,15 +1399,7 @@ class ReCodonGeneconv:
 
         out.extend([self.edge_to_blen[label[j]] for j in range(k, len(label))])
 
-        if not self.ExpectedGeneconv:
-            self.get_ExpectedNumGeneconv()
-
-        if not self.ExpectedDwellTime:
-            self.get_ExpectedHetDwellTime()
-
-        label.extend([ (a, b, 'tau') for (a, b) in self.edge_list])
-        out.extend([self.ExpectedGeneconv[i] / (self.edge_to_blen[i] * self.ExpectedDwellTime[i]) if self.ExpectedDwellTime[i] != 0 else 0 for i in self.edge_list])
-
+        self._get_dwell_time_summary(out, label)
 
         # Now add directional # of geneconv events
         ExpectedDirectionalNumGeneconv = self._ExpectedDirectionalNumGeneconv()
@@ -1412,7 +1421,31 @@ class ReCodonGeneconv:
         if output_label:
             return out, label
         else:
-            return out        
+            return out
+
+    def _get_dwell_time_summary(self, out, label):
+        if not self.ExpectedGeneconv:
+            self.get_ExpectedNumGeneconv()
+
+        if not self.ExpectedDwellTime:
+            self.get_ExpectedHetDwellTime()
+
+        if self.Model == 'HKY':
+            label.extend([ (a, b, 'tau') for (a, b) in self.edge_list])
+            out.extend([self.ExpectedGeneconv[i] / (self.edge_to_blen[i] * self.ExpectedDwellTime[0][i]) if self.ExpectedDwellTime[0][i] != 0 else 0 for i in self.edge_list])
+        elif self.Model == 'MG94':
+            label.extend([(a, b, 'syn_dwell') for (a, b) in self.edge_list])
+            out.extend([self.edge_to_blen[i] * self.ExpectedDwellTime[0][i] if
+                        self.ExpectedDwellTime[0][i] != 0 else 0 for i in self.edge_list])
+            label.extend([(a, b, 'nonsyn_dwell') for (a, b) in self.edge_list])
+            out.extend([self.edge_to_blen[i] * self.ExpectedDwellTime[1][i] if
+                        self.ExpectedDwellTime[1][i] != 0 else 0 for i in self.edge_list])
+            label.extend([(a, b, 'tau') for (a, b) in self.edge_list])
+            out.extend([self.ExpectedGeneconv[i] / (self.edge_to_blen[i] * (self.ExpectedDwellTime[0][i]+self.omega*self.ExpectedDwellTime[1][i])) \
+                            if (self.ExpectedDwellTime[0][i]+self.omega*self.ExpectedDwellTime[1][i]) != 0 else 0 for i in self.edge_list])
+            label.extend([(a, b, 'test_tau') for (a, b) in self.edge_list])
+            out.extend([self.ExpectedGeneconv[i] / (self.edge_to_blen[i] * (self.ExpectedDwellTime[0][i]+self.ExpectedDwellTime[1][i])) \
+                            if (self.ExpectedDwellTime[0][i]+self.ExpectedDwellTime[1][i]) != 0 else 0 for i in self.edge_list])
 
     def get_individual_summary(self, summary_path, file_name = None):
         if file_name == None:
@@ -1488,8 +1521,9 @@ if __name__ == '__main__':
     # Force MG94:{5:0.0} HKY:{4:0.0}
 
     #MG94+tau
-    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = True, save_path = '../test/save/')
+    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
     MG94_tau.get_mle(True, True, 0, 'BFGS')
+    MG94_tau.get_summary(True)
     # MG94_tau.site_reconstruction()
     # MG94_tau_series = MG94_tau.reconstruction_series
 ##    
