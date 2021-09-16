@@ -24,14 +24,14 @@ class JointAnalysis:
         self.IGC_Omega     = IGC_Omega
         self.paralog_list  = paralog_list
         self.x             = None
-        grand_save_name, individual_save_names = self.get_save_file_names(save_name)
-        self.geneconv_list = [ReCodonGeneconv(tree_newick, alignment_file_list[i], paralog_list[i],
-                                              Model, IGC_Omega, nnsites, False, Force, save_path, individual_save_names[i], post_dup)
-                              for i in range(len(alignment_file_list))]
         if Shared is None:
             self.shared_parameters = []
         else:
             self.shared_parameters = Shared
+        grand_save_name, individual_save_names = self.get_save_file_names(save_name)
+        self.geneconv_list = [ReCodonGeneconv(tree_newick, alignment_file_list[i], paralog_list[i],
+                                              Model, IGC_Omega, nnsites, False, Force, save_path, individual_save_names[i], post_dup)
+                              for i in range(len(alignment_file_list))]
         self.save_name     = grand_save_name
 
         self.auto_save = 0
@@ -43,23 +43,31 @@ class JointAnalysis:
             print('Successfully loaded parameter value from ' + self.save_name)
         else:
             single_x = self.geneconv_list[0].x
-            shared_x = [single_x[i] for i in range(len(single_x)) if self.shared_parameters]
+            shared_x = [single_x[i] for i in self.shared_parameters]
             unique_x = [single_x[i] for i in range(len(single_x)) if not i in self.shared_parameters] * len(self.geneconv_list)
             self.x = np.array(unique_x + shared_x)
+        self.update_by_x(self.x)
 
     def get_save_file_names(self, save_name):
+        if len(self.shared_parameters):
+            model_string = self.Model + '_withSharing'
+        else:
+            model_string = self.Model
+
         if save_name is None:
             if self.IGC_Omega is None:
-                general_save_name = self.save_path + 'Joint_' + self.Model + '_' + str(len(self.paralog_list)) + '_pairs_grand_save.txt'
+                general_save_name = self.save_path + 'Joint_' + model_string + '_' + str(len(self.paralog_list)) + '_pairs_grand_save.txt'
             else:
-                general_save_name = self.save_path + 'Joint_' + self.Model + '_twoOmega_' + str(len(self.paralog_list)) + '_pairs_grand_save.txt'
+                general_save_name = self.save_path + 'Joint_' + model_string + '_twoOmega_' + str(len(self.paralog_list)) + '_pairs_grand_save.txt'
         else:
             general_save_name = save_name
 
+
+
         names = []
         for paralog in self.paralog_list:
-            save_name = general_save_name.replace(str(len(self.paralog_list)) + '_pairs', '_'.join(paralog))
-            names.append(save_name)
+            single_save_name = general_save_name.replace(str(len(self.paralog_list)) + '_pairs', '_'.join(paralog))
+            names.append(single_save_name)
 
         return general_save_name, names
 
@@ -152,11 +160,14 @@ if __name__ == '__main__':
     newicktree = '../test/YeastTree.newick'
 
     paralog_list = [paralog, paralog]
-    Shared = None
+    IGC_Omega = None
+    Shared = [5]
     alignment_file_list = [alignment_file, alignment_file]
     Model = 'MG94'
 
-    joint_analysis = JointAnalysis(alignment_file_list,  newicktree, paralog_list, Model = Model, Force = Force, save_path = '../test/save/')
+    joint_analysis = JointAnalysis(alignment_file_list,  newicktree, paralog_list, Shared = Shared,
+                                   IGC_Omega = IGC_Omega, Model = Model, Force = Force,
+                                   save_path = '../test/save/')
     # print(joint_analysis.objective_and_gradient(joint_analysis.x))
     joint_analysis.get_mle()
 
