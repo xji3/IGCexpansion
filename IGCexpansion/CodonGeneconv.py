@@ -1523,7 +1523,7 @@ class ReCodonGeneconv:
 
         save_file = self.get_save_file_name()
             
-        np.savetxt(save_file, save.T)
+        np.savetxt(save_file, np.array(save).T)
 
     def initialize_by_save(self, save_file):
             
