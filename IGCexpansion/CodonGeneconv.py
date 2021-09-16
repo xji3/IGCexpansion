@@ -1546,10 +1546,23 @@ if __name__ == '__main__':
     #MG94+tau
     MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
     # MG94_tau.get_mle(True, True, 0, 'BFGS')
-    MG94_tau._loglikelihood2()
+    lnL = MG94_tau._loglikelihood2()
     MG94_tau.get_individual_summary('../test/save/')
+    print(lnL)
     # MG94_tau.site_reconstruction()
     # MG94_tau_series = MG94_tau.reconstruction_series
+
+    # MG94+tau+IGC_Omega
+    MG94_tau_omega = ReCodonGeneconv(newicktree, alignment_file, paralog, Model='MG94', IGC_Omega=0.0856028254290315, Force=Force, clock=False,
+                               save_path='../test/save/')
+    new_x = np.concatenate((MG94_tau.x_process[:-2], [MG94_tau.x_process[-2]], MG94_tau.x_process[-2:], MG94_tau.x_rates))
+    # MG94_tau_omega.update_by_x(new_x)
+    print(MG94_tau_omega._loglikelihood2())
+    MG94_tau_omega.get_mle(True, True, 0, 'BFGS')
+    lnL = MG94_tau_omega._loglikelihood2()
+    MG94_tau_omega.get_individual_summary('../test/save/')
+    print(lnL)
+
 ##    
 ##    #MG94
 ##    MG94 = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = {5:0.0}, clock = None, save_path = '../test/save/')
