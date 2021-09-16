@@ -87,7 +87,7 @@ class JointAnalysis:
 
     def update_by_x(self, x):
         self.check_x_dim()
-        self.x = x
+        self.x = np.array(x)
         uniq_dim = len(self.geneconv_list[0].x) - len(self.shared_parameters)
         shared_x = self.x[len(self.geneconv_list) * uniq_dim:]
         for geneconv_idx in range(len(self.geneconv_list)):
@@ -120,7 +120,7 @@ class JointAnalysis:
             self.save_x()
             self.auto_save = 0
 
-        print('-log likelihood = ', f)
+        print('log likelihood = ', f)
         print('Current x array = ', self.x)
         print('Derivatives = ', g)
         return f, g
@@ -143,7 +143,7 @@ class JointAnalysis:
 
     def initialize_by_save(self, save_file):
         self.x = np.loadtxt(open(save_file, 'r'))
-        self.update_by_x()
+        self.update_by_x(self.x)
 
 if __name__ == '__main__':
     paralog = ['YLR406C', 'YDL075W']
