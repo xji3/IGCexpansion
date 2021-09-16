@@ -39,7 +39,7 @@ class JointAnalysis:
 
     def initialize_x(self):
         single_x = self.geneconv_list[0].x
-        shared_x = [single_x[i] for i in self.shared_parameters]
+        shared_x = [single_x[i] for i in range(len(single_x)) if self.shared_parameters]
         unique_x = [single_x[i] for i in range(len(single_x)) if not i in self.shared_parameters] * len(self.geneconv_list)
         self.x = np.array(unique_x + shared_x)
 
@@ -99,8 +99,8 @@ class JointAnalysis:
 
     def combine_bounds(self):
         individual_bnds = self.get_original_bounds()
-        combined_bounds = [bnd for bnd in individual_bnds if not bnd in self.shared_parameters] * len(self.paralog_list) \
-                          + [bnd for bnd in individual_bnds if bnd in self.shared_parameters]
+        combined_bounds = [individual_bnds[idx] for idx in range(len(individual_bnds)) if not idx in self.shared_parameters] * len(self.paralog_list) \
+                          + [individual_bnds[idx] for idx in range(len(individual_bnds)) if idx in self.shared_parameters]
         return combined_bounds
 
 
