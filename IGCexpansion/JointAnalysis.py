@@ -93,7 +93,7 @@ class JointAnalysis:
 
     def get_original_bounds(self):
         bnds = [(None, -0.05)] * 3
-        bnds.extend([(None, None)] * (len(self.x) - 3))
+        bnds.extend([(None, None)] * (len(self.geneconv_list[0].x) - 3))
         return bnds
 
 
@@ -108,16 +108,22 @@ class JointAnalysis:
         self.update_by_x(x)
         individual_results = [geneconv.objective_and_gradient(False, geneconv.x) for geneconv in self.geneconv_list]
         f = sum([result[0] for result in individual_results])
-        g = np.sum([result[1] for result in individual_results], axis = 0)
+        uniq_derivatives = np.concatenate([[result[1][idx] for idx in range(len(result[1])) if not idx in self.shared_parameters] for result in individual_results])
+        shared_derivatives = [[result[1][idx] for idx in range(len(result[1])) if idx in self.shared_parameters] for result in individual_results]
+        g = np.concatenate((uniq_derivatives, np.sum(shared_derivatives, axis = 0)))
         self.auto_save += 1
         if self.auto_save == self.auto_save_step:
             self.save_x()
             self.auto_save = 0
+
+        print('-log likelihood = ', f)
+        print('Current x array = ', self.x)
+        print('Derivatives = ', g)
         return f, g
 
 
-    def get_mle(self, derivative = True):
-        self.update_by_x()
+    def get_mle(self):
+        self.update_by_x(self.x)
 
         guess_x = self.x
 
@@ -149,7 +155,8 @@ if __name__ == '__main__':
     Model = 'MG94'
 
     joint_analysis = JointAnalysis(alignment_file_list,  newicktree, paralog_list, Model = Model, Force = Force, save_path = '../test/save/')
-    print(joint_analysis.objective_and_gradient(joint_analysis.x))
+    # print(joint_analysis.objective_and_gradient(joint_analysis.x))
+    joint_analysis.get_mle()
 
 
 
