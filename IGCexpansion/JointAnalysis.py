@@ -38,10 +38,14 @@ class JointAnalysis:
         self.initialize_x()
 
     def initialize_x(self):
-        single_x = self.geneconv_list[0].x
-        shared_x = [single_x[i] for i in range(len(single_x)) if self.shared_parameters]
-        unique_x = [single_x[i] for i in range(len(single_x)) if not i in self.shared_parameters] * len(self.geneconv_list)
-        self.x = np.array(unique_x + shared_x)
+        if os.path.isfile(self.save_name):
+            self.initialize_by_save(self.save_name)
+            print('Successfully loaded parameter value from ' + self.save_name)
+        else:
+            single_x = self.geneconv_list[0].x
+            shared_x = [single_x[i] for i in range(len(single_x)) if self.shared_parameters]
+            unique_x = [single_x[i] for i in range(len(single_x)) if not i in self.shared_parameters] * len(self.geneconv_list)
+            self.x = np.array(unique_x + shared_x)
 
     def get_save_file_names(self, save_name):
         if save_name is None:
@@ -134,9 +138,7 @@ class JointAnalysis:
 
     def save_x(self):
         save = self.x
-
-        save_file = self.get_save_file_name()
-
+        save_file = self.save_name
         np.savetxt(save_file, save.T)
 
     def initialize_by_save(self, save_file):
