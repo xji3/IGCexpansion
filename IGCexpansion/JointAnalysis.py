@@ -154,19 +154,21 @@ class JointAnalysis:
         self.update_by_x(self.x)
 
 if __name__ == '__main__':
-    paralog = ['YLR406C', 'YDL075W']
+    paralog_1 = ['YLR406C', 'YDL075W']
+    paralog_2 = ['YDR418W', 'YEL054C']
     Force = None
-    alignment_file = '../test/YLR406C_YDL075W_test_input.fasta'
+    alignment_file_1 = '../test/YLR406C_YDL075W_test_input.fasta'
+    alignment_file_2 = '../test/YDR418W_YEL054C_input.fasta'
     newicktree = '../test/YeastTree.newick'
 
-    paralog_list = [paralog, paralog]
+    paralog_list = [paralog_1, paralog_2]
     IGC_Omega = None
-    Shared = [5]
-    alignment_file_list = [alignment_file, alignment_file]
+    Shared = [6]
+    alignment_file_list = [alignment_file_1, alignment_file_2]
     Model = 'MG94'
 
     joint_analysis = JointAnalysis(alignment_file_list,  newicktree, paralog_list, Shared = Shared,
-                                   IGC_Omega = IGC_Omega, Model = Model, Force = Force,
+                                   IGC_Omega = 0.8, Model = Model, Force = Force,
                                    save_path = '../test/save/')
     # print(joint_analysis.objective_and_gradient(joint_analysis.x))
     joint_analysis.get_mle()
