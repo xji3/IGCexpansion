@@ -66,7 +66,7 @@ class JointAnalysis:
 
         names = []
         for paralog in self.paralog_list:
-            single_save_name = general_save_name.replace(str(len(self.paralog_list)) + '_pairs', '_'.join(paralog))
+            single_save_name = general_save_name.replace(str(len(self.paralog_list)) + '_pairs', '_'.join(paralog)).replace('_grand', '')
             names.append(single_save_name)
 
         return general_save_name, names
@@ -153,12 +153,22 @@ class JointAnalysis:
         self.x = np.loadtxt(open(save_file, 'r'))
         self.update_by_x(self.x)
 
+    def get_summary(self, summary_file):
+        individual_results = [self.geneconv_list[i].get_summary(True) for i in range(len(self.paralog_list))]
+        summary = np.array([res[0] for res in individual_results])
+        label = individual_results[0][1]
+
+        footer = ' '.join(label)  # row labels
+        header = ' '.join(['_'.join(paralog) for paralog in self.paralog_list])
+        np.savetxt(summary_file, summary.T, delimiter = ' ', header = header, footer = footer)
+
+
 if __name__ == '__main__':
     paralog_1 = ['YLR406C', 'YDL075W']
     paralog_2 = ['YDR418W', 'YEL054C']
     Force = None
     alignment_file_1 = '../test/YLR406C_YDL075W_test_input.fasta'
-    alignment_file_2 = '../test/YDR418W_YEL054C_input.fasta'
+    alignment_file_2 = '../test/YDR418W_YEL054C_old_input.fasta'
     newicktree = '../test/YeastTree.newick'
 
     paralog_list = [paralog_1, paralog_2]
@@ -170,8 +180,9 @@ if __name__ == '__main__':
     joint_analysis = JointAnalysis(alignment_file_list,  newicktree, paralog_list, Shared = Shared,
                                    IGC_Omega = 0.8, Model = Model, Force = Force,
                                    save_path = '../test/save/')
-    # print(joint_analysis.objective_and_gradient(joint_analysis.x))
+    print(joint_analysis.objective_and_gradient(joint_analysis.x))
     joint_analysis.get_mle()
+    joint_analysis.get_summary('../test/save/test_summary.txt')
 
 
 
