@@ -172,9 +172,10 @@ class JointAnalysis:
         ##        results = [pool.apply(psjsgeneconv.objective_and_gradient, args = (display, x))\
         ##                   for psjsgeneconv in self.psjsgeneconv_list]
 
-        for result in results:
-            f += result[0]
-            g += result[1]
+        f = sum([result[0] for result in results])
+        uniq_derivatives = np.concatenate([[result[1][idx] for idx in range(len(result[1])) if not idx in self.shared_parameters] for result in results])
+        shared_derivatives = [[result[1][idx] for idx in range(len(result[1])) if idx in self.shared_parameters] for result in results]
+        g = np.concatenate((uniq_derivatives, np.sum(shared_derivatives, axis = 0)))
 
         print('log likelihhood = ', f)
         print('exp x = ', np.exp(self.x))
@@ -237,7 +238,7 @@ if __name__ == '__main__':
                                    IGC_Omega = 0.8, Model = Model, Force = Force,
                                    save_path = '../test/save/')
     print(joint_analysis.objective_and_gradient_multi_threaded(joint_analysis.x))
-    print(joint_analysis.objective_and_gradient(joint_analysis.x))
+    # print(joint_analysis.objective_and_gradient(joint_analysis.x))
     # joint_analysis.get_mle()
     # joint_analysis.get_summary('../test/save/test_summary.txt')
 
