@@ -2,12 +2,12 @@
 # Xiang Ji
 # xji3@ncsu.edu
 
-from IGCTractModel import IGCTractModel
-from Tree import Tree
-from PMModel import PMModel
-from Common import divide_configuration, draw_from_distribution
+from .IGCTractModel import IGCTractModel
+from .Tree import Tree
+from .PMModel import PMModel
+from .Common import divide_configuration, draw_from_distribution
 import numpy as np
-import cPickle, os
+import os
 from copy import deepcopy
 from math import floor
 from operator import mul

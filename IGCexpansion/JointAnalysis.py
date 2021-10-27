@@ -1,4 +1,4 @@
-from CodonGeneconv import *
+from .CodonGeneconv import *
 import multiprocessing as mp
 
 class JointAnalysis:

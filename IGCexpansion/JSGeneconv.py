@@ -13,7 +13,7 @@ from functools import partial
 import scipy
 import scipy.optimize
 import os
-from Common import *
+from .Common import *
 from math import floor
 #import numdifftools as nd
 
