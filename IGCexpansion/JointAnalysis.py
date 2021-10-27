@@ -10,9 +10,9 @@ class JointAnalysis:
                  paralog_list,
                  Model = 'MG94',
                  IGC_Omega = None,
+                 Tau_Omega = None,
                  nnsites = None,
                  Force = None,
-                 multiprocess_combined_list = None,
                  Shared = None,
                  save_path = './save/',
                  save_name = None,
@@ -26,15 +26,15 @@ class JointAnalysis:
         self.IGC_Omega     = IGC_Omega
         self.paralog_list  = paralog_list
         self.x             = None
-        self.Force         = Force
-        self.multiprocess_combined_list = multiprocess_combined_list
         if Shared is None:
             self.shared_parameters = []
         else:
             self.shared_parameters = Shared
         grand_save_name, individual_save_names = self.get_save_file_names(save_name)
-        self.geneconv_list = [ReCodonGeneconv(tree_newick, alignment_file_list[i], paralog_list[i],
-                                              Model, IGC_Omega, nnsites, False, Force, save_path, individual_save_names[i], post_dup)
+        self.geneconv_list = [ReCodonGeneconv(tree_newick = tree_newick, alignment = alignment_file_list[i], paralog = paralog_list[i],
+                                              Model = Model, IGC_Omega = IGC_Omega, Tau_Omega = Tau_Omega, nnsites = nnsites,
+                                              clock = False, Force = Force, save_path = save_path, save_name = individual_save_names[i],
+                                              post_dup = post_dup)
                               for i in range(len(alignment_file_list))]
         self.save_name     = grand_save_name
 
@@ -234,8 +234,8 @@ if __name__ == '__main__':
                                    IGC_Omega = 0.8, Model = Model, Force = Force,
                                    save_path = '../test/save/')
     print(joint_analysis.objective_and_gradient(joint_analysis.x))
-    joint_analysis.get_mle()
-    joint_analysis.get_summary('../test/save/test_summary.txt')
+    # joint_analysis.get_mle()
+    # joint_analysis.get_summary('../test/save/test_summary.txt')
 
 
 
