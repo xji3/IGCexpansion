@@ -11,6 +11,7 @@ class JointAnalysis:
                  Model = 'MG94',
                  IGC_Omega = None,
                  Tau_Omega = None,
+                 multiprocess_combined_list = None,
                  nnsites = None,
                  Force = None,
                  Shared = None,
@@ -26,6 +27,7 @@ class JointAnalysis:
         self.IGC_Omega     = IGC_Omega
         self.paralog_list  = paralog_list
         self.x             = None
+        self.multiprocess_combined_list = multiprocess_combined_list
         if Shared is None:
             self.shared_parameters = []
         else:
@@ -52,7 +54,7 @@ class JointAnalysis:
             self.x = np.array(unique_x + shared_x)
         self.update_by_x(self.x)
         if self.multiprocess_combined_list is None:
-            self.multiprocess_combined_list = [[i] for i in range(len(self.geneconv_list))]
+            self.multiprocess_combined_list = range(len(self.geneconv_list))
 
     def get_save_file_names(self, save_name):
         if len(self.shared_parameters):
@@ -140,7 +142,8 @@ class JointAnalysis:
         return f, g
 
     def _process_objective_and_gradient(self, num_jsgeneconv, display, x, output):
-        result = self.geneconv_list[num_jsgeneconv].objective_and_gradient(display, x)
+        self.update_by_x(x)
+        result = self.geneconv_list[num_jsgeneconv].objective_and_gradient(False, self.geneconv_list[num_jsgeneconv].x)
         output.put(result)
 
     def objective_and_gradient_multi_threaded(self, x):
@@ -184,7 +187,7 @@ class JointAnalysis:
             self.auto_save = 0
         return f, g
 
-    def get_mle(self, parallel = False):
+    def get_mle(self, parallel = True):
         self.update_by_x(self.x)
 
         guess_x = self.x
@@ -233,6 +236,7 @@ if __name__ == '__main__':
     joint_analysis = JointAnalysis(alignment_file_list,  newicktree, paralog_list, Shared = Shared,
                                    IGC_Omega = 0.8, Model = Model, Force = Force,
                                    save_path = '../test/save/')
+    print(joint_analysis.objective_and_gradient_multi_threaded(joint_analysis.x))
     print(joint_analysis.objective_and_gradient(joint_analysis.x))
     # joint_analysis.get_mle()
     # joint_analysis.get_summary('../test/save/test_summary.txt')
