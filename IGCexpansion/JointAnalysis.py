@@ -1,4 +1,5 @@
 from CodonGeneconv import *
+import multiprocessing as mp
 
 class JointAnalysis:
     auto_save_step = 2
@@ -11,6 +12,7 @@ class JointAnalysis:
                  IGC_Omega = None,
                  nnsites = None,
                  Force = None,
+                 multiprocess_combined_list = None,
                  Shared = None,
                  save_path = './save/',
                  save_name = None,
@@ -24,6 +26,8 @@ class JointAnalysis:
         self.IGC_Omega     = IGC_Omega
         self.paralog_list  = paralog_list
         self.x             = None
+        self.Force         = Force
+        self.multiprocess_combined_list = multiprocess_combined_list
         if Shared is None:
             self.shared_parameters = []
         else:
@@ -47,6 +51,8 @@ class JointAnalysis:
             unique_x = [single_x[i] for i in range(len(single_x)) if not i in self.shared_parameters] * len(self.geneconv_list)
             self.x = np.array(unique_x + shared_x)
         self.update_by_x(self.x)
+        if self.multiprocess_combined_list is None:
+            self.multiprocess_combined_list = [[i] for i in range(len(self.geneconv_list))]
 
     def get_save_file_names(self, save_name):
         if len(self.shared_parameters):
@@ -133,13 +139,60 @@ class JointAnalysis:
         print('Derivatives = ', g)
         return f, g
 
+    def _process_objective_and_gradient(self, num_jsgeneconv, display, x, output):
+        result = self.geneconv_list[num_jsgeneconv].objective_and_gradient(display, x)
+        output.put(result)
 
-    def get_mle(self):
+    def objective_and_gradient_multi_threaded(self, x):
+        self.update_by_x(x)
+        f = 0.0
+        g = 0.0
+        # Define an output queue
+        output = mp.Queue()
+
+        # Setup a list of processes that we want to run
+        processes = [mp.Process(target=self._process_objective_and_gradient, args=(i, False, x, output)) \
+                     for i in self.multiprocess_combined_list]
+
+        # Run processes
+        for p in processes:
+            p.start()
+
+        # Exit the completed processes
+        for p in processes:
+            p.join()
+
+        # Get process results from the output queue
+        results = [output.get() for p in processes]
+
+        ##        pool = mp.Pool(processes = self.num_processes)
+        ##        results = [pool.apply(psjsgeneconv.objective_and_gradient, args = (display, x))\
+        ##                   for psjsgeneconv in self.psjsgeneconv_list]
+
+        for result in results:
+            f += result[0]
+            g += result[1]
+
+        print('log likelihhood = ', f)
+        print('exp x = ', np.exp(self.x))
+        print('Gradient = ', g)
+
+        # Now save parameter values
+        self.auto_save += 1
+        if self.auto_save == JointAnalysis.auto_save_step:
+            self.save_x()
+            self.auto_save = 0
+        return f, g
+
+    def get_mle(self, parallel = False):
         self.update_by_x(self.x)
 
         guess_x = self.x
 
-        result = scipy.optimize.minimize(self.objective_and_gradient, guess_x, jac=True, method='L-BFGS-B', bounds=self.combine_bounds())
+        if parallel:
+            result = scipy.optimize.minimize(self.objective_and_gradient_multi_threaded, guess_x, jac=True, method='L-BFGS-B', bounds=self.combine_bounds())
+        else:
+            result = scipy.optimize.minimize(self.objective_and_gradient, guess_x, jac=True, method='L-BFGS-B', bounds=self.combine_bounds())
         print (result)
         self.save_x()
         return result
