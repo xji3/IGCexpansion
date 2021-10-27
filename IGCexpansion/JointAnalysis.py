@@ -178,6 +178,7 @@ class JointAnalysis:
         g = np.concatenate((uniq_derivatives, np.sum(shared_derivatives, axis = 0)))
 
         print('log likelihhood = ', f)
+        print('Current x array = ', self.x)
         print('exp x = ', np.exp(self.x))
         print('Gradient = ', g)
 
