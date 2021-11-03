@@ -892,20 +892,14 @@ class ReCodonGeneconv:
             else:
                 self.update_by_x()
 
-        bnds = [(None, -0.05)] * 3
+        bnds = self.get_parameter_bounds()
         if not self.clock:
             self.update_by_x()
             if derivative:
                 f = partial(self.objective_and_gradient, display)
             else:
                 f = partial(self.objective_wo_derivative, display)
-            guess_x = self.x            
-            bnds.extend([(None, None)] * (len(self.x_process) - 4))
-            bnds.extend([(None, 7.0)] * (1))  # Now add upper limit for tau
-            edge_bnds = [(None, None)] * len(self.x_rates)
-            edge_bnds[1] = (self.minlogblen, None)
-            bnds.extend(edge_bnds)
-            
+            guess_x = self.x
         else:
             self.update_by_x_clock()  # TODO: change force for blen in x_clock
             if derivative:
@@ -913,10 +907,6 @@ class ReCodonGeneconv:
             else:
                 f = partial(self.objective_wo_derivative, display)
             guess_x = self.x_clock
-            assert(len(self.edge_to_blen) % 2 == 0)
-            l = int(len(self.edge_to_blen) / 2)
-            bnds.extend([(None, None)] * (len(self.x_clock) - 2 - ( l + 1)))
-            bnds.extend([(-10, 0.0)] * l)
         if method == 'BFGS':
             if derivative:
                 result = scipy.optimize.minimize(f, guess_x, jac = True, method = 'L-BFGS-B', bounds = bnds)
@@ -939,6 +929,22 @@ class ReCodonGeneconv:
         print (result)
         self.save_x()
         return result
+
+    def get_parameter_bounds(self):
+        bnds = [(None, -0.05)] * 3
+        if not self.clock:
+            bnds.extend([(None, 10.0)] * (len(self.x_process) - 4))
+            bnds.extend([(None, 7.0)] * (1))  # Now add upper limit for tau
+            edge_bnds = [(None, None)] * len(self.x_rates)
+            edge_bnds[1] = (self.minlogblen, None)
+            bnds.extend(edge_bnds)
+        else:
+            assert (len(self.edge_to_blen) % 2 == 0)
+            l = int(len(self.edge_to_blen) / 2)
+            bnds.extend([(None, None)] * (len(self.x_clock) - 2 - (l + 1)))
+            bnds.extend([(-10, 0.0)] * l)
+        return bnds
+
     def check_boundary(self, x, f, accepted):
         print("at minimum %.4f accepted %d" % (f, int(accepted)))
         return self.edge_to_blen[self.edge_list[1]] > np.exp(self.minlogblen)

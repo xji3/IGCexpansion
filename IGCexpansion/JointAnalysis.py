@@ -112,10 +112,7 @@ class JointAnalysis:
             geneconv.update_by_x(self.combine_x(uniq_x, shared_x))
 
     def get_original_bounds(self):
-        bnds = [(None, -0.05)] * 3
-        bnds.extend([(None, None)] * (len(self.geneconv_list[0].x) - 3))
-        return bnds
-
+        return self.geneconv_list[0].get_parameter_bounds()
 
     def combine_bounds(self):
         individual_bnds = self.get_original_bounds()
