@@ -935,7 +935,7 @@ class ReCodonGeneconv:
         if not self.clock:
             bnds.extend([(None, 10.0)] * (len(self.x_process) - 4))
             bnds.extend([(None, 7.0)] * (1))  # Now add upper limit for tau
-            edge_bnds = [(None, None)] * len(self.x_rates)
+            edge_bnds = [(None, 10.0)] * len(self.x_rates)
             edge_bnds[1] = (self.minlogblen, None)
             bnds.extend(edge_bnds)
         else:
