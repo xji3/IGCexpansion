@@ -1,5 +1,5 @@
-from .CodonGeneconv import *
-import multiprocessing as mp
+from IGCexpansion.CodonGeneconv import *
+from multiprocessing import Pool
 
 class JointAnalysis:
     auto_save_step = 2
@@ -138,36 +138,15 @@ class JointAnalysis:
         print('Derivatives = ', g)
         return f, g
 
-    def _process_objective_and_gradient(self, num_jsgeneconv, display, x, output):
-        self.update_by_x(x)
+    def _pool_objective_and_gradient(self, num_jsgeneconv):
         result = self.geneconv_list[num_jsgeneconv].objective_and_gradient(False, self.geneconv_list[num_jsgeneconv].x)
-        output.put(result)
+        return result
 
     def objective_and_gradient_multi_threaded(self, x):
         self.update_by_x(x)
-        f = 0.0
-        g = 0.0
-        # Define an output queue
-        output = mp.Queue()
 
-        # Setup a list of processes that we want to run
-        processes = [mp.Process(target=self._process_objective_and_gradient, args=(i, False, x, output)) \
-                     for i in self.multiprocess_combined_list]
-
-        # Run processes
-        for p in processes:
-            p.start()
-
-        # Exit the completed processes
-        for p in processes:
-            p.join()
-
-        # Get process results from the output queue
-        results = [output.get() for p in processes]
-
-        ##        pool = mp.Pool(processes = self.num_processes)
-        ##        results = [pool.apply(psjsgeneconv.objective_and_gradient, args = (display, x))\
-        ##                   for psjsgeneconv in self.psjsgeneconv_list]
+        with Pool(processes=len(self.geneconv_list)) as pool:
+            results = pool.map(self._pool_objective_and_gradient, range(len(self.geneconv_list)))
 
         f = sum([result[0] for result in results])
         uniq_derivatives = np.concatenate([[result[1][idx] for idx in range(len(result[1])) if not idx in self.shared_parameters] for result in results])
@@ -235,6 +214,7 @@ if __name__ == '__main__':
     joint_analysis = JointAnalysis(alignment_file_list,  newicktree, paralog_list, Shared = Shared,
                                    IGC_Omega = 0.8, Model = Model, Force = Force,
                                    save_path = '../test/save/')
+    # joint_analysis.get_mle()
     print(joint_analysis.objective_and_gradient_multi_threaded(joint_analysis.x))
     # print(joint_analysis.objective_and_gradient(joint_analysis.x))
     # joint_analysis.get_mle()
