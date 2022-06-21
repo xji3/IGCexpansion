@@ -76,6 +76,9 @@ def isTransition(na, nb):
 def isNonsynonymous(ca, cb, codon_table):
     return (codon_table[ca] != codon_table[cb])
 
+def isHomogenizing(ca, cb, codon_table):
+    return (codon_table[ca] == codon_table[cb])
+
 #vec_get_MG94BasicRate = np.vectorize(get_MG94BasicRate, doc='Vectorized `get_MG94BasicRate`', excluded = ['pi', 'kappa', 'omega', 'codon_table'])
 
 def get_MG94GeneconvRate(pair_from, pair_to, Qbasic, tau, codon_to_state):
