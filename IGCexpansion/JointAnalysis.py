@@ -42,6 +42,7 @@ class JointAnalysis:
 
         self.auto_save = 0
         self.initialize_x()
+        self.ll = np.array([])
 
     def initialize_x(self):
         if os.path.isfile(self.save_name):
@@ -149,11 +150,12 @@ class JointAnalysis:
             results = pool.map(self._pool_objective_and_gradient, range(len(self.geneconv_list)))
 
         f = sum([result[0] for result in results])
+        self.ll = [result[0] for result in results]
         uniq_derivatives = np.concatenate([[result[1][idx] for idx in range(len(result[1])) if not idx in self.shared_parameters] for result in results])
         shared_derivatives = [[result[1][idx] for idx in range(len(result[1])) if idx in self.shared_parameters] for result in results]
         g = np.concatenate((uniq_derivatives, np.sum(shared_derivatives, axis = 0)))
 
-        print('log likelihhood = ', f)
+        print('log likelihood = ', f)
         print('Current x array = ', self.x)
         print('exp x = ', np.exp(self.x))
         print('Gradient = ', g)
@@ -190,6 +192,7 @@ class JointAnalysis:
     def get_summary(self, summary_file):
         individual_results = [self.geneconv_list[i].get_summary(True) for i in range(len(self.paralog_list))]
         summary = np.array([res[0] for res in individual_results])
+        summary[:, 1] = self.ll
         label = individual_results[0][1]
 
         footer = ' '.join(label)  # row labels
@@ -217,8 +220,8 @@ if __name__ == '__main__':
     # joint_analysis.get_mle()
     print(joint_analysis.objective_and_gradient_multi_threaded(joint_analysis.x))
     # print(joint_analysis.objective_and_gradient(joint_analysis.x))
-    # joint_analysis.get_mle()
-    # joint_analysis.get_summary('../test/save/test_summary.txt')
+    joint_analysis.get_mle()
+    joint_analysis.get_summary('../test/save/test_summary.txt')
 
 
 
