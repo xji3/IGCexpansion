@@ -4,7 +4,7 @@
 
 import numpy as np
 import scipy, scipy.optimize, scipy.linalg
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 from scipy.linalg import expm
 from functools import partial
 from math import floor
@@ -136,7 +136,7 @@ class HMMTract:
             emission_0 = self.NOIGC_sitewise_lnL[i] - np.log(distn[0]) 
 
             if self.NOIGC_sitewise_lnL[i] - self.IGC_sitewise_lnL[i] > 0:
-                print i, self.NOIGC_sitewise_lnL[i], self.IGC_sitewise_lnL[i], distn[0]
+                print(i, self.NOIGC_sitewise_lnL[i], self.IGC_sitewise_lnL[i], distn[0])
                 sys.exit('something is wrong')
                 #emission_1 = -10000.0
             else:
@@ -178,7 +178,7 @@ class HMMTract:
         self.Forward_mat = lnL_array
         ll = lnL_array[0, -1] + np.log(sum(np.exp(lnL_array[:, -1] - lnL_array[0, -1])))
         if display:
-            print '\t'.join([ str(item) for item in [ll, self.tau] + list(np.exp(self.x))])
+            print('\t'.join([ str(item) for item in [ll, self.tau] + list(np.exp(self.x))]))
 
         return -ll
 

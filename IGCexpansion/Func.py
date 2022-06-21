@@ -1,6 +1,7 @@
 # A separate file for general functions
 # Xiang Ji
 # xji3@ncsu.edu
+import sys
 
 from .Data import Data
 from .Tree import Tree

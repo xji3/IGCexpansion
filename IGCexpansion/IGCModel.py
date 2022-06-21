@@ -119,9 +119,9 @@ if __name__ == '__main__':
     print(test.Q_IGC)
 
 
-    from Tree import Tree
-    from Common import *
-    from Func import *
+    from .Tree import Tree
+    from .Common import *
+    from .Func import *
 
     tree_newick = '../test/PrimateTest.newick'
     DupLosList = '../test/PrimateTestDupLost.txt'
