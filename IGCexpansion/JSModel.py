@@ -3,15 +3,15 @@
 # Xiang Ji
 # xji3@ncsu.edu
 import sys
-from IGCModel import IGCModel
-from PMModel import PMModel
+from .IGCModel import IGCModel
+from .PMModel import PMModel
 import numpy as np
 import itertools
 from copy import deepcopy
 from operator import mul
 from scipy.sparse import lil_matrix
 import scipy.sparse.linalg
-from Common import *
+from .Common import *
 
 class JSModel:
     def __init__(self, n_js, x_js, pm_model, n_orlg, IGC_pm, rate_variation = False, accessible_orlg_pair = None, force = None):
@@ -108,7 +108,7 @@ class JSModel:
         if self.pm_model == 'HKY':
             self.state_space_shape = [4 for i in range(self.n_js)]
         else:
-            print 'The point mutation model has not been implemented.'
+            Exception('The point mutation model has not been implemented.')
 
         pm_force, IGC_force = self.divide_force()
         self.PMModel = PMModel(self.pm_model, self.x_pm, self.rate_variation, pm_force)
