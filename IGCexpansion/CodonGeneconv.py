@@ -686,7 +686,7 @@ class ReCodonGeneconv:
         Modified from Alex's objective_and_gradient function in ctmcaas/adv-log-likelihoods/mle_geneconv_common.py
         '''
         self.update_by_x()
-        delta = 1e-8
+        # delta = 1e-8
         x = deepcopy(self.x)  # store the current x array
         if package == 'new':
             fn = self._loglikelihood2
@@ -705,11 +705,29 @@ class ReCodonGeneconv:
                 if i in self.Force.keys():  # check here
                     other_derivs.append(0.0)
                     continue
-            x_plus_delta = np.array(self.x)
-            x_plus_delta[i] += delta
-            self.update_by_x(x_plus_delta)
-            ll_delta, _ = fn(store = True, edge_derivative = False)
-            d_estimate = (ll_delta - ll) / delta           
+            # x_plus_delta = np.array(self.x)
+            # x_plus_delta[i] += delta
+            # self.update_by_x(x_plus_delta)
+            # ll_delta, _ = fn(store = True, edge_derivative = False)
+            # d_estimate = (ll_delta - ll) / delta
+
+            # finite difference central
+            # ll_delta1 is f(x+2/h)
+
+            delta = deepcopy(max(1, abs(self.x[i])) * 0.000001)
+            x_plus_delta1 = np.array(self.x)
+            x_plus_delta1[i] += delta / 2
+            self.update_by_x(x_plus_delta1)
+            ll_delta1, _ = fn(store=True, edge_derivative=False)
+
+            # ll_delta0 is f(x-2/h)
+            x_plus_delta0 = np.array(self.x)
+            x_plus_delta0[i] -= delta / 2
+            self.update_by_x(x_plus_delta0)
+            ll_delta0, _ = fn(store=True, edge_derivative=False)
+
+            d_estimate = (ll_delta1 - ll_delta0) / delta
+
             other_derivs.append(d_estimate)
             # restore self.x
             self.update_by_x(x)
