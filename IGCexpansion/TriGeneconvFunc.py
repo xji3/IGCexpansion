@@ -129,7 +129,7 @@ def get_HKYGeneconvRate(triple_from, triple_to, Qbasic, tau, paralog = [0, 1, 2]
                     Qb += tau[2]  # add tau23
                 return Qb
             else:
-                print 'Must be something wrong, check get_HKYGENEconvRate'
+                print('Must be something wrong, check get_HKYGENEconvRate')
                 return None
         else:
             return 0.0
@@ -161,7 +161,7 @@ def get_HKYGeneconvRate(triple_from, triple_to, Qbasic, tau, paralog = [0, 1, 2]
         else:
             return 0.0
     else:
-        print 'check input paralog list plz'
+        Exception('check input paralog list plz')
         assert(0 == 1)
  
 def diff(triple_from, triple_to):

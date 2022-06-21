@@ -5,7 +5,7 @@
 # commit number: Dec 17th, 2014 for new package
 # 33e393a973161e3a29149e82bfda23882b5826f3
 
-from TriGeneconvFunc import *
+from .TriGeneconvFunc import *
 import argparse
 
 class TriGeneconv:
@@ -99,7 +99,7 @@ class TriGeneconv:
         if os.path.isfile(save_file):  # if the save txt file exists and not empty, then read in parameter values
             if os.stat(save_file).st_size > 0:                
                 self.initialize_by_save()
-                print 'Successfully loaded parameter value from ' + save_file
+                print('Successfully loaded parameter value from ' + save_file)
         else:
             self.get_initial_x_process()   # otherwise, initialize all parameter to default initial values
 
@@ -182,7 +182,7 @@ class TriGeneconv:
         else:
             for name in self.name_to_seq:
                 self.name_to_seq[name] = self.name_to_seq[name][: self.nsites]
-        print 'number of sites to be analyzed: ', self.nsites
+        print('number of sites to be analyzed: ', self.nsites)
 
         # assign observable parameters
         suffix_len = len(self.paralog[0])
@@ -212,9 +212,9 @@ class TriGeneconv:
             assert(self.delta)  # self.delta should be a real value for the exponential decay
             num_other += 1  # add self.delta
         elif self.Dis == 'None':
-            print 'Distance parameter not included in the model'
+            print('Distance parameter not included in the model')
         else:
-            print 'Check Distance Model pleaze'
+            print('Check Distance Model pleaze')
             assert(0==1)
 
         if self.gBGC:
@@ -357,8 +357,8 @@ class TriGeneconv:
         elif self.num_free_tau == 8:
             return x_tau
         else:
-            print "This case hasn't been implemented, please change assign_tau() function "
-            assert(0==1)
+            Exception("This case hasn't been implemented, please change assign_tau() function ")
+
 
     def unpack_x_rates(self, Force_rates = None):  # TODO: Change it to fit general tree structure rather than cherry tree
         x_rates = np.exp(self.x_rates)
@@ -484,10 +484,10 @@ class TriGeneconv:
             self.update_by_x(x)
         other_derivs = np.array(other_derivs)
         if display:
-            print 'log likelihood = ', ll
-            print 'Edge derivatives = ', edge_derivs
-            print 'other derivatives:', other_derivs
-            print 'Current x array = ', self.x
+            print('log likelihood = ', ll)
+            print('Edge derivatives = ', edge_derivs)
+            print('other derivatives:', other_derivs)
+            print('Current x array = ', self.x)
 
         self.ll = ll
         f = -ll
@@ -646,7 +646,7 @@ if __name__ == '__main__':
     #for oldest_paralog in paralog:
     test = TriGeneconv( newicktree, alignment_file, save_path, oldest_paralog, Force = False, Dis = Dis, Dir = Dir, gBGC = gBGC)
     test.update_by_x()
-    print test._loglikelihood()
+    print(test._loglikelihood())
     test.get_mle(True, True)
     test.get_individual_summary()
 

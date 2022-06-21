@@ -5,16 +5,16 @@
 from __future__ import print_function
 from itertools import product
 import jsonctmctree.ll, jsonctmctree.interface
-from Data import Data
-from Tree import Tree
-from PSJSModel import PSJSModel
-from Func import *
+from .Data import Data
+from .Tree import Tree
+from .PSJSModel import PSJSModel
+from .Func import *
 from copy import deepcopy
 from functools import partial
 import scipy
 import scipy.optimize
 import os
-from Common import *
+from .Common import *
 #import numdifftools as nd
 
 
