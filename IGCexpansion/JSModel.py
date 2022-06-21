@@ -3,6 +3,8 @@
 # Xiang Ji
 # xji3@ncsu.edu
 import sys
+from functools import reduce
+
 from .IGCModel import IGCModel
 from .PMModel import PMModel
 import numpy as np

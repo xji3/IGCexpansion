@@ -115,7 +115,7 @@ class TriGeneconv:
         tree_nx = Phylo.to_networkx(tree_phy)
 
         triples = [(u.name, v.name, d['weight']) for (u, v, d) in tree_nx.edges(data = True)] # data = True to have the blen as 'weight'
-        triples.extend([('N0', 'N1', d['weight']), ('N1', 'N2', d['weight'])])
+        triples.extend([('N0', 'N1', None), ('N1', 'N2', None)]) #TODO: fix
         T = nx.DiGraph()
         edge_to_blen = {}
         for va, vb, blen in triples:
