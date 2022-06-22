@@ -691,23 +691,24 @@ class ReCodonGeneconv:
             # d_estimate = (ll_delta - ll) / delta
 
             # finite difference central
-            # ll_delta1 is f(x+2/h)
 
             delta = deepcopy(max(1, abs(self.x[i])) * 0.000001)
             # reference: http://paulklein.ca/newsite/teaching/Notes_NumericalDifferentiation.pdf
             # line before equation 22.
-            x_plus_delta1 = np.array(self.x)
-            x_plus_delta1[i] += delta / 2
-            self.update_by_x(x_plus_delta1)
-            ll_delta1, _ = fn(store=True, edge_derivative=False)
 
-            # ll_delta0 is f(x-2/h)
-            x_plus_delta0 = np.array(self.x)
-            x_plus_delta0[i] -= delta / 2
-            self.update_by_x(x_plus_delta0)
-            ll_delta0, _ = fn(store=True, edge_derivative=False)
+            # ll_delta_plus is f(x+2/h)
+            x_plus_delta = np.array(self.x)
+            x_plus_delta[i] += delta / 2
+            self.update_by_x(x_plus_delta)
+            ll_delta_plus, _ = fn(store=True, edge_derivative=False)
 
-            d_estimate = (ll_delta1 - ll_delta0) / delta
+            # ll_delta_minus is f(x-2/h)
+            x_minus_delta = np.array(self.x)
+            x_minus_delta[i] -= delta / 2
+            self.update_by_x(x_minus_delta)
+            ll_delta_minus, _ = fn(store=True, edge_derivative=False)
+
+            d_estimate = (ll_delta_plus - ll_delta_minus) / delta
 
             other_derivs.append(d_estimate)
             # restore self.x
