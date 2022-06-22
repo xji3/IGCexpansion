@@ -327,7 +327,8 @@ class ReCodonGeneconv:
         if self.Model == 'MG94':
             # x_process[] = %AG, %A, %C, kappa, tau, omega
             check_length = 6 + self.use_IGC_Omega() + self.use_Homo_Omega()
-            assert(len(self.x_process) == check_length)
+            assert (self.use_IGC_Omega() + self.use_Homo_Omega() <= 1)
+            assert (len(self.x_process) == check_length)
             
             pi_a = x_process[0] * x_process[1]
             pi_c = (1 - x_process[0]) * x_process[2]
@@ -697,13 +698,13 @@ class ReCodonGeneconv:
             # reference: http://paulklein.ca/newsite/teaching/Notes_NumericalDifferentiation.pdf
             # line before equation 22.
 
-            # x_plus_delta = f(x+1/h)
+            # x_plus_delta = f(x+2/h)
             x_plus_delta = np.array(self.x)
             x_plus_delta[i] += delta / 2
             self.update_by_x(x_plus_delta)
             ll_delta_plus, _ = fn(store=True, edge_derivative=False)
 
-            # ll_delta0 is f(x-2/h)
+            # x_minus_delta = f(x-2/h)
             x_minus_delta = np.array(self.x)
             x_minus_delta[i] -= delta / 2
             self.update_by_x(x_minus_delta)
