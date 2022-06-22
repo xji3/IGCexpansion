@@ -327,7 +327,8 @@ class ReCodonGeneconv:
         if self.Model == 'MG94':
             # x_process[] = %AG, %A, %C, kappa, tau, omega
             check_length = 6 + self.use_IGC_Omega() + self.use_Homo_Omega()
-            assert(len(self.x_process) == check_length)
+            assert (self.use_IGC_Omega() + self.use_Homo_Omega() <= 1)
+            assert (len(self.x_process) == check_length)
             
             pi_a = x_process[0] * x_process[1]
             pi_c = (1 - x_process[0]) * x_process[2]
