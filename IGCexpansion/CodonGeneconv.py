@@ -403,51 +403,50 @@ class ReCodonGeneconv:
                         continue
                     sc = self.codon_to_state[cc]
                     # (ca, cb) to (ca, cc)
-                    Qb = Qbasic[sb, sc]
+                    if isHomogenizing(ca, cc, self.codon_table) and self.use_Homo_Omega():
+                        Qb = Qbasic_Homo[sb, sc]
+                    else:
+                        Qb = Qbasic[sb, sc]
                     if Qb != 0:
                         row.append((sa, sb))
-                        col.append((sa, sc)) # TODO isNonsynonymous necessary?
-                        if isNonsynonymous(cb, cc, self.codon_table) and isHomogenizing(ca, cc, self.codon_table) and self.use_Homo_Omega():
-                            rate_geneconv.append(Qbasic_Homo[sb, sc])
-                        else:
-                            rate_geneconv.append(Qb)
+                        col.append((sa, sc))
+                        rate_geneconv.append(Qb)
                         rate_basic.append(0.0)
 
                     # (ca, cb) to (cc, cb)
-                    Qb = Qbasic[sa, sc]
+                    if isHomogenizing(cc, cb, self.codon_table) and self.use_Homo_Omega():
+                        Qb = Qbasic_Homo[sb, sc]
+                    else:
+                        Qb = Qbasic[sa, sc]
                     if Qb != 0:
                         row.append((sa, sb))
                         col.append((sc, sb))
-                        if isNonsynonymous(ca, cc, self.codon_table) and isHomogenizing(cc, cb, self.codon_table) and self.use_Homo_Omega():
-                            rate_geneconv.append(Qbasic_Homo[sa, sc])
-                        else:
-                            rate_geneconv.append(Qb)
+                        rate_geneconv.append(Qb)
                         rate_basic.append(0.0)
 
                         
                 # (ca, cb) to (ca, ca)
                 row.append((sa, sb))
                 col.append((sa, sa))
-                Qb = Qbasic[sb, sa]
+                if self.use_Homo_Omega():
+                    Qb = Qbasic_Homo[sb, sa]
+                else:
+                    Qb = Qbasic[sb, sa]
                 if isNonsynonymous(cb, ca, self.codon_table):
                     Tgeneconv = self.get_IGC_nonsynonymous_contribution()
-                    if self.use_Homo_Omega():
-                        rate_geneconv.append(Qbasic_Homo[sb, sa])
-                    else:
-                        rate_geneconv.append(Qb + Tgeneconv)
                 else:
                     Tgeneconv = self.tau
-                    rate_geneconv.append(Qb + Tgeneconv)
+                rate_geneconv.append(Qb + Tgeneconv)
                 rate_basic.append(0.0)
                 
                 # (ca, cb) to (cb, cb)
                 row.append((sa, sb))
                 col.append((sb, sb))
-                Qb = Qbasic[sa, sb]
                 if self.use_Homo_Omega():
-                    rate_geneconv.append(Qbasic_Homo[sa, sb] + Tgeneconv)
+                    Qb = Qbasic_Homo[sa, sb]
                 else:
-                    rate_geneconv.append(Qb + Tgeneconv)
+                    Qb = Qbasic[sa, sb]
+                rate_geneconv.append(Qb + Tgeneconv)
                 rate_basic.append(0.0)
 
             else:
@@ -989,27 +988,24 @@ class ReCodonGeneconv:
                 # (ca, cb) to (ca, ca)
                 row_states.append((sa, sb))
                 column_states.append((sa, sa))
-                Qb = Qbasic[sb, sa]
+                if self.use_Homo_Omega():
+                    Qb = Qbasic_Homo[sb, sa]
+                else:
+                    Qb = Qbasic[sb, sa]
                 if isNonsynonymous(cb, ca, self.codon_table):
                     Tgeneconv = self.get_IGC_nonsynonymous_contribution()
-                    if self.use_Homo_Omega():
-                        Qb_Homo = Qbasic_Homo[sb, sa]
-                        proportions.append(Tgeneconv / (Qb_Homo + Tgeneconv) if (Qb_Homo + Tgeneconv) > 0 else 0.0)
-                    else:
-                        proportions.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) > 0 else 0.0)
                 else:
                     Tgeneconv = self.tau
-                    proportions.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
+                proportions.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
 
                 # (ca, cb) to (cb, cb)
                 row_states.append((sa, sb))
                 column_states.append((sb, sb))
-                Qb = Qbasic[sa, sb]
                 if self.use_Homo_Omega():
-                    Qb_Homo = Qbasic_Homo[sa, sb]
-                    proportions.append(Tgeneconv / (Qb_Homo + Tgeneconv) if (Qb_Homo + Tgeneconv) > 0 else 0.0)
+                    Qb = Qbasic_Homo[sa, sb]
                 else:
-                    proportions.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
+                    Qb = Qbasic[sa, sb]
+                proportions.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
             
         elif self.Model == 'HKY':
             Qbasic = self.get_HKYBasic()
@@ -1155,7 +1151,9 @@ class ReCodonGeneconv:
         column21_states = []
         proportions21 = []
         if self.Model == 'MG94':
-            Qbasic = self.get_MG94Basic()
+            Qbasic = self.get_MG94Basic(omega=self.omega)
+            if self.use_Homo_Omega():
+                Qbasic_Homo = self.get_MG94Basic(omega=self.Homo_Omega)
             for i, pair in enumerate(product(self.codon_nonstop, repeat = 2)):
                 ca, cb = pair
                 sa = self.codon_to_state[ca]
@@ -1166,7 +1164,10 @@ class ReCodonGeneconv:
                 # (ca, cb) to (ca, ca)
                 row12_states.append((sa, sb))
                 column12_states.append((sa, sa))
-                Qb = Qbasic[sb, sa]
+                if self.use_Homo_Omega():
+                    Qb = Qbasic_Homo[sb, sa]
+                else:
+                    Qb = Qbasic[sb, sa]
                 if isNonsynonymous(cb, ca, self.codon_table):
                     Tgeneconv = self.get_IGC_nonsynonymous_contribution()
                 else:
@@ -1176,7 +1177,10 @@ class ReCodonGeneconv:
                 # (ca, cb) to (cb, cb)
                 row21_states.append((sa, sb))
                 column21_states.append((sb, sb))
-                Qb = Qbasic[sa, sb]
+                if self.use_Homo_Omega():
+                    Qb = Qbasic_Homo[sa, sb]
+                else:
+                    Qb = Qbasic[sa, sb]
                 proportions21.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
             
         elif self.Model == 'HKY':
@@ -1250,27 +1254,24 @@ class ReCodonGeneconv:
                     # (ca, cb) to (ca, ca)
                     row_states.append((sa, sb))
                     col_states.append((sa, sa))
-                    Qb = Qbasic[sb, sa]
+                    if self.use_Homo_Omega():
+                        Qb = Qbasic_Homo[sb, sa]
+                    else:
+                        Qb = Qbasic[sb, sa]
                     if isNonsynonymous(cb, ca, self.codon_table):
                         Tgeneconv = self.get_IGC_nonsynonymous_contribution()
-                        if self.use_Homo_Omega():
-                            Qb_Homo = Qbasic_Homo[sb, sa]
-                            proportions.append(1.0 - Tgeneconv / (Qb_Homo + Tgeneconv) if (Qb_Homo + Tgeneconv) > 0 else 0.0)
-                        else:
-                            proportions.append(1.0 - Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) > 0 else 0.0)
                     else:
                         Tgeneconv = self.tau
-                        proportions.append(1.0 - Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
+                    proportions.append(1.0 - Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
 
                     # (ca, cb) to (cb, cb)
                     row_states.append((sa, sb))
                     col_states.append((sb, sb))
-                    Qb = Qbasic[sa, sb]
                     if self.use_Homo_Omega():
-                        Qb_Homo = Qbasic_Homo[sb, sa]
-                        proportions.append(1.0 - Tgeneconv / (Qb_Homo + Tgeneconv) if (Qb_Homo + Tgeneconv) > 0 else 0.0)
+                        Qb = Qbasic_Homo[sa, sb]
                     else:
-                        proportions.append(1.0 - Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
+                        Qb = Qbasic[sa, sb]
+                    proportions.append(1.0 - Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
                 else:
                     for cc in self.codon_nonstop:
                         if cc == ca:
