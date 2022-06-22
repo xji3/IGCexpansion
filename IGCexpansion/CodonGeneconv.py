@@ -194,6 +194,8 @@ class ReCodonGeneconv:
                     self.x_process = np.log(
                         np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
                                   self.kappa, self.omega, self.Tau_Omega, self.tau]))
+                else:
+                    Exception("something in IGC_Omega is wrong when initial x process")
             elif self.use_Homo_Omega():
                 self.x_process = np.log(
                     np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
@@ -415,7 +417,7 @@ class ReCodonGeneconv:
 
                     # (ca, cb) to (cc, cb)
                     if isHomogenizing(cc, cb, self.codon_table) and self.use_Homo_Omega():
-                        Qb = Qbasic_Homo[sb, sc]
+                        Qb = Qbasic_Homo[sa, sc]
                     else:
                         Qb = Qbasic[sa, sc]
                     if Qb != 0:
@@ -692,7 +694,7 @@ class ReCodonGeneconv:
 
             # finite difference central
 
-            delta = deepcopy(max(1, abs(self.x[i])) * 0.000001)
+            delta = max(1, abs(self.x[i])) * 0.000001
             # reference: http://paulklein.ca/newsite/teaching/Notes_NumericalDifferentiation.pdf
             # line before equation 22.
 
@@ -1464,6 +1466,8 @@ class ReCodonGeneconv:
                 elif self.Tau_Omega is not None:
                     out.extend([self.kappa, self.omega, self.Tau_Omega, self.tau])
                     label = ['length', 'll', 'pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'tau_times_omega', 'tau']
+                else:
+                    Exception("something in IGC_Omega goes wrong when getting summary")
             elif self.use_Homo_Omega():
                 out.extend([self.kappa, self.omega, self.Homo_Omega, self.tau])
                 label = ['length', 'll', 'pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'homogenizing_omega', 'tau']
