@@ -1,6 +1,8 @@
 # A separate class to represent Point mutation model
 # Xiang Ji
 # xji3@ncsu.edu
+from functools import reduce
+
 import numpy as np
 import sys
 from copy import deepcopy

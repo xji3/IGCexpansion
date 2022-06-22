@@ -8,7 +8,7 @@ import networkx as nx
 import os, sys
 import numpy as np
 from copy import deepcopy
-from Common import *
+from .Common import *
 
 class Tree:
     def __init__(self, tree_newick, DupLosList, terminal_node_list, node_to_pos):

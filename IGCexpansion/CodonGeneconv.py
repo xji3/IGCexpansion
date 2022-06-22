@@ -580,55 +580,6 @@ class ReCodonGeneconv:
         '''
         Modified from Alex's objective_and_gradient function in ctmcaas/adv-log-likelihoods/mle_geneconv_common.py
         '''
-        if self.Model == 'MG94':
-            state_space_shape = [61, 61]
-        elif self.Model == 'HKY':
-            state_space_shape = [4, 4]
-
-        # prepare some extra parameters for the json interface
-        if edge_derivative:
-            requested_derivatives = list(range(k))
-        else:
-            requested_derivatives = []
-            
-        site_weights = np.ones(self.nsites)
-
-        # prepare the input for the json interface
-        data = dict(
-            site_weights = site_weights,
-            requested_derivatives = requested_derivatives,
-            node_count = len(self.edge_to_blen) + 1,
-            state_space_shape = state_space_shape,
-            process_count = len(self.processes),
-            processes = self.processes,
-            tree = self.tree,
-            prior_feasible_states = self.prior_feasible_states,
-            prior_distribution = self.prior_distribution,
-            observable_nodes = self.observable_nodes,
-            observable_axes = self.observable_axes,
-            iid_observations = self.iid_observations
-            )
-        j_ll = jsonctmctree.ll.process_json_in(data)
-
-        status = j_ll['status']
-        feasibility = j_ll['feasibility']
-
-        if status != 'success' or not feasibility:
-            print ('results:')
-            print (j_ll)
-            print ()
-            raise Exception('Encountered some problem in the calculation of log likelihood and its derivatives')
-
-        ll, edge_derivs = j_ll['log_likelihood'], j_ll['edge_derivatives']
-        self.ll = ll
-
-        return ll, edge_derivs
-
-
-    def _loglikelihood2(self, store = True, edge_derivative = False):
-        '''
-        Modified from Alex's objective_and_gradient function in ctmcaas/adv-log-likelihoods/mle_geneconv_common.py
-        '''
         if store:
             self.scene_ll = self.get_scene()
             scene = self.scene_ll
@@ -711,17 +662,14 @@ class ReCodonGeneconv:
             )
         return scene
 
-    def loglikelihood_and_gradient(self, package = 'new', display = False):
+    def loglikelihood_and_gradient(self, display = False):
         '''
         Modified from Alex's objective_and_gradient function in ctmcaas/adv-log-likelihoods/mle_geneconv_common.py
         '''
         self.update_by_x()
         # delta = 1e-8
         x = deepcopy(self.x)  # store the current x array
-        if package == 'new':
-            fn = self._loglikelihood2
-        else:
-            fn = self._loglikelihood
+        fn = self._loglikelihood
 
         ll, edge_derivs = fn(edge_derivative = True)
         
@@ -775,17 +723,16 @@ class ReCodonGeneconv:
         g = -np.concatenate((other_derivs, edge_derivs))
         return f, g
 
-    def loglikelihood_and_gradient2(self, package = 'new', display = False):
+    def loglikelihood_and_gradient2(self, display = False):
         '''
         Modified from Alex's objective_and_gradient function in ctmcaas/adv-log-likelihoods/mle_geneconv_common.py
         '''
         self.update_by_x()
         delta = 1e-8
         x = deepcopy(self.x)  # store the current x array
-        if package == 'new':
-            fn = self._loglikelihood2
-        else:
-            fn = self._loglikelihood
+
+        fn = self._loglikelihood
+
 
         ll, edge_derivs = fn(edge_derivative = True)
         
@@ -865,10 +812,10 @@ class ReCodonGeneconv:
                                + sum([edge_to_derives[internal_branch[j]] for j in range(i - 1, len(internal_branch))])  # only sum over nodes decendent from node i-1
                                + sum([edge_to_derives[leaf_branch[j]] for j in range(i - 1, len(leaf_branch))]))  # only sum over nodes decendent from node i-1
             else:  # get numerical derivative instead when inf happens
-                ll = self._loglikelihood2()[0]
+                ll = self._loglikelihood()[0]
                 self.x_clock[i + len(other_derives)] += 1e-8
                 self.update_by_x_clock()
-                l = self._loglikelihood2()[0]
+                l = self._loglikelihood()[0]
                 Lr_derives.append((l - ll) / 1e-8)
                 self.x_clock[i + len(other_derives)] -= 1e-8
                 self.update_by_x_clock()
@@ -888,10 +835,10 @@ class ReCodonGeneconv:
     def objective_wo_derivative(self, display, x):
         if self.clock:
             self.update_by_x_clock(x)
-            ll = self._loglikelihood2()[0]
+            ll = self._loglikelihood()[0]
         else:
             self.update_by_x(x)
-            ll = self._loglikelihood2()[0]
+            ll = self._loglikelihood()[0]
 
         if display:
             print ('log likelihood = ', ll)
@@ -905,10 +852,10 @@ class ReCodonGeneconv:
     def objective_wo_derivative_global(self, display, x):
         if self.clock:
             self.update_by_x_clock(x, transformation = 'Exp_Neg')
-            ll = self._loglikelihood2()[0]
+            ll = self._loglikelihood()[0]
         else:
             self.update_by_x(x, transformation = 'Exp_Neg')
-            ll = self._loglikelihood2()[0]
+            ll = self._loglikelihood()[0]
 
         if display:
             print ('log likelihood = ', ll)
@@ -921,7 +868,7 @@ class ReCodonGeneconv:
         
     def get_mle(self, display = True, derivative = True, em_iterations = 0, method = 'BFGS', niter = 2000):
         if em_iterations > 0:
-            ll = self._loglikelihood2()
+            ll = self._loglikelihood()
             # http://jsonctmctree.readthedocs.org/en/latest/examples/hky_paralog/yeast_geneconv_zero_tau/index.html#em-for-edge-lengths-only
             observation_reduction = None
             self.x_rates = np.log(optimize_em(self.get_scene(), observation_reduction, em_iterations))
@@ -935,7 +882,7 @@ class ReCodonGeneconv:
             if display:
                 print ('log-likelihood = ', ll)
                 print ('updating blen length using EM')
-                print ('current log-likelihood = ', self._loglikelihood2())
+                print ('current log-likelihood = ', self._loglikelihood())
         else:
             if self.clock:
                 self.update_by_x_clock()
@@ -1485,12 +1432,12 @@ class ReCodonGeneconv:
         self.ExpectedDwellTime = self._ExpectedHetDwellTime()
 
     def numerical_Clock_derivative(self):
-        ll = self._loglikelihood2()[0]
+        ll = self._loglikelihood()[0]
         Clock_drv = []
         for i in range(len(self.x_clock)):
             self.x_clock[i] += 1e-8
             self.update_by_x_clock()
-            l = self._loglikelihood2()[0]
+            l = self._loglikelihood()[0]
             Clock_drv.append((l - ll) / 1e-8)
             self.x_clock[i] -= 1e-8
             self.update_by_x_clock()
@@ -1659,7 +1606,7 @@ if __name__ == '__main__':
     #MG94+tau
     MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
     # MG94_tau.get_mle(True, True, 0, 'BFGS')
-    lnL = MG94_tau._loglikelihood2()
+    lnL = MG94_tau._loglikelihood()
     MG94_tau.get_individual_summary('../test/save/')
     print(lnL)
     # MG94_tau.site_reconstruction()
@@ -1670,9 +1617,9 @@ if __name__ == '__main__':
                                      save_path='../test/save/')
     new_x = np.concatenate((MG94_tau.x_process[:-2], [MG94_tau.x_process[-2]], MG94_tau.x_process[-2:], MG94_tau.x_rates))
     # MG94_tau_omega.update_by_x(new_x)
-    print(MG94_igc_omega._loglikelihood2())
+    print(MG94_igc_omega._loglikelihood())
     # MG94_tau_omega.get_mle(True, True, 0, 'BFGS')
-    lnL = MG94_igc_omega._loglikelihood2()
+    lnL = MG94_igc_omega._loglikelihood()
     MG94_igc_omega.get_individual_summary('../test/save/')
     print(lnL)
 
@@ -1680,7 +1627,7 @@ if __name__ == '__main__':
                                      save_path='../test/save/')
     new_x = np.concatenate((MG94_igc_omega.x_process[:-2], [MG94_igc_omega.x_process[-2] + MG94_igc_omega.x_process[-1]], MG94_igc_omega.x_process[-1:], MG94_igc_omega.x_rates))
     MG94_tau_omega.update_by_x(new_x)
-    print(MG94_tau_omega._loglikelihood2())
+    print(MG94_tau_omega._loglikelihood())
 
 
 

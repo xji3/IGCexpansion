@@ -5,6 +5,7 @@
 # This simulator only simulates cdna for now
 # Xiang Ji
 # xji3@ncsu.edu
+from functools import reduce
 
 from IGCTractModel import IGCTractModel
 from Tree import Tree
@@ -175,7 +176,7 @@ class Simulator:
                 seq = draw_from_distribution(distn, self.nsites, 'ACGT')
                 self.node_to_seq[root_name][orlg] = seq
         elif self.PMModel.name == 'MG94':
-            distn = [ reduce(mul, [self.PMModel.parameters['Pi_' + b]  for b in codon], 1) for codon in self.PMModel.codon_nonstop ]
+            distn = [reduce(mul, [self.PMModel.parameters['Pi_' + b]  for b in codon], 1) for codon in self.PMModel.codon_nonstop ]
             distn = np.array(distn) / sum(distn)
             for orlg in root_orlg['loc']:
                 seq = draw_from_distribution(distn, self.nsites/3, self.PMModel.codon_nonstop)

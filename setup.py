@@ -7,7 +7,7 @@ setup(name = 'IGCexpansion',
       #download_url = 'https://github.com/xji3/Genconv/tree/master/IGCexpansion/',
       packages = ['IGCexpansion',],
       install_requires=[
-          'Biopython', 'networkx', 'numpy', 'scipy', #'jsonctmctree'
+          'Biopython', 'networkx', 'numpy', 'scipy', 'numdifftools' #'jsonctmctree'
       ],
       dependency_links=[
       'https://github.com/xji3/jsonctmctree/tarball/master#egg=package-0.2.0',

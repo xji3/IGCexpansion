@@ -270,56 +270,56 @@ class JSGeneconv:
 
         
     def get_expectedNumGeneconv(self, display = False):
-		scene = self.get_scene()
-		if self.jsmodel.rate_variation:
-			ExpectedGeneconv_list = []
-			for codon_site_iter, codon_site_scene in enumerate(scene):
-				codon_site = codon_site_iter + 1
-				process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True, codon_site = codon_site)
-				requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-				j_in = {'scene' : codon_site_scene,
-				        'requests':requests}
-				j_out = jsonctmctree.interface.process_json_in(j_in)
-				status = j_out['status']
-				codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
-				ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
-			self.ExpectedGeneconv = {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
+        scene = self.get_scene()
+        if self.jsmodel.rate_variation:
+            ExpectedGeneconv_list = []
+            for codon_site_iter, codon_site_scene in enumerate(scene):
+                codon_site = codon_site_iter + 1
+                process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True, codon_site = codon_site)
+                requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+                j_in = {'scene' : codon_site_scene,
+                        'requests':requests}
+                j_out = jsonctmctree.interface.process_json_in(j_in)
+                status = j_out['status']
+                codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+                ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
+            self.ExpectedGeneconv = {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
 
-		else:
-			process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
-			requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-			j_in = {'scene' : scene,
-			        'requests':requests}
-			j_out = jsonctmctree.interface.process_json_in(j_in)
+        else:
+            process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
+            requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+            j_in = {'scene' : scene,
+                    'requests':requests}
+            j_out = jsonctmctree.interface.process_json_in(j_in)
 
-			status = j_out['status']
-			self.ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+            status = j_out['status']
+            self.ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
 
     def get_expectedMutationNum(self, display = False):
-		scene = self.get_scene()
-		if self.jsmodel.rate_variation:
-			ExpectedGeneconv_list = []
-			for codon_site_iter, codon_site_scene in enumerate(scene):
-				codon_site = codon_site_iter + 1
-				process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel, codon_site = codon_site)
-				requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-				j_in = {'scene' : codon_site_scene,
-				        'requests':requests}
-				j_out = jsonctmctree.interface.process_json_in(j_in)
-				status = j_out['status']
-				codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
-				ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
-			return {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
+        scene = self.get_scene()
+        if self.jsmodel.rate_variation:
+            ExpectedGeneconv_list = []
+            for codon_site_iter, codon_site_scene in enumerate(scene):
+                codon_site = codon_site_iter + 1
+                process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel, codon_site = codon_site)
+                requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+                j_in = {'scene' : codon_site_scene,
+                        'requests':requests}
+                j_out = jsonctmctree.interface.process_json_in(j_in)
+                status = j_out['status']
+                codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+                ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
+            return {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
 
-		else:
-			process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel)
-			requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-			j_in = {'scene' : scene,
-			        'requests':requests}
-			j_out = jsonctmctree.interface.process_json_in(j_in)
+        else:
+            process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel)
+            requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+            j_in = {'scene' : scene,
+                    'requests':requests}
+            j_out = jsonctmctree.interface.process_json_in(j_in)
 
-			status = j_out['status']
-			return {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+            status = j_out['status']
+            return {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
 
         
     def get_pairDirectionalExpectedNumGeneconv(self, orlg_pair, display = False):
@@ -705,8 +705,8 @@ class JSGeneconv:
 
             ExpectedPointMutation = self.get_expectedMutationNum()
             for edge in self.tree.edge_list:
-            	label.append('__'.join(edge) + '__numMut')
-            	summary_mat.append(ExpectedPointMutation[edge])
+                label.append('__'.join(edge) + '__numMut')
+                summary_mat.append(ExpectedPointMutation[edge])
 
         return summary_mat, label
 

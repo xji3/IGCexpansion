@@ -116,12 +116,12 @@ class IGCModel:
 
 if __name__ == '__main__':
     test = IGCModel(np.log([4.9]), 7, 'One rate', {0:0.0})
-    print test.Q_IGC
+    print(test.Q_IGC)
 
 
-    from Tree import Tree
-    from Common import *
-    from Func import *
+    from .Tree import Tree
+    from .Common import *
+    from .Func import *
 
     tree_newick = '../test/PrimateTest.newick'
     DupLosList = '../test/PrimateTestDupLost.txt'
@@ -135,10 +135,10 @@ if __name__ == '__main__':
     accessible_orlg_pair = get_accessible_orlg_pair(conf_list)
 
     test = IGCModel(np.log(range(1, 1 + len(accessible_orlg_pair))), tree.n_orlg, 'Symmetric general', accessible_orlg_pair)
-    print test.Q_IGC
+    print(test.Q_IGC)
     self = test
 
     x_IGC = np.log(range(2, 2 + len(accessible_orlg_pair) * 2))
     test = IGCModel(x_IGC, tree.n_orlg, 'Most general', accessible_orlg_pair)
-    print test.Q_IGC
+    print(test.Q_IGC)
     self = test
