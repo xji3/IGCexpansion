@@ -1153,7 +1153,9 @@ class ReCodonGeneconv:
         column21_states = []
         proportions21 = []
         if self.Model == 'MG94':
-            Qbasic = self.get_MG94Basic()
+            Qbasic = self.get_MG94Basic(omega=self.omega)
+            if self.use_Homo_Omega():
+                Qbasic_Homo = self.get_MG94Basic(omega=self.Homo_Omega)
             for i, pair in enumerate(product(self.codon_nonstop, repeat = 2)):
                 ca, cb = pair
                 sa = self.codon_to_state[ca]
@@ -1167,9 +1169,14 @@ class ReCodonGeneconv:
                 Qb = Qbasic[sb, sa]
                 if isNonsynonymous(cb, ca, self.codon_table):
                     Tgeneconv = self.get_IGC_nonsynonymous_contribution()
+                    if self.use_Homo_Omega():
+                        Qb_Homo = Qbasic_Homo[sb, sa]
+                        proportions12.append(Tgeneconv / (Qb_Homo + Tgeneconv) if (Qb_Homo + Tgeneconv) > 0 else 0.0)
+                    else:
+                        proportions12.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) > 0 else 0.0)
                 else:
                     Tgeneconv = self.tau
-                proportions12.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
+                    proportions12.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
 
                 # (ca, cb) to (cb, cb)
                 row21_states.append((sa, sb))
