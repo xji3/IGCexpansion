@@ -185,15 +185,16 @@ class ReCodonGeneconv:
             if not (self.use_IGC_Omega() or self.use_Homo_Omega()):
                 self.x_process = np.log(np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
                                   self.kappa, self.omega, self.tau]))
-            elif self.IGC_Omega is not None:
-                self.x_process = np.log(
-                    np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
-                              self.kappa, self.omega, self.IGC_Omega, self.tau]))
-            elif self.Tau_Omega is not None:
-                self.x_process = np.log(
-                    np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
-                              self.kappa, self.omega, self.Tau_Omega, self.tau]))
-            elif self.Homo_Omega is not None:
+            elif self.use_IGC_Omega():
+                if self.IGC_Omega is not None:
+                    self.x_process = np.log(
+                        np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
+                                  self.kappa, self.omega, self.IGC_Omega, self.tau]))
+                elif self.Tau_Omega is not None:
+                    self.x_process = np.log(
+                        np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
+                                  self.kappa, self.omega, self.Tau_Omega, self.tau]))
+            elif self.use_Homo_Omega():
                 self.x_process = np.log(
                     np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
                               self.kappa, self.omega, self.Homo_Omega, self.tau]))
@@ -1457,16 +1458,17 @@ class ReCodonGeneconv:
             out.extend([self.kappa, self.tau])
             label = ['length', 'll','pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'tau']
         elif self.Model == 'MG94':
-            if not (self.use_IGC_Omega() and self.use_Homo_Omega()):
+            if not (self.use_IGC_Omega() or self.use_Homo_Omega()):
                 out.extend([self.kappa, self.omega, self.tau])
                 label = ['length', 'll','pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'tau']
-            elif self.IGC_Omega is not None:
-                out.extend([self.kappa, self.omega, self.IGC_Omega, self.tau])
-                label = ['length', 'll', 'pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'IGC_omega', 'tau']
-            elif self.Tau_Omega is not None:
-                out.extend([self.kappa, self.omega, self.Tau_Omega, self.tau])
-                label = ['length', 'll', 'pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'tau_times_omega', 'tau']
-            elif self.Homo_Omega is not None:
+            elif self.use_IGC_Omega():
+                if self.IGC_Omega is not None:
+                    out.extend([self.kappa, self.omega, self.IGC_Omega, self.tau])
+                    label = ['length', 'll', 'pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'IGC_omega', 'tau']
+                elif self.Tau_Omega is not None:
+                    out.extend([self.kappa, self.omega, self.Tau_Omega, self.tau])
+                    label = ['length', 'll', 'pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'tau_times_omega', 'tau']
+            elif self.use_Homo_Omega():
                 out.extend([self.kappa, self.omega, self.Homo_Omega, self.tau])
                 label = ['length', 'll', 'pi_a', 'pi_c', 'pi_g', 'pi_t', 'kappa', 'omega', 'homogenizing_omega', 'tau']
             else:
