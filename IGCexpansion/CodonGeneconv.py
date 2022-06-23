@@ -706,7 +706,7 @@ class ReCodonGeneconv:
 
             # ll_delta_minus is f(x-2/h)
             x_minus_delta = np.array(self.x)
-            x_minus_delta[i] -= delta / 2
+            x_minus_delta[i] -= delta
             self.update_by_x(x_minus_delta)
             ll_delta_minus, _ = fn(store=True, edge_derivative=False)
 
