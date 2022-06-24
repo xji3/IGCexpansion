@@ -11,6 +11,7 @@ class JointAnalysis:
                  Model = 'MG94',
                  IGC_Omega = None,
                  Tau_Omega = None,
+                 Homo_Omega = None,
                  multiprocess_combined_list = None,
                  nnsites = None,
                  Force = None,
@@ -25,6 +26,8 @@ class JointAnalysis:
         self.save_path     = save_path
         self.Model         = Model
         self.IGC_Omega     = IGC_Omega
+        self.Tau_Omega     = Tau_Omega
+        self.Homo_Omega    = Homo_Omega
         self.paralog_list  = paralog_list
         self.x             = None
         self.multiprocess_combined_list = multiprocess_combined_list
@@ -34,7 +37,7 @@ class JointAnalysis:
             self.shared_parameters = Shared
         grand_save_name, individual_save_names = self.get_save_file_names(save_name)
         self.geneconv_list = [ReCodonGeneconv(tree_newick = tree_newick, alignment = alignment_file_list[i], paralog = paralog_list[i],
-                                              Model = Model, IGC_Omega = IGC_Omega, Tau_Omega = Tau_Omega, nnsites = nnsites,
+                                              Model = Model, IGC_Omega = IGC_Omega, Tau_Omega = Tau_Omega, Homo_Omega = Homo_Omega, nnsites = nnsites,
                                               clock = False, Force = Force, save_path = save_path, save_name = individual_save_names[i],
                                               post_dup = post_dup)
                               for i in range(len(alignment_file_list))]
@@ -64,10 +67,22 @@ class JointAnalysis:
             model_string = self.Model
 
         if save_name is None:
-            if self.IGC_Omega is None:
-                general_save_name = self.save_path + 'Joint_' + model_string + '_' + str(len(self.paralog_list)) + '_pairs_grand_save.txt'
+            if ReCodonGeneconv.use_IGC_Omega(self):
+                if self.IGC_Omega is not None:
+                    general_save_name = self.save_path + 'Joint_' + model_string + '_twoOmega_' + str(
+                        len(self.paralog_list)) + '_pairs_grand_save.txt'
+                elif self.Tau_Omega is not None:
+                    general_save_name = self.save_path + 'Joint_' + model_string + '_tauOmega_' + str(
+                        len(self.paralog_list)) + '_pairs_grand_save.txt'
+                else:
+                    general_save_name = self.save_path + 'Joint_' + model_string + '_' + str(
+                        len(self.paralog_list)) + '_pairs_grand_save.txt'
+            elif ReCodonGeneconv.use_Homo_Omega(self):
+                general_save_name = self.save_path + 'Joint_' + model_string + '_homoOmega_' + str(
+                    len(self.paralog_list)) + '_pairs_grand_save.txt'
             else:
-                general_save_name = self.save_path + 'Joint_' + model_string + '_twoOmega_' + str(len(self.paralog_list)) + '_pairs_grand_save.txt'
+                general_save_name = self.save_path + 'Joint_' + model_string + '_' + str(
+                    len(self.paralog_list)) + '_pairs_grand_save.txt'
         else:
             general_save_name = save_name
 
@@ -210,12 +225,17 @@ if __name__ == '__main__':
 
     paralog_list = [paralog_1, paralog_2]
     IGC_Omega = None
+    Tau_Omega = None
+    Homo_Omega = 0.5
     Shared = [6]
     alignment_file_list = [alignment_file_1, alignment_file_2]
     Model = 'MG94'
 
     joint_analysis = JointAnalysis(alignment_file_list,  newicktree, paralog_list, Shared = Shared,
-                                   IGC_Omega = 0.8, Model = Model, Force = Force,
+                                   IGC_Omega = IGC_Omega,
+                                   Tau_Omega=Tau_Omega,
+                                   Homo_Omega=Homo_Omega,
+                                   Model = Model, Force = Force,
                                    save_path = '../test/save/')
     # joint_analysis.get_mle()
     print(joint_analysis.objective_and_gradient_multi_threaded(joint_analysis.x))
