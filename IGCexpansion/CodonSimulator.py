@@ -1,13 +1,14 @@
 # This is an almost duplicated file for Simulator where the unit is codon
 # Xiang Ji
 # xji3@ncsu.edu
+from functools import reduce
 
-from IGCTractModel import IGCTractModel
-from Tree import Tree
-from PMModel import PMModel
-from Common import divide_configuration, draw_from_distribution
+from .IGCTractModel import IGCTractModel
+from .Tree import Tree
+from .PMModel import PMModel
+from .Common import divide_configuration, draw_from_distribution
 import numpy as np
-import cPickle, os
+import os
 from copy import deepcopy
 from math import floor
 from operator import mul
@@ -67,9 +68,9 @@ class CodonSimulator:
             
 
     def __str__(self):  # overide for print function
-        print self.PMModel
-        print self.IGCModel
-        print self.tree
+        print(self.PMModel)
+        print(self.IGCModel)
+        print(self.tree)
 
         return 'IGC simulator output seq: ' + self.seq_file + '\n' + \
                'IGC log file: ' + self.IGC_log_file + '\n' +\
@@ -159,7 +160,7 @@ class CodonSimulator:
                 seq = draw_from_distribution(distn, self.nsites, 'ACGT')
                 self.node_to_seq[root_name][orlg] = seq
         elif self.PMModel.name == 'MG94':
-            distn = [ reduce(mul, [self.PMModel.parameters['Pi_' + b]  for b in codon], 1) for codon in self.PMModel.codon_nonstop ]
+            distn = [reduce(mul, [self.PMModel.parameters['Pi_' + b]  for b in codon], 1) for codon in self.PMModel.codon_nonstop ]
             distn = np.array(distn) / sum(distn)
             for orlg in root_orlg['loc']:
                 seq = draw_from_distribution(distn, self.nsites/3, self.PMModel.codon_nonstop)
@@ -184,7 +185,7 @@ class CodonSimulator:
                     edge = (father_clade.name, clade.name)
                     self.sim_one_branch(edge, display)
                 else:
-                    print 'The node cannot be recognised!'
+                    print('The node cannot be recognised!')
                     assert(False)
             
     def sim_one_branch(self, edge, display):
@@ -236,7 +237,7 @@ class CodonSimulator:
 
             cummulate_time += np.random.exponential(1.0 / Total_rate)
             if display:
-                print cummulate_time
+                print(cummulate_time)
            
 
             if cummulate_time > blen :
@@ -379,7 +380,7 @@ class CodonSimulator:
         # mutation_orlg, mut_pos, old_state, new_state
         mutation_info = [str(mut_paralog), str(seq_pos), old_state, new_state]
         if display:
-            print ' '.join(mutation_info)
+            print(' '.join(mutation_info))
 
         return seq, mutation_info
 
@@ -418,10 +419,10 @@ class CodonSimulator:
 
         IGC_info = [str(orlg_from), str(orlg_to), str(tract_length), str(start_pos), str(stop_pos), str(num_diff)]
         if display:
-            print ' '.join(IGC_info)
+            print(' '.join(IGC_info))
 
         # Now perform the IGC event
-            print ''.join(template_seq), ''.join(overide_seq)
+            print(''.join(template_seq), ''.join(overide_seq))
 
         IGC_info.extend([''.join(template_seq), ''.join(overide_seq)])
         for i in range(start_pos, stop_pos + 1):
@@ -529,7 +530,7 @@ if __name__ == '__main__':
                      terminal_node_list, node_to_pos, gene_to_orlg_file, seq_file, IGC_log_file, PM_log_file, seed_number, seq_index_file)
 
     self = test
-    print test
+    print(test)
     display = True
     
     test.sim_root()

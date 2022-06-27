@@ -41,6 +41,7 @@ class Data:
         assert(os.path.isfile(self.gene_to_orlg_file))
         with open(self.gene_to_orlg_file, 'rb') as f:
             for line in f:
+                line = line.decode('utf-8')
                 items = line.split()
                 if items:
                     gene = items[0]
@@ -82,7 +83,7 @@ class Data:
         self.name_to_seq = {name:str(seq_dict[name].seq) for name in seq_dict.keys()}
 
         assert(self.is_alignment)
-        self.nsites = len(self.name_to_seq[self.name_to_seq.keys()[0]])
+        self.nsites = len(self.name_to_seq[list((self.name_to_seq.keys()))[0]])
 
         # Now assign self.seq_index
         self.seq_index = self.read_seq_index_file(self.seq_index_file)
@@ -222,10 +223,10 @@ if __name__ == '__main__':
     
     test = Data(alignment_file, gene_to_orlg_file, two_sites = True,
                 space_list = space_list, seq_index_file = seq_index_file, cdna = True, allow_same_codon = True)
-    print test.seq_index
+    print(test.seq_index)
     self = test
     #print test.gene_to_orlg, test.name_to_seq
     #name_to_pair_state = test.get_two_sites_states(1)
     possible_space_list = test.get_possible_space_list()
-    print len(possible_space_list), test.nsites
+    print(len(possible_space_list), test.nsites)
 

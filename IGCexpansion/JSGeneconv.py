@@ -4,20 +4,20 @@
 # xji3@ncsu.edu
 from __future__ import print_function
 import jsonctmctree.ll, jsonctmctree.interface
-from Data import Data
-from Tree import Tree
-from JSModel import JSModel
-from Func import *
+from .Data import Data
+from .Tree import Tree
+from .JSModel import JSModel
+from .Func import *
 from copy import deepcopy
 from functools import partial
 import scipy
 import scipy.optimize
 import os
-from Common import *
+from .Common import *
 from math import floor
-#import numdifftools as nd
+import numdifftools as nd
 
-from TriGeneconv import *
+from .TriGeneconv import *
 
 class JSGeneconv:
     auto_save_step = 2
@@ -25,7 +25,7 @@ class JSGeneconv:
                  tree_newick, DupLosList,                       # Tree input
                  x_js, pm_model, IGC_pm, rate_variation,        # JSModel input
                  node_to_pos, terminal_node_list,               # Configuration input
-                 save_file,                                     # Auto save file
+                 save_file, log_file = None,                    # Auto save file
                  force = None,                                  # Parameter value constraint
                  seq_index_file = None,                         # Seq index file
                  nsites = None):  
@@ -42,6 +42,7 @@ class JSGeneconv:
         self.terminal_node_list = terminal_node_list
         self.root_by_dup = self.tree.is_duplication_node(self.tree.phylo_tree.root.name)
         self.save_file = save_file
+        self.log_file  = log_file
         self.force = force
         if os.path.isfile(self.save_file):
             self.initialize_by_save()
@@ -267,67 +268,66 @@ class JSGeneconv:
                 else:
                     self.observable_nodes, self.observable_axes, self.iid_observations = get_iid_observations(self.data, self.tree, self.nsites, self.jsmodel.PMModel.data_type)
 
-
         
     def get_expectedNumGeneconv(self, display = False):
-		scene = self.get_scene()
-		if self.jsmodel.rate_variation:
-			ExpectedGeneconv_list = []
-			for codon_site_iter, codon_site_scene in enumerate(scene):
-				codon_site = codon_site_iter + 1
-				process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True, codon_site = codon_site)
-				requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-				j_in = {'scene' : codon_site_scene,
-				        'requests':requests}
-				j_out = jsonctmctree.interface.process_json_in(j_in)
-				status = j_out['status']
-				codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
-				ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
-			self.ExpectedGeneconv = {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
+        scene = self.get_scene()
+        if self.jsmodel.rate_variation:
+            ExpectedGeneconv_list = []
+            for codon_site_iter, codon_site_scene in enumerate(scene):
+                codon_site = codon_site_iter + 1
+                process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True, codon_site = codon_site)
+                requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+                j_in = {'scene' : codon_site_scene,
+                        'requests':requests}
+                j_out = jsonctmctree.interface.process_json_in(j_in)
+                status = j_out['status']
+                codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+                ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
+            self.ExpectedGeneconv = {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
 
-		else:
-			process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
-			requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-			j_in = {'scene' : scene,
-			        'requests':requests}
-			j_out = jsonctmctree.interface.process_json_in(j_in)
+        else:
+            process_definitions, conf_list = get_process_definitions(self.tree, self.jsmodel, proportions = True)
+            requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+            j_in = {'scene' : scene,
+                    'requests':requests}
+            j_out = jsonctmctree.interface.process_json_in(j_in)
 
-			status = j_out['status']
-			self.ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+            status = j_out['status']
+            self.ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
 
     def get_expectedMutationNum(self, display = False):
-		scene = self.get_scene()
-		if self.jsmodel.rate_variation:
-			ExpectedGeneconv_list = []
-			for codon_site_iter, codon_site_scene in enumerate(scene):
-				codon_site = codon_site_iter + 1
-				process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel, codon_site = codon_site)
-				requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-				j_in = {'scene' : codon_site_scene,
-				        'requests':requests}
-				j_out = jsonctmctree.interface.process_json_in(j_in)
-				status = j_out['status']
-				codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
-				ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
-			return {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
+        scene = self.get_scene()
+        if self.jsmodel.rate_variation:
+            ExpectedGeneconv_list = []
+            for codon_site_iter, codon_site_scene in enumerate(scene):
+                codon_site = codon_site_iter + 1
+                process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel, codon_site = codon_site)
+                requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+                j_in = {'scene' : codon_site_scene,
+                        'requests':requests}
+                j_out = jsonctmctree.interface.process_json_in(j_in)
+                status = j_out['status']
+                codon_site_ExpectedGeneconv = {self.tree.edge_list[i] : j_out['responses'][codon_site_scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+                ExpectedGeneconv_list.append(codon_site_ExpectedGeneconv)
+            return {self.tree.edge_list[i]:sum([ExpectedGeneconv_list[j][self.tree.edge_list[i]] for j in range(len(scene))]) for i in range(len(self.tree.edge_list))}
 
-		else:
-			process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel)
-			requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
-			j_in = {'scene' : scene,
-			        'requests':requests}
-			j_out = jsonctmctree.interface.process_json_in(j_in)
+        else:
+            process_definitions, conf_list = get_mutation_reduction_definitions(self.tree, self.jsmodel)
+            requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
+            j_in = {'scene' : scene,
+                    'requests':requests}
+            j_out = jsonctmctree.interface.process_json_in(j_in)
 
-			status = j_out['status']
-			return {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
+            status = j_out['status']
+            return {self.tree.edge_list[i] : j_out['responses'][scene['tree']['edge_processes'][i]][i] for i in range(len(self.tree.edge_list))}
 
         
     def get_pairDirectionalExpectedNumGeneconv(self, orlg_pair, display = False):
         process_definitions, conf_list = get_directional_process_definitions(self.tree, self.jsmodel, orlg_pair)
         requests = [{'property' : 'SDNTRAN', 'transition_reduction' : process_definitions[i]} for i in range(len(process_definitions))]
         scene = self.get_scene()
-        j_in = {'scene' : scene,
-                'requests':requests}
+        j_in = {'scene': scene,
+                'requests': requests}
         j_out = jsonctmctree.interface.process_json_in(j_in)
 
         status = j_out['status']
@@ -338,8 +338,8 @@ class JSGeneconv:
 
     def _loglikelihood(self, edge_derivative = False):
         scene = self.get_scene()
-        log_likelihood_request = {'property':'snnlogl'}
-        derivatives_request = {'property':'sdnderi'}
+        log_likelihood_request = {'property': 'snnlogl'}
+        derivatives_request = {'property': 'sdnderi'}
         if edge_derivative:
             requests = [log_likelihood_request, derivatives_request]
         else:
@@ -350,15 +350,15 @@ class JSGeneconv:
             ll = 0.0
             for codon_site_scene in scene:
                 j_in = {
-                    'scene' : codon_site_scene,
-                    'requests' : requests
-                    }
+                    'scene': codon_site_scene,
+                    'requests': requests
+                }
                 j_out = jsonctmctree.interface.process_json_in(j_in)
                 status = j_out['status']
                 ll += j_out['responses'][0]
 
                 if edge_derivative:
-                    #print('In _loglikelihood() edge_derivs: ', j_out['responses'][1])
+                    # print('In _loglikelihood() edge_derivs: ', j_out['responses'][1])
                     edge_derivs += np.array(j_out['responses'][1])
                 else:
                     edge_derivs = []
@@ -382,7 +382,7 @@ class JSGeneconv:
 
     def _sitewise_loglikelihood(self):
         scene = self.get_scene()
-        log_likelihood_request = {'property':'dnnlogl'}
+        log_likelihood_request = {'property': 'dnnlogl'}
         requests = [log_likelihood_request]
 
 
@@ -390,9 +390,9 @@ class JSGeneconv:
             ll_list = []
             for codon_site_scene in scene:
                 j_in = {
-                    'scene' : codon_site_scene,
-                    'requests' : requests
-                    }
+                    'scene': codon_site_scene,
+                    'requests': requests
+                }
                 j_out = jsonctmctree.interface.process_json_in(j_in)
                 status = j_out['status']
                 ll_list.append(j_out['responses'][0])
@@ -401,16 +401,16 @@ class JSGeneconv:
                 codon_site = i % 3
                 pos = int(floor((i + 0.5) / 3))
                 ll.append(ll_list[codon_site][pos])
-        
+
         else:
             j_in = {
-                'scene' : scene,
-                'requests' : requests
-                }
+                'scene': scene,
+                'requests': requests
+            }
             j_out = jsonctmctree.interface.process_json_in(j_in)
 
             status = j_out['status']
-        
+
             ll = j_out['responses'][0]
 
         return ll
@@ -435,16 +435,16 @@ class JSGeneconv:
         num_visited_pairs = 0
         inc = 0.005
         for n in range(self.data.nsites):
-                
-            gradient = df(x, n = n)
-            hessian = ddf(x, n = n)
+
+            gradient = df(x, n=n)
+            hessian = ddf(x, n=n)
             gradient_list.append(gradient)
             hessian_list.append(hessian)
             print(gradient, hessian)
             num_visited_pairs += 1
-            if (num_visited_pairs + 0.0)/(self.data.nsites + 0.0) > inc:
-                print(str(inc*100.0) + '%')
-                inc += 0.05        
+            if (num_visited_pairs + 0.0) / (self.data.nsites + 0.0) > inc:
+                print(str(inc * 100.0) + '%')
+                inc += 0.05
 
         return gradient_list, hessian_list
 
@@ -457,20 +457,20 @@ class JSGeneconv:
         for i in range(len(x)):
             xi[i] += step_x[i]
             f_xi_plus = self._sitewise_objective(xi)
-            xi[i] -= 2.0*step_x[i]
+            xi[i] -= 2.0 * step_x[i]
             f_xi_minus = self._sitewise_objective(xi)
             xi[i] += step_x[i]
             if display:
-                print('Gradient ' + str(100./len(x)*(i+1)) + '%')
-            
+                print('Gradient ' + str(100. / len(x) * (i + 1)) + '%')
+
             if gradient:
                 for j in range(len(gradient)):
-                    gradient[j].append((f_xi_plus[j]-f_xi_minus[j])/(2.0*step_x[i]))
+                    gradient[j].append((f_xi_plus[j] - f_xi_minus[j]) / (2.0 * step_x[i]))
             else:
-                gradient = [[(f_xi_plus[j]-f_xi_minus[j])/(2.0*step_x[i])] for j in range(len(f_xi_plus))]
-        
+                gradient = [[(f_xi_plus[j] - f_xi_minus[j]) / (2.0 * step_x[i])] for j in range(len(f_xi_plus))]
+
         # Now finite difference for hessian
-        hessian  = []
+        hessian = []
         for i in range(len(x)):
             step_i = step_x[i]
             for j in range(len(x)):
@@ -479,18 +479,19 @@ class JSGeneconv:
                 xij = deepcopy(x)
                 if i == j:
                     f_x = self._sitewise_objective(xij)
-                    xij[i] += 2.0*step_i
+                    xij[i] += 2.0 * step_i
                     f_x_plus_2i = self._sitewise_objective(xij)
                     xij[i] -= step_i
                     f_x_plus_i = self._sitewise_objective(xij)
-                    xij[i] -= 2.0*step_i
+                    xij[i] -= 2.0 * step_i
                     f_x_minus_i = self._sitewise_objective(xij)
                     xij[i] -= step_i
                     f_x_minus_2i = self._sitewise_objective(xij)
                     xij[i] += 2.0 * step_i
 
-                    hessian_ij = [(-f_x_plus_2i[kk] + 16.*f_x_plus_i[kk] - 30.0*f_x[kk]\
-                                                                          +16.*f_x_minus_i[kk] - f_x_minus_2i[kk])/(12.*step_i**2) for kk in range(len(f_x)) ]
+                    hessian_ij = [(-f_x_plus_2i[kk] + 16. * f_x_plus_i[kk] - 30.0 * f_x[kk] \
+                                   + 16. * f_x_minus_i[kk] - f_x_minus_2i[kk]) / (12. * step_i ** 2) for kk in
+                                  range(len(f_x))]
                     if hessian:
                         for k in range(len(hessian)):
                             hessian[k].append(hessian_ij[k])
@@ -515,9 +516,9 @@ class JSGeneconv:
                         for k in range(len(hessian)):
                             hessian[k].append(hessian_ij[k])
                     else:
-                        hessian = [[hessain] for hessian in hessian_ij]
+                        hessian = [[hessian] for hessian in hessian_ij]
             if display:
-                print('Hesian ' + str(100./(len(x)**2+0.)*(len(x)*i + j + 1.)) + '%')
+                print('Hesian ' + str(100. / (len(x) ** 2 + 0.) * (len(x) * i + j + 1.)) + '%')
 
         return gradient, hessian
 
@@ -538,17 +539,14 @@ class JSGeneconv:
 
         return np.matmul(H, np.linalg.solve(J, H))  # solve(J, H) = J^{-1}H    
 
-
     def get_sitewise_loglikelihood_summary(self, summary_file):
         ll = self._sitewise_loglikelihood()
         with open(summary_file, 'w+') as f:
             f.write('#Site\tlnL\t\n')
             for i in range(self.data.nsites):
                 f.write('\t'.join([str(i), str(ll[i])]) + '\n')
-       
 
-    
-    def loglikelihood_and_gradient(self, display = False):
+    def loglikelihood_and_gradient(self, display=False):
         delta = 1e-8
         x = deepcopy(self.x)
         ll, edge_derivs = self._loglikelihood(edge_derivative = True)
@@ -563,7 +561,7 @@ class JSGeneconv:
                     merged_deriv += two_rate_derivs[i][0] * 10.0
                 else:
                     merged_deriv += two_rate_derivs[i][0] * 10.0 / 9.0
-                    
+
             x_rate_derivs = [merged_deriv] + \
                             [edge_derivs[i] for i in range(len(edge_derivs)) if not 'N0' in self.tree.edge_list[i]]
 
@@ -578,7 +576,7 @@ class JSGeneconv:
                 x_plus_delta[i] += delta
                 self.unpack_x(x_plus_delta)
                 ll_plus, _ = self._loglikelihood(False)
-                x_plus_delta[i] -= 2*delta
+                x_plus_delta[i] -= 2 * delta
                 self.unpack_x(x_plus_delta)
                 ll_minus, _ = self._loglikelihood(False)
                 d_estimate = (ll_plus - ll_minus) / (2 * delta)
@@ -589,21 +587,23 @@ class JSGeneconv:
                 self.unpack_x(x)
             else:
                 other_derivs.append(0.0)
-                
+
         other_derivs = np.array(other_derivs)
         self.ll = ll
         f = -ll
         g = -np.concatenate((other_derivs, x_rate_derivs))
         if display:
-            print ('log likelihood = ', ll)
-            print ('Edge derivatives = ', x_rate_derivs)
-            print ('other derivatives:', other_derivs)
+            print('log likelihood = ', ll)
+            print('Edge derivatives = ', x_rate_derivs)
+            print('other derivatives:', other_derivs)
             # print ('Current exp x array = ', np.exp(self.x))
-            print ('PM parameters = ' + ' '.join([i + ':' + str(self.jsmodel.PMModel.parameters[i]) for i in self.jsmodel.PMModel.parameter_list]))
-            print ('IGC parameters = ' + ' '.join([i + ':' + str(self.jsmodel.IGCModel.parameters[i]) for i in self.jsmodel.IGCModel.parameter_list]))
-            print ('Edge lengths = ', self.tree.edge_to_blen)
-            print ()
-            
+            print('PM parameters = ' + ' '.join(
+                [i + ':' + str(self.jsmodel.PMModel.parameters[i]) for i in self.jsmodel.PMModel.parameter_list]))
+            print('IGC parameters = ' + ' '.join(
+                [i + ':' + str(self.jsmodel.IGCModel.parameters[i]) for i in self.jsmodel.IGCModel.parameter_list]))
+            print('Edge lengths = ', self.tree.edge_to_blen)
+            print()
+
         return f, g
 
     def objective_and_gradient(self,display, x):
@@ -613,19 +613,29 @@ class JSGeneconv:
         if self.auto_save == JSGeneconv.auto_save_step:
             self.save_x()
             self.auto_save = 0
+
+        # Now save the lnL parameter and gradient values
+        self.save_iteration(f, x, g)
         return f, g
+
+    def save_iteration(self, f, x, df):
+        if self.log_file is not None:
+            with open(self.log_file, 'a') as g:
+                g.write('\t'.join([str(item) for item in [f] + list(x) + list(df)]) + '\n')
 
     def objective_wo_gradient(self, display, x):
         self.unpack_x(x)
         ll = self._loglikelihood()[0]
         self.ll = ll
         if display:
-            print ('log likelihood = ', ll)
-            print ('Current x array = ', self.x)
+            print('log likelihood = ', ll)
+            print('Current x array = ', self.x)
 
+        # Now save the lnL parameter and gradient values
+        self.save_iteration(ll, x, [])
         return -ll
-            
-    def get_mle(self, display = True, derivative = True, method = 'BFGS', niter = 2000):
+
+    def get_mle(self, display=True, derivative=True, method='BFGS', niter=2000):
         self.unpack_x(self.x)  # do one more update first
         if derivative:
             f = partial(self.objective_and_gradient, display)
@@ -635,11 +645,10 @@ class JSGeneconv:
         guess_x = self.x
         bnds = [(None, -0.001)] * 3
         bnds.extend([(None, None)] * (len(self.x) - 3))
-##        if self.root_by_dup:
-##            bnds  = [(None, None)] * len(self.tree.edge_list)
-##        else:
-##            bnds  = [(None, None)] * (len(self.tree.edge_list) - 1)
-
+        ##        if self.root_by_dup:
+        ##            bnds  = [(None, None)] * len(self.tree.edge_list)
+        ##        else:
+        ##            bnds  = [(None, None)] * (len(self.tree.edge_list) - 1)
 
         if method == 'BFGS':
             if derivative:
@@ -658,7 +667,6 @@ class JSGeneconv:
             bnds = bnds = [(-20.0, -0.001)] * 3
             bnds.extend([(-20.0, 20.0)] * 2 + [(-20.0, 2.0)] * (len(self.x) - 5))
             result = scipy.optimize.differential_evolution(f, bnds)
-            
 
         self.save_x()
         print(result)
@@ -673,11 +681,11 @@ class JSGeneconv:
     def initialize_by_save(self):
         self.x = np.loadtxt(open(self.save_file, 'r'))
         self.unpack_x(self.x)
-        
+
     def get_summary(self):
         summary_mat = [self.ll, self.data.nsites]
         label = ['ll', 'length']
-        
+
         for par in self.jsmodel.PMModel.parameter_list:
             label.append(par)
             summary_mat.append(self.jsmodel.PMModel.parameters[par])
@@ -685,7 +693,7 @@ class JSGeneconv:
         for par in self.jsmodel.IGCModel.parameter_list:
             label.append(par)
             summary_mat.append(self.jsmodel.IGCModel.parameters[par])
-        
+
         for edge in self.tree.edge_list:
             summary_mat.append(self.tree.edge_to_blen[edge])
             label.append('__'.join(edge))
@@ -697,8 +705,8 @@ class JSGeneconv:
 
             ExpectedPointMutation = self.get_expectedMutationNum()
             for edge in self.tree.edge_list:
-            	label.append('__'.join(edge) + '__numMut')
-            	summary_mat.append(ExpectedPointMutation[edge])
+                label.append('__'.join(edge) + '__numMut')
+                summary_mat.append(ExpectedPointMutation[edge])
 
         return summary_mat, label
 
@@ -707,11 +715,11 @@ class JSGeneconv:
         summary = np.matrix(summary)
         footer = ' '.join(label)  # row labels
 
-        np.savetxt(open(summary_file, 'w+'), summary.T, delimiter = ' ', footer = footer)
-                    
-    def __str__(self): # overide for print function
-        return  'Is MLE : ' + str(self.is_mle) + '\n\n' + \
-                self.jsmodel.__str__() + '\n'
+        np.savetxt(open(summary_file, 'w+'), summary.T, delimiter=' ', footer=footer)
+
+    def __str__(self):  # overide for print function
+        return 'Is MLE : ' + str(self.is_mle) + '\n\n' + \
+               self.jsmodel.__str__() + '\n'
 
 
 if __name__ == '__main__':
@@ -765,7 +773,7 @@ if __name__ == '__main__':
     # save_file = '../test/save/JS_HKY_EDN_ECP_nonclock_save.txt'
     # summary_file = '../test/Summary/JS_HKY_EDN_ECP_nonclock_summary.txt'
     # x_js = np.log([ 0.4, 0.6, 0.7,  4.35588244, 0.8])
-    
+
     force = None
     test = JSGeneconv(alignment_file, gene_to_orlg_file, cdna, tree_newick, DupLosList,x_js, pm_model, IGC_pm, rate_variation,
                       node_to_pos, terminal_node_list, save_file, force)
@@ -1101,6 +1109,3 @@ if __name__ == '__main__':
 ##    
 ###    print test._loglikelihood()
 ##    test.get_mle(True, True)
-
-
-

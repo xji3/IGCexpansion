@@ -8,7 +8,10 @@
 # commit number: Dec 17th, 2014 for new package
 # 33e393a973161e3a29149e82bfda23882b5826f3
 from __future__ import print_function, absolute_import
-from IGCexpansion.CodonGeneconFunc import *
+
+from jsonctmctree.extras import optimize_em
+
+from .CodonGeneconFunc import *
 import argparse
 #from jsonctmctree.extras import optimize_em
 import ast

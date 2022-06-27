@@ -26,7 +26,7 @@ class PSIGCModel:
         if self.pm == 'One rate':
             self.init_one_rate_Q()
         else:
-            sys.exit('Parameterization not implemented in PSIGCModel class!')
+            Exception('Parameterization not implemented in PSIGCModel class!')
 
 
     def update_by_x_IGC(self, new_x_IGC):
@@ -66,6 +66,6 @@ class PSIGCModel:
 
 if __name__ == '__main__':
     test = PSIGCModel(np.log([4.9, 0.5]), 7, 'One rate', {0:0.0})
-    print test.rate_IGC
-    print test.p_IGC
+    print(test.rate_IGC)
+    print(test.p_IGC)
 

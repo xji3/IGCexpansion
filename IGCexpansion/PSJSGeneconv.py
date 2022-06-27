@@ -5,17 +5,17 @@
 from __future__ import print_function
 from itertools import product
 import jsonctmctree.ll, jsonctmctree.interface
-from Data import Data
-from Tree import Tree
-from PSJSModel import PSJSModel
-from Func import *
+from .Data import Data
+from .Tree import Tree
+from .PSJSModel import PSJSModel
+from .Func import *
 from copy import deepcopy
 from functools import partial
 import scipy
 import scipy.optimize
 import os
-from Common import *
-#import numdifftools as nd
+from .Common import *
+import numdifftools as nd
 
 
 class PSJSGeneconv:
@@ -270,8 +270,8 @@ class PSJSGeneconv:
             num_all_pairs = sum([len(self.iid_observations[n]) for n in self.iid_observations])
             for n in self.iid_observations.keys():
                 for pair_num in range(len(self.iid_observations[n])):
-                    gradient_list.append(df(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair))
-                    hessian_list.append(ddf(x, pair_num = pair_num, n = n, codon_site_pair = codon_site_pair))
+                    gradient_list.append(df(x, pair_num = pair_num, n = n, codon_site_pair = None)) # TODO: check this
+                    hessian_list.append(ddf(x, pair_num = pair_num, n = n, codon_site_pair = None))
                     num_visited_pairs += 1
                     if (num_visited_pairs + 0.0)/(num_all_pairs + 0.0) > inc:
                         print(str(inc*100.0) + '%')
@@ -685,7 +685,7 @@ class PSJSGeneconv:
             elif method == 'DifferentialEvolution':
                 bnds = [(-20.0, 0.0)]
             else:
-                sys.exit('Optimization method is not implemented!')
+                Exception('Optimization method is not implemented!')
         if dimension == 2:
             f = partial(self.objective_2d_x_IGC, display)
             guess_x = self.psjsmodel.x_IGC
@@ -696,13 +696,13 @@ class PSJSGeneconv:
             elif method == 'DifferentialEvolution':
                 bnds = [(-20.0, 20.0), (-20.0, 0.0)]
             else:
-                sys.exit('Optimization method is not implemented!')
+                Exception('Optimization method is not implemented!')
         if method == 'L-BFGS-B':
             result = scipy.optimize.minimize(f, guess_x, jac = False, method = method, bounds = bnds)
         elif method == 'BasinHopping':
-            sys.exit('Not implemented yet!')
+            Exception('Not implemented yet!')
         else:
-            sys.exit('Not implemented yet!')
+            Exception('Not implemented yet!')
             
         self.save_x()
         print (result)

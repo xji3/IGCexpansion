@@ -1,14 +1,15 @@
 # A separate file for general functions
 # Xiang Ji
 # xji3@ncsu.edu
+import sys
 
-from Data import Data
-from Tree import Tree
-from JSModel import JSModel
+from .Data import Data
+from .Tree import Tree
+from .JSModel import JSModel
 import numpy as np
 from copy import deepcopy
 from itertools import product
-from Common import *
+from .Common import *
 
 
 def get_iid_observations(data, tree, nsites, data_type = 'nt'):

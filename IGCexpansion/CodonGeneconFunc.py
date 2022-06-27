@@ -29,6 +29,12 @@ import jsonctmctree.ll, jsonctmctree.interface
 ##    else:
 ##        return pi['ACGT'.index(nb)]
 
+bases = 'tcag'.upper()
+codons = [a + b + c for a in bases for b in bases for c in bases]
+amino_acids = [amino_acid for amino_acid in 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG']
+codon_table = dict(zip(codons, amino_acids))
+codon_nonstop = [codons[i] for i in range(len(codons)) if amino_acids[i] != '*']
+
 def get_HKYGeneconvRate(pair_from, pair_to, Qbasic, tau):
     na, nb = pair_from
     nc, nd = pair_to
@@ -76,9 +82,12 @@ def isTransition(na, nb):
 def isNonsynonymous(ca, cb, codon_table):
     return (codon_table[ca] != codon_table[cb])
 
+def isHomogenizing(ca, cb, codon_table):
+    return (codon_table[ca] == codon_table[cb])
+
 #vec_get_MG94BasicRate = np.vectorize(get_MG94BasicRate, doc='Vectorized `get_MG94BasicRate`', excluded = ['pi', 'kappa', 'omega', 'codon_table'])
 
-def get_MG94GeneconvRate(pair_from, pair_to, Qbasic, tau, codon_to_state):
+def get_MG94GeneconvRate(pair_from, pair_to, Qbasic, omega, tau, codon_to_state):
     # pair_from = a string of length 6
     ca, cb = pair_from[:3], pair_from[3:]
     cc, cd = pair_to[:3], pair_to[3:]

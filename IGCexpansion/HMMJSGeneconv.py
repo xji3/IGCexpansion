@@ -52,7 +52,7 @@ class HMMJSGeneconv:
         self.save_file = save_file
         if os.path.isfile(self.save_file):
             self.initialize_by_save()
-            print 'Loaded parameter values from save file: ', self.save_file
+            print('Loaded parameter values from save file: ', self.save_file)
 
         self.auto_save = 0
 
@@ -92,11 +92,11 @@ class HMMJSGeneconv:
     def objective(self, display, x):
         assert(len(x) == len(self.x))
         if display:
-            print 'New x array: ', x
+            print('New x array: ', x)
         ll = self._loglikelihood(x)
         if display:
-            print 'Current exp(x) array: ', np.exp(self.x)
-            print 'lnL = ', -ll
+            print('Current exp(x) array: ', np.exp(self.x))
+            print('lnL = ', -ll)
 
         if self.auto_save == HMMJSGeneconv.auto_save_step * len(self.x):
             self.save_x()
@@ -224,7 +224,7 @@ if __name__ == '__main__':
        -3.36291767, -2.407368  , -4.2448557 , -4.1330508 , -3.07197501])
 
     print 
-    print '**' + '_'.join(paralog)+ '**', output_ctrl
+    print('**' + '_'.join(paralog)+ '**', output_ctrl)
 
 
     alignment_file = '../test/EDN_ECP_Cleaned.fasta'

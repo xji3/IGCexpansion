@@ -3,15 +3,15 @@
 # Xiang Ji
 # xji3@ncsu.edu
 import sys
-from PMModel import PMModel
-from PSIGCModel import PSIGCModel
+from .PMModel import PMModel
+from .PSIGCModel import PSIGCModel
 import numpy as np
 import itertools
 from copy import deepcopy
 from operator import mul
 from scipy.sparse import lil_matrix
 import scipy.sparse.linalg
-from Common import *
+from .Common import *
 
 class PSJSModel:
     supported = ['One rate']
@@ -242,6 +242,7 @@ class PSJSModel:
         assert(len(transition) == 2)
         state_from, state_to = transition
         assert(len(state_from) == len(state_to) == len(self.state_space_shape))
+        assert(len(state_from) % 2 == 0)
         if state_from == state_to:
             return False
 
@@ -251,7 +252,7 @@ class PSJSModel:
            or state_to[0] != state_to[2] or state_to[1] != state_to[3]:
             return False
         
-        pos_list = [i for i in range(len(state_from) / 2) if state_from[i] != state_to[i]]
+        pos_list = [i for i in range(int(len(state_from) / 2)) if state_from[i] != state_to[i]]
         if len(pos_list) == 1:
             return True
         else:
@@ -261,7 +262,8 @@ class PSJSModel:
         assert(all([ 0 < i < 4 for i in codon_site_pair]))
         assert(self.is_compatible_pm_transition(transition))
         state_from, state_to = transition
-        pos_list = [i for i in range(len(state_from) / 2) if state_from[i] != state_to[i]]
+        assert (len(state_from) % 2 == 0)
+        pos_list = [i for i in range(int(len(state_from) / 2)) if state_from[i] != state_to[i]]
         pos = pos_list[0]
         codon_site = codon_site_pair[pos]
         return self.PMModel.get_HKY_transition_rate((state_from[pos], state_to[pos]), codon_site)
@@ -362,14 +364,14 @@ if __name__ == '__main__':
 
     IGC_0_not_n = IGC_init / IGC_p * (1 - (1 - IGC_p) ** n)
     IGC_0_and_n = IGC_init / IGC_p * (1 - IGC_p) ** n
-    print IGC_0_not_n, IGC_0_and_n
-    print test.is_transition_compatible(transition), test.cal_IGC_transition_rate(transition, n, (1, 1)), test.cal_IGC_transition_rate(transition, n, (1, 3))
-    print test.PMModel.Q_mut
+    print(IGC_0_not_n, IGC_0_and_n)
+    print(test.is_transition_compatible(transition), test.cal_IGC_transition_rate(transition, n, (1, 1)), test.cal_IGC_transition_rate(transition, n, (1, 3)))
+    print(test.PMModel.Q_mut)
     a = test.get_IGC_process_definition(10)
-    print len(a['row_states'])
+    print(len(a['row_states']))
     b = test.get_PM_process_definition((1, 2))
     c = test.get_PM_process_definition((3, 1))
-    print b == c
+    print(b == c)
 
 
     
@@ -383,7 +385,7 @@ if __name__ == '__main__':
                                [test.cal_PM_transition_rate(([i,k,i,k], [j,k,j,k]),(m,L)) for k in range(4) for L in [1,2,3]] )))
                            
             
-            print i, j, test.cal_PM_transition_rate(([0,i,0,i], [0,j,0,j]),(1,1))
+            print(i, j, test.cal_PM_transition_rate(([0,i,0,i], [0,j,0,j]),(1,1)))
 
     
     state_from = (0,1,0,3)
