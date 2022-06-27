@@ -67,19 +67,15 @@ class JointAnalysis:
             model_string = self.Model
 
         if save_name is None:
-            if ReCodonGeneconv.use_IGC_Omega(self):
-                if self.IGC_Omega is not None:
-                    general_save_name = self.save_path + 'Joint_' + model_string + '_twoOmega_' + str(
-                        len(self.paralog_list)) + '_pairs_grand_save.txt'
-                elif self.Tau_Omega is not None:
-                    general_save_name = self.save_path + 'Joint_' + model_string + '_tauOmega_' + str(
-                        len(self.paralog_list)) + '_pairs_grand_save.txt'
-                else:
-                    general_save_name = self.save_path + 'Joint_' + model_string + '_' + str(
-                        len(self.paralog_list)) + '_pairs_grand_save.txt'
-            elif ReCodonGeneconv.use_Homo_Omega(self):
-                general_save_name = self.save_path + 'Joint_' + model_string + '_homoOmega_' + str(
+            if self.IGC_Omega is not None:
+                general_save_name = self.save_path + 'Joint_' + model_string + '_twoOmega_' + str(
                     len(self.paralog_list)) + '_pairs_grand_save.txt'
+            elif self.Tau_Omega is not None:
+                general_save_name = self.save_path + 'Joint_' + model_string + '_tauOmega_' + str(
+                    len(self.paralog_list)) + '_pairs_grand_save.txt'
+            elif self.Homo_Omega is not None:
+                general_save_name = self.save_path + 'Joint_' + model_string + '_homoOmega_' + str(
+                len(self.paralog_list)) + '_pairs_grand_save.txt'
             else:
                 general_save_name = self.save_path + 'Joint_' + model_string + '_' + str(
                     len(self.paralog_list)) + '_pairs_grand_save.txt'
@@ -225,7 +221,7 @@ if __name__ == '__main__':
 
     paralog_list = [paralog_1, paralog_2]
     IGC_Omega = None
-    Tau_Omega = None
+    Tau_Omega = 0.5
     Homo_Omega = 0.5
     Shared = [6]
     alignment_file_list = [alignment_file_1, alignment_file_2]
