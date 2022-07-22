@@ -1094,7 +1094,7 @@ class ReCodonGeneconv:
                 }        
             j_out = jsonctmctree.interface.process_json_in(j_in)
 
-            ExpectedDwellTime = [{self.edge_list[i] : j_out['responses'][j][i] for i in range(len(self.edge_list))} for j in range(len(j_out))]
+            ExpectedDwellTime = [{self.edge_list[i] : j_out['responses'][j][i] for i in range(len(self.edge_list))} for j in range(len(j_out['responses']))]
             return ExpectedDwellTime
         else:
             print ('Need to implement this for old package')
