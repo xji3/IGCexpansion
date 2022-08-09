@@ -220,16 +220,6 @@ class ReCodonGeneconv:
             self.x_rates = np.exp(-np.exp(self.x_rates))
         self.x = np.concatenate((self.x_process, self.x_rates))
 
-        if self.Force is not None:
-            self.Force.update({i:np.exp(self.logzero) for i in self.Force if self.Force[i] == 0})
-            for i in self.Force.keys():
-                if transformation == 'log':
-                    self.x[i] = np.log(self.Force[i])
-                elif transformation == 'None':
-                    self.x[i] = self.Force[i]
-                elif transformation == 'Exp_Neg':
-                    self.x[i] = -np.exp(self.Force[i])
-
         if self.clock:   # set-up x_clock if it's a clock model
             l = len(self.edge_to_blen) / 2 + 1               # number of leaves
             self.x_Lr = np.log(np.ones(int(l)) * 0.6)
@@ -675,20 +665,6 @@ class ReCodonGeneconv:
             )
         return scene
 
-    def show_x(self, transformation = 'log'):
-        x = self.x
-        if self.Force != None:
-            Force = self.Force
-            Force.update({i:np.exp(self.logzero) for i in self.Force if self.Force[i] == 0})
-            for i in Force.keys():
-                if transformation == 'log':
-                    x[i] = np.log(Force[i])
-                elif transformation == 'None':
-                    x[i] = Force[i]
-                elif transformation == 'Exp_Neg':
-                    x[i] = -np.exp(Force[i])
-        return x
-
     def loglikelihood_and_gradient(self, display = False):
         '''
         Modified from Alex's objective_and_gradient function in ctmcaas/adv-log-likelihoods/mle_geneconv_common.py
@@ -744,7 +720,9 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             print ('Edge derivatives = ', edge_derivs)
             print ('other derivatives:', other_derivs)
-            print ('Current x array = ', self.show_x())
+            print ('Current x array = ', self.x)
+            if self.Force is not None:
+                print ('Forced parameter:', self.Force)
 
         self.ll = ll
         f = -ll
@@ -791,7 +769,9 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             print ('Edge derivatives = ', edge_derivs)
             print ('other derivatives:', other_derivs)
-            print ('Current x array = ', self.show_x())
+            print ('Current x array = ', self.x)
+            if self.Force is not None:
+                print('Forced parameter:', self.Force)
 
         self.ll = ll
         f = -ll
@@ -872,8 +852,12 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             if self.clock:
                 print ('Current x_clock array = ', self.x_clock)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
             else:
-                print ('Current x array = ', self.show_x())
+                print ('Current x array = ', self.x)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
 
         return -ll
 
@@ -889,8 +873,12 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             if self.clock:
                 print ('Current x_clock array = ', self.x_clock)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
             else:
-                print ('Current x array = ', self.show_x(transformation = 'Exp_Neg'))
+                print ('Current x array = ', self.x)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
 
         return -ll
         
