@@ -675,6 +675,20 @@ class ReCodonGeneconv:
             )
         return scene
 
+    def show_x(self, transformation = 'log'):
+        x = self.x
+        if self.Force != None:
+            Force = self.Force
+            Force.update({i:np.exp(self.logzero) for i in self.Force if self.Force[i] == 0})
+            for i in Force.keys():
+                if transformation == 'log':
+                    x[i] = np.log(Force[i])
+                elif transformation == 'None':
+                    x[i] = Force[i]
+                elif transformation == 'Exp_Neg':
+                    x[i] = -np.exp(Force[i])
+        return x
+
     def loglikelihood_and_gradient(self, display = False):
         '''
         Modified from Alex's objective_and_gradient function in ctmcaas/adv-log-likelihoods/mle_geneconv_common.py
@@ -730,7 +744,7 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             print ('Edge derivatives = ', edge_derivs)
             print ('other derivatives:', other_derivs)
-            print ('Current x array = ', self.x)
+            print ('Current x array = ', self.show_x())
 
         self.ll = ll
         f = -ll
@@ -777,7 +791,7 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             print ('Edge derivatives = ', edge_derivs)
             print ('other derivatives:', other_derivs)
-            print ('Current x array = ', self.x)
+            print ('Current x array = ', self.show_x())
 
         self.ll = ll
         f = -ll
@@ -859,7 +873,7 @@ class ReCodonGeneconv:
             if self.clock:
                 print ('Current x_clock array = ', self.x_clock)
             else:
-                print ('Current x array = ', self.x)
+                print ('Current x array = ', self.show_x())
 
         return -ll
 
@@ -876,7 +890,7 @@ class ReCodonGeneconv:
             if self.clock:
                 print ('Current x_clock array = ', self.x_clock)
             else:
-                print ('Current x array = ', self.x)
+                print ('Current x array = ', self.show_x(transformation = 'Exp_Neg'))
 
         return -ll
         
