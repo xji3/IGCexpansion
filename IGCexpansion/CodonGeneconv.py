@@ -220,6 +220,16 @@ class ReCodonGeneconv:
             self.x_rates = np.exp(-np.exp(self.x_rates))
         self.x = np.concatenate((self.x_process, self.x_rates))
 
+        if self.Force is not None:
+            self.Force.update({i:np.exp(self.logzero) for i in self.Force if self.Force[i] == 0})
+            for i in self.Force.keys():
+                if transformation == 'log':
+                    self.x[i] = np.log(self.Force[i])
+                elif transformation == 'None':
+                    self.x[i] = self.Force[i]
+                elif transformation == 'Exp_Neg':
+                    self.x[i] = -np.exp(self.Force[i])
+
         if self.clock:   # set-up x_clock if it's a clock model
             l = len(self.edge_to_blen) / 2 + 1               # number of leaves
             self.x_Lr = np.log(np.ones(int(l)) * 0.6)
