@@ -721,6 +721,8 @@ class ReCodonGeneconv:
             print ('Edge derivatives = ', edge_derivs)
             print ('other derivatives:', other_derivs)
             print ('Current x array = ', self.x)
+            if self.Force is not None:
+                print ('Forced parameter:', self.Force)
 
         self.ll = ll
         f = -ll
@@ -768,6 +770,8 @@ class ReCodonGeneconv:
             print ('Edge derivatives = ', edge_derivs)
             print ('other derivatives:', other_derivs)
             print ('Current x array = ', self.x)
+            if self.Force is not None:
+                print('Forced parameter:', self.Force)
 
         self.ll = ll
         f = -ll
@@ -848,8 +852,12 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             if self.clock:
                 print ('Current x_clock array = ', self.x_clock)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
             else:
                 print ('Current x array = ', self.x)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
 
         return -ll
 
@@ -865,8 +873,12 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             if self.clock:
                 print ('Current x_clock array = ', self.x_clock)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
             else:
                 print ('Current x array = ', self.x)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
 
         return -ll
         
