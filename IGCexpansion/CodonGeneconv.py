@@ -161,6 +161,7 @@ class ReCodonGeneconv:
         assert(seq_name in self.name_to_seq)  # check if it is a valid sequence name
         matched_paralog = [paralog for paralog in self.paralog if paralog in seq_name]
         # check if there is exactly one paralog name in the sequence name
+        assert(len(matched_paralog) == 1)
         return [seq_name.replace(matched_paralog[0], ''), matched_paralog[0]]
 
     def use_IGC_Omega(self):
@@ -721,6 +722,8 @@ class ReCodonGeneconv:
             print ('Edge derivatives = ', edge_derivs)
             print ('other derivatives:', other_derivs)
             print ('Current x array = ', self.x)
+            if self.Force is not None:
+                print ('Forced parameter:', self.Force)
 
         self.ll = ll
         f = -ll
@@ -768,6 +771,8 @@ class ReCodonGeneconv:
             print ('Edge derivatives = ', edge_derivs)
             print ('other derivatives:', other_derivs)
             print ('Current x array = ', self.x)
+            if self.Force is not None:
+                print('Forced parameter:', self.Force)
 
         self.ll = ll
         f = -ll
@@ -848,8 +853,12 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             if self.clock:
                 print ('Current x_clock array = ', self.x_clock)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
             else:
                 print ('Current x array = ', self.x)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
 
         return -ll
 
@@ -865,8 +874,12 @@ class ReCodonGeneconv:
             print ('log likelihood = ', ll)
             if self.clock:
                 print ('Current x_clock array = ', self.x_clock)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
             else:
                 print ('Current x array = ', self.x)
+                if self.Force is not None:
+                    print('Forced parameter:', self.Force)
 
         return -ll
         
