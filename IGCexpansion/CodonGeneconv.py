@@ -161,6 +161,7 @@ class ReCodonGeneconv:
         assert(seq_name in self.name_to_seq)  # check if it is a valid sequence name
         matched_paralog = [paralog for paralog in self.paralog if paralog in seq_name]
         # check if there is exactly one paralog name in the sequence name
+        assert(len(matched_paralog) == 1)
         return [seq_name.replace(matched_paralog[0], ''), matched_paralog[0]]
 
     def use_IGC_Omega(self):
