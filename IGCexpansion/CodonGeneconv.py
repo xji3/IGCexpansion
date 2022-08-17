@@ -388,8 +388,9 @@ class ReCodonGeneconv:
 
     def get_MG94Geneconv_and_MG94(self):
         Qbasic = self.get_MG94Basic(omega=self.omega)
+        num_states = len(self.codon_nonstop)
         if self.use_Homo_Omega():
-            Qbasic_Homo = self.get_MG94Basic(omega=self.Homo_Omega)
+            Qbasic_Homo, _ = self.get_MG94_with_Homogenization(self.omega, self.Homo_Omega)
         row = []
         col = []
         rate_geneconv = []
@@ -400,6 +401,7 @@ class ReCodonGeneconv:
             ca, cb = pair
             sa = self.codon_to_state[ca]
             sb = self.codon_to_state[cb]
+            state_from = sa * num_states + sb
             if ca != cb:
                 for cc in self.codon_nonstop:
                     if cc == ca or cc == cb:
@@ -407,7 +409,8 @@ class ReCodonGeneconv:
                     sc = self.codon_to_state[cc]
                     # (ca, cb) to (ca, cc)
                     if isHomogenizing(ca, cc, self.codon_table) and self.use_Homo_Omega():
-                        Qb = Qbasic_Homo[sb, sc]
+                        state_to = sa * num_states + sc
+                        Qb = Qbasic_Homo[state_from, state_to]
                     else:
                         Qb = Qbasic[sb, sc]
                     if Qb != 0:
@@ -418,7 +421,8 @@ class ReCodonGeneconv:
 
                     # (ca, cb) to (cc, cb)
                     if isHomogenizing(cc, cb, self.codon_table) and self.use_Homo_Omega():
-                        Qb = Qbasic_Homo[sa, sc]
+                        state_to = sc * num_states + sb
+                        Qb = Qbasic_Homo[state_from, state_to]
                     else:
                         Qb = Qbasic[sa, sc]
                     if Qb != 0:
@@ -432,7 +436,8 @@ class ReCodonGeneconv:
                 row.append((sa, sb))
                 col.append((sa, sa))
                 if self.use_Homo_Omega():
-                    Qb = Qbasic_Homo[sb, sa]
+                    state_to = sa * num_states + sa
+                    Qb = Qbasic_Homo[state_from, state_to]
                 else:
                     Qb = Qbasic[sb, sa]
                 if isNonsynonymous(cb, ca, self.codon_table):
@@ -446,7 +451,8 @@ class ReCodonGeneconv:
                 row.append((sa, sb))
                 col.append((sb, sb))
                 if self.use_Homo_Omega():
-                    Qb = Qbasic_Homo[sa, sb]
+                    state_to = sb * num_states + sb
+                    Qb = Qbasic_Homo[state_from, state_to]
                 else:
                     Qb = Qbasic[sa, sb]
                 rate_geneconv.append(Qb + Tgeneconv)
@@ -501,7 +507,7 @@ class ReCodonGeneconv:
         return Qbasic
 
     def get_MG94_with_Homogenization(self, original_oemga, homo_omega):
-        num_state = 61
+        num_state = len(self.codon_nonstop)
         Qbasic = np.zeros((num_state**2, num_state**2), dtype = float)
         # Keep it simple and stupid
         # transition of (ca, cb) to (ca, cc) and (ca, cb) to (cc, cb)
@@ -1029,12 +1035,14 @@ class ReCodonGeneconv:
         proportions = []
         if self.Model == 'MG94':
             Qbasic = self.get_MG94Basic(omega=self.omega)
+            num_states = len(self.codon_nonstop)
             if self.use_Homo_Omega():
-                Qbasic_Homo = self.get_MG94Basic(omega=self.Homo_Omega)
+                Qbasic_Homo, _ = self.get_MG94_with_Homogenization(self.omega, self.Homo_Omega)
             for i, pair in enumerate(product(self.codon_nonstop, repeat = 2)):
                 ca, cb = pair
                 sa = self.codon_to_state[ca]
                 sb = self.codon_to_state[cb]
+                state_from = sa * num_states + sb
                 if ca == cb:
                     continue
                 
@@ -1042,7 +1050,8 @@ class ReCodonGeneconv:
                 row_states.append((sa, sb))
                 column_states.append((sa, sa))
                 if self.use_Homo_Omega():
-                    Qb = Qbasic_Homo[sb, sa]
+                    state_to = sa * num_states + sa
+                    Qb = Qbasic_Homo[state_from, state_to]
                 else:
                     Qb = Qbasic[sb, sa]
                 if isNonsynonymous(cb, ca, self.codon_table):
@@ -1055,7 +1064,8 @@ class ReCodonGeneconv:
                 row_states.append((sa, sb))
                 column_states.append((sb, sb))
                 if self.use_Homo_Omega():
-                    Qb = Qbasic_Homo[sa, sb]
+                    state_to = sb * num_states + sb
+                    Qb = Qbasic_Homo[state_from, state_to]
                 else:
                     Qb = Qbasic[sa, sb]
                 proportions.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
@@ -1205,20 +1215,23 @@ class ReCodonGeneconv:
         proportions21 = []
         if self.Model == 'MG94':
             Qbasic = self.get_MG94Basic(omega=self.omega)
+            num_states = len(self.codon_nonstop)
             if self.use_Homo_Omega():
-                Qbasic_Homo = self.get_MG94Basic(omega=self.Homo_Omega)
+                Qbasic_Homo, _ = self.get_MG94_with_Homogenization(self.omega, self.Homo_Omega)
             for i, pair in enumerate(product(self.codon_nonstop, repeat = 2)):
                 ca, cb = pair
                 sa = self.codon_to_state[ca]
                 sb = self.codon_to_state[cb]
+                state_from = sa * num_states + sb
                 if ca == cb:
                     continue
-                
+
                 # (ca, cb) to (ca, ca)
                 row12_states.append((sa, sb))
                 column12_states.append((sa, sa))
                 if self.use_Homo_Omega():
-                    Qb = Qbasic_Homo[sb, sa]
+                    state_to = sa * num_states + sa
+                    Qb = Qbasic_Homo[state_from, state_to]
                 else:
                     Qb = Qbasic[sb, sa]
                 if isNonsynonymous(cb, ca, self.codon_table):
@@ -1231,7 +1244,8 @@ class ReCodonGeneconv:
                 row21_states.append((sa, sb))
                 column21_states.append((sb, sb))
                 if self.use_Homo_Omega():
-                    Qb = Qbasic_Homo[sa, sb]
+                    state_to = sb * num_states + sb
+                    Qb = Qbasic_Homo[state_from, state_to]
                 else:
                     Qb = Qbasic[sa, sb]
                 proportions21.append(Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
@@ -1279,13 +1293,15 @@ class ReCodonGeneconv:
         
         if self.Model == 'MG94':
             Qbasic = self.get_MG94Basic(omega=self.omega)
+            num_states = len(self.codon_nonstop)
             if self.use_Homo_Omega():
-                Qbasic_Homo = self.get_MG94Basic(omega=self.Homo_Omega)
+                Qbasic_Homo, _ = self.get_MG94_with_Homogenization(self.omega, self.Homo_Omega)
             for i, pair in enumerate(product(self.codon_nonstop, repeat = 2)):
                 ca, cb = pair
                 sa = self.codon_to_state[ca]
                 sb = self.codon_to_state[cb]
-                if ca != cb:                        
+                state_from = sa * num_states + sb
+                if ca != cb:
                     for cc in self.codon_nonstop:
                         if cc == ca or cc == cb:
                             continue
@@ -1308,7 +1324,8 @@ class ReCodonGeneconv:
                     row_states.append((sa, sb))
                     col_states.append((sa, sa))
                     if self.use_Homo_Omega():
-                        Qb = Qbasic_Homo[sb, sa]
+                        state_to = sa * num_states + sa
+                        Qb = Qbasic_Homo[state_from, state_to]
                     else:
                         Qb = Qbasic[sb, sa]
                     if isNonsynonymous(cb, ca, self.codon_table):
@@ -1321,7 +1338,8 @@ class ReCodonGeneconv:
                     row_states.append((sa, sb))
                     col_states.append((sb, sb))
                     if self.use_Homo_Omega():
-                        Qb = Qbasic_Homo[sa, sb]
+                        state_to = sb * num_states + sb
+                        Qb = Qbasic_Homo[state_from, state_to]
                     else:
                         Qb = Qbasic[sa, sb]
                     proportions.append(1.0 - Tgeneconv / (Qb + Tgeneconv) if (Qb + Tgeneconv) >0 else 0.0)
@@ -1337,12 +1355,12 @@ class ReCodonGeneconv:
                             row_states.append((sa, sb))
                             col_states.append((sa, sc))
                             proportions.append(1.0)
-                        # (ca, ca) to (cc, ca)
+                            # (ca, ca) to (cc, ca)
                             row_states.append((sa, sb))
                             col_states.append((sc, sa))
                             proportions.append(1.0)
 
-                        # (ca, ca) to (cc, cc)
+                            # (ca, ca) to (cc, cc)
                             row_states.append((sa, sb))
                             col_states.append((sc, sc))
                             proportions.append(1.0)
@@ -1663,7 +1681,8 @@ if __name__ == '__main__':
     # Force MG94:{5:0.0} HKY:{4:0.0}
 
     #MG94+tau
-    # MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
+    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
+    MG94_tau_lnL = MG94_tau._loglikelihood()[0]
     # # MG94_tau.get_mle(True, True, 0, 'BFGS')
     # lnL = MG94_tau._loglikelihood()
     # MG94_tau.get_individual_summary('../test/save/')
@@ -1692,11 +1711,14 @@ if __name__ == '__main__':
     MG94_homo_omega = ReCodonGeneconv(newicktree, alignment_file, paralog, Model='MG94', Homo_Omega = Homo_Omega,
                                      Force=Force, clock=False,
                                      save_path='../test/save/')
+    MG94_homo_omega.update_by_x(np.concatenate((MG94_tau.x_process[:-1], np.log([MG94_tau.omega, MG94_tau.tau]), MG94_tau.x_rates)))
+    MG94_homo_omega_lnL = MG94_homo_omega._loglikelihood()[0]
     # special case: when Homo_omega == original omega, the numeric stationary distribution should match the analytic
     # we use this fact to check
     Qbasic, stationary_distribution = MG94_homo_omega.get_MG94_with_Homogenization(MG94_homo_omega.omega, MG94_homo_omega.omega)
     analytic_distribution = np.kron(MG94_homo_omega.prior_distribution, MG94_homo_omega.prior_distribution)
     print(np.sum(abs(np.reshape(stationary_distribution, analytic_distribution.shape) - analytic_distribution)))
+    print(MG94_tau_lnL, MG94_homo_omega_lnL)
 
 
 
