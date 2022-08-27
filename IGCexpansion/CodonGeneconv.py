@@ -132,6 +132,7 @@ class ReCodonGeneconv:
         else:
             obs_to_state = deepcopy(self.nt_to_state)
             obs_to_state['-'] = -1
+            obs_to_state['N'] = -1
 
         # change the number of sites for calculation if requested
         if self.nsites is None:
