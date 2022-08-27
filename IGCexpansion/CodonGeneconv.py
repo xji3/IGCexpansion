@@ -129,6 +129,7 @@ class ReCodonGeneconv:
             self.nts_to_codons()
             obs_to_state = deepcopy(self.codon_to_state)
             obs_to_state['---'] = -1
+            obs_to_state['NNN'] = -1
         else:
             obs_to_state = deepcopy(self.nt_to_state)
             obs_to_state['-'] = -1
