@@ -16,7 +16,12 @@ import ast
 #import matplotlib.pyplot as plt
 
 class ReCodonGeneconv:
-    def __init__(self, tree_newick, alignment, paralog, Model = 'MG94', IGC_Omega = None, Tau_Omega = None, Homo_Omega = None, nnsites = None, clock = False, Force = None, save_path = './save/', save_name = None, post_dup = 'N1'):
+
+    save_every = 5
+    
+    def __init__(self, tree_newick, alignment, paralog, Model = 'MG94', IGC_Omega = None, Tau_Omega = None,
+                 Homo_Omega = None, nnsites = None, clock = False, Force = None, save_path = './save/',
+                 save_name = None, post_dup = 'N1', save_every = None):
         self.newicktree  = tree_newick  # newick tree file loc
         self.seqloc      = alignment    # multiple sequence alignment, now need to remove gap before-hand
         self.paralog     = paralog      # parlaog list
@@ -29,6 +34,7 @@ class ReCodonGeneconv:
         self.post_dup    = post_dup     # store first post-duplication node name
         self.save_path   = save_path    # location for auto-save files
         self.save_name   = save_name    # save file name
+        self.save_every  = save_every if save_every is not None and isinstance(save_every, int) else ReCodonGeneconv.save_every
         self.auto_save   = 0            # auto save control
         self.IGC_Omega   = IGC_Omega    # separate omega parameter for IGC-related nonsynonymous changes
         self.Tau_Omega   = Tau_Omega    # the product of tau * IGC_omega
@@ -828,7 +834,7 @@ class ReCodonGeneconv:
         self.update_by_x(x)
         f, g = self.loglikelihood_and_gradient(display = display)
         self.auto_save += 1
-        if self.auto_save == 5:
+        if self.auto_save == self.save_every:
             self.save_x()
             self.auto_save = 0
         return f, g
@@ -1683,7 +1689,7 @@ if __name__ == '__main__':
     # Force MG94:{5:0.0} HKY:{4:0.0}
 
     #MG94+tau
-    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
+    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/', save_every = 1)
     MG94_tau_lnL = MG94_tau._loglikelihood()[0]
     # # MG94_tau.get_mle(True, True, 0, 'BFGS')
     # lnL = MG94_tau._loglikelihood()
