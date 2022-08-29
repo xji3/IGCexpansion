@@ -1670,16 +1670,31 @@ class ReCodonGeneconv:
         save_file = self.get_save_file_name()
             
         np.savetxt(save_file, np.array(save).T)
+        if '.txt' in save_file:
+            np.save(save_file.replace('.txt', 'npy'), np.array(save).T) # save additional binary file to reserve precision
 
     def initialize_by_save(self, save_file):
+
+        use_binary = False
+        if '.txt' in save_file:
+            binary_save_file = save_file.replace('.txt', '.npy')
+            if os.path.isfile(binary_save_file) and os.path.getsize(binary_save_file) > 0:
+                use_binary = True
             
         if self.clock:
-            self.x_clock = np.loadtxt(open(save_file, 'r'))
+            if use_binary:
+                self.x_clock = np.load(binary_save_file)
+            else:
+                self.x_clock = np.loadtxt(open(save_file, 'r'))
             self.update_by_x_clock()
         else:
-            self.x = np.loadtxt(open(save_file, 'r'))
+            if use_binary:
+                self.x = np.load(binary_save_file)
+            else:
+                self.x = np.loadtxt(open(save_file, 'r'))
             self.update_by_x()     
-    
+
+
 if __name__ == '__main__':
     paralog = ['YLR406C', 'YDL075W']
     Force = None
