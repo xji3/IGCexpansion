@@ -18,7 +18,7 @@ import ast
 class ReCodonGeneconv:
 
     save_every = 5
-    
+
     def __init__(self, tree_newick, alignment, paralog, Model = 'MG94', IGC_Omega = None, Tau_Omega = None,
                  Homo_Omega = None, nnsites = None, clock = False, Force = None, save_path = './save/',
                  save_name = None, post_dup = 'N1', save_every = None):
@@ -542,6 +542,7 @@ class ReCodonGeneconv:
                             Qbasic[joint_state_from, joint_state_to] = get_MG94BasicRate(ca, cc, pi=self.pi, kappa=self.kappa, omega=original_oemga, codon_table=self.codon_table)
         Qbasic_diag_sum = Qbasic.sum(axis = 1)
         Qbasic = np.subtract(Qbasic, np.diag(Qbasic_diag_sum))
+        np.fill_diagonal(Qbasic, Qbasic.diagonal() + 1E-8)
         eigen_value, stationary_distribution = scipy.sparse.linalg.eigs(Qbasic.T, k = 1, sigma = 0.0)
         stationary_distribution = abs(stationary_distribution / stationary_distribution.sum())
         expected_rate = np.dot(stationary_distribution.T, Qbasic_diag_sum)[0] / 2.  # because we have 2 paralogs here
