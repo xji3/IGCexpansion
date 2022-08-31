@@ -111,8 +111,8 @@ class ReCodonGeneconv:
 
         if os.path.isfile(save_file):  # if the save txt file exists and not empty, then read in parameter values
             if os.stat(save_file).st_size > 0:
-                self.initialize_by_save(save_file)
-                print ('Successfully loaded parameter value from ' + save_file)
+                load_file = self.initialize_by_save(save_file)
+                print ('Successfully loaded parameter value from ' + load_file)
                 
     def get_tree(self):
         self.tree, self.edge_list, self.node_to_num = read_newick(self.newicktree, self.post_dup)
@@ -1671,7 +1671,7 @@ class ReCodonGeneconv:
             
         np.savetxt(save_file, np.array(save).T)
         if '.txt' in save_file:
-            np.save(save_file.replace('.txt', 'npy'), np.array(save).T) # save additional binary file to reserve precision
+            np.save(save_file.replace('.txt', '.npy'), np.array(save).T) # save additional binary file to reserve precision
 
     def initialize_by_save(self, save_file):
 
@@ -1692,7 +1692,11 @@ class ReCodonGeneconv:
                 self.x = np.load(binary_save_file)
             else:
                 self.x = np.loadtxt(open(save_file, 'r'))
-            self.update_by_x()     
+            self.update_by_x()
+        if use_binary:
+            return binary_save_file
+        else:
+            return save_file
 
 
 if __name__ == '__main__':
