@@ -167,7 +167,7 @@ class ReCodonGeneconv:
 
     def separate_species_paralog_names(self, seq_name):
         assert(seq_name in self.name_to_seq)  # check if it is a valid sequence name
-        matched_paralog = [paralog for paralog in self.paralog if paralog in seq_name]
+        matched_paralog = [paralog for paralog in self.paralog if seq_name.endswith(paralog)]
         # check if there is exactly one paralog name in the sequence name
         assert(len(matched_paralog) == 1)
         return [seq_name.replace(matched_paralog[0], ''), matched_paralog[0]]
