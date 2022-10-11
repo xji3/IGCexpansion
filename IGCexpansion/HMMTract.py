@@ -58,7 +58,7 @@ class HMMTract:
         assert(os.path.isfile(sitewise_lnL_file))
         pos = []
         ll  = []
-        with open(sitewise_lnL_file, 'rb') as f:
+        with open(sitewise_lnL_file, 'r') as f:
             for line in f:
                 if line[0] == '#':
                     continue
