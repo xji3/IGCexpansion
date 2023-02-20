@@ -659,13 +659,13 @@ class ReCodonGeneconv:
         return ll, edge_derivs
 
     def _sitewise_loglikelihood(self):
-        scene = self.get_scene()
-        
+        self.update_by_x()
+
         log_likelihood_request = {'property':'dnnlogl'}
         requests = [log_likelihood_request]
         
         j_in = {
-            'scene' : self.scene_ll,
+            'scene' : self.get_scene(),
             'requests' : requests
             }
         j_out = jsonctmctree.interface.process_json_in(j_in)
@@ -1671,8 +1671,64 @@ class ReCodonGeneconv:
             self.update_by_x_clock()
         else:
             self.x = np.loadtxt(open(save_file, 'r'))
-            self.update_by_x()     
-    
+            self.update_by_x()
+
+    def get_sitewise_derivatives(self, dim, display=False):
+        self.update_by_x()
+        x = deepcopy(self.x)  # store the current x array
+        fn = self._sitewise_loglikelihood
+
+        ll = fn()
+
+        m = len(self.x) - len(self.edge_to_blen)
+
+        assert(len(dim) < m + 1)
+
+        # use finite differences to estimate derivatives with respect to these parameters
+        other_derivs = []
+
+        for i in dim:
+            if self.Force != None:
+                if i in self.Force.keys():  # check here
+                    other_derivs.append([0.0] * self.nsites)
+                    continue
+
+            # finite difference central
+            delta = max(1, abs(self.x[i])) * 0.000001
+            # reference: http://paulklein.ca/newsite/teaching/Notes_NumericalDifferentiation.pdf
+            # line before equation 22.
+
+            # ll_delta_plus is f(x+2/h)
+            x_plus_delta = np.array(deepcopy(self.x))
+            x_plus_delta[i] += delta / 2
+            self.update_by_x(x_plus_delta)
+            ll_delta_plus = np.array(fn())
+            #total_ll_delta_plus = self._loglikelihood()
+
+            # ll_delta_minus is f(x-2/h)
+            x_minus_delta = np.array(deepcopy(self.x))
+            x_minus_delta[i] -= delta
+            self.update_by_x(x_minus_delta)
+            ll_delta_minus= np.array(fn())
+            #total_ll_delta_minus = self._loglikelihood()
+
+            d_estimate = (ll_delta_plus - ll_delta_minus) / delta
+
+            other_derivs.append(d_estimate)
+            # restore self.x
+            self.update_by_x(x)
+        other_derivs = np.array(other_derivs)
+        if display:
+            print('log likelihood = ', ll)
+            print('sitewise derivatives:', other_derivs)
+            print('Current x array = ', self.x)
+            if self.Force is not None:
+                print('Forced parameter:', self.Force)
+
+        g = -other_derivs
+        return g
+
+
 if __name__ == '__main__':
     paralog = ['YLR406C', 'YDL075W']
     Force = None
@@ -1721,6 +1777,8 @@ if __name__ == '__main__':
     analytic_distribution = np.kron(MG94_homo_omega.prior_distribution, MG94_homo_omega.prior_distribution)
     print(np.sum(abs(np.reshape(stationary_distribution, analytic_distribution.shape) - analytic_distribution)))
     print(MG94_tau_lnL, MG94_homo_omega_lnL)
+
+    test_derivatives = MG94_homo_omega.get_sitewise_derivatives(dim = [6])
 
 
 
