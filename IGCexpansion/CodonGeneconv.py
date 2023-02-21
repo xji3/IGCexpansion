@@ -1678,8 +1678,6 @@ class ReCodonGeneconv:
         x = deepcopy(self.x)  # store the current x array
         fn = self._sitewise_loglikelihood
 
-        ll = fn()
-
         m = len(self.x) - len(self.edge_to_blen)
 
         assert(len(dim) < m + 1)
@@ -1719,7 +1717,6 @@ class ReCodonGeneconv:
             self.update_by_x(x)
         other_derivs = np.array(other_derivs)
         if display:
-            print('log likelihood = ', ll)
             print('sitewise derivatives:', other_derivs)
             print('Current x array = ', self.x)
             if self.Force is not None:
