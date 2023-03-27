@@ -16,7 +16,12 @@ import ast
 #import matplotlib.pyplot as plt
 
 class ReCodonGeneconv:
-    def __init__(self, tree_newick, alignment, paralog, Model = 'MG94', IGC_Omega = None, Tau_Omega = None, Homo_Omega = None, nnsites = None, clock = False, Force = None, save_path = './save/', save_name = None, post_dup = 'N1'):
+
+    save_every = 5
+
+    def __init__(self, tree_newick, alignment, paralog, Model = 'MG94', IGC_Omega = None, Tau_Omega = None,
+                 Homo_Omega = None, nnsites = None, clock = False, Force = None, save_path = './save/',
+                 save_name = None, post_dup = 'N1', save_every = None):
         self.newicktree  = tree_newick  # newick tree file loc
         self.seqloc      = alignment    # multiple sequence alignment, now need to remove gap before-hand
         self.paralog     = paralog      # parlaog list
@@ -29,6 +34,7 @@ class ReCodonGeneconv:
         self.post_dup    = post_dup     # store first post-duplication node name
         self.save_path   = save_path    # location for auto-save files
         self.save_name   = save_name    # save file name
+        self.save_every  = save_every if save_every is not None and isinstance(save_every, int) else ReCodonGeneconv.save_every
         self.auto_save   = 0            # auto save control
         self.IGC_Omega   = IGC_Omega    # separate omega parameter for IGC-related nonsynonymous changes
         self.Tau_Omega   = Tau_Omega    # the product of tau * IGC_omega
@@ -105,8 +111,8 @@ class ReCodonGeneconv:
 
         if os.path.isfile(save_file):  # if the save txt file exists and not empty, then read in parameter values
             if os.stat(save_file).st_size > 0:
-                self.initialize_by_save(save_file)
-                print ('Successfully loaded parameter value from ' + save_file)
+                load_file = self.initialize_by_save(save_file)
+                print ('Successfully loaded parameter value from ' + load_file)
                 
     def get_tree(self):
         self.tree, self.edge_list, self.node_to_num = read_newick(self.newicktree, self.post_dup)
@@ -161,7 +167,7 @@ class ReCodonGeneconv:
 
     def separate_species_paralog_names(self, seq_name):
         assert(seq_name in self.name_to_seq)  # check if it is a valid sequence name
-        matched_paralog = [paralog for paralog in self.paralog if paralog in seq_name]
+        matched_paralog = [paralog for paralog in self.paralog if seq_name.endswith(paralog)]
         # check if there is exactly one paralog name in the sequence name
         assert(len(matched_paralog) == 1)
         return [seq_name.replace(matched_paralog[0], ''), matched_paralog[0]]
@@ -536,6 +542,7 @@ class ReCodonGeneconv:
                             Qbasic[joint_state_from, joint_state_to] = get_MG94BasicRate(ca, cc, pi=self.pi, kappa=self.kappa, omega=original_oemga, codon_table=self.codon_table)
         Qbasic_diag_sum = Qbasic.sum(axis = 1)
         Qbasic = np.subtract(Qbasic, np.diag(Qbasic_diag_sum))
+        np.fill_diagonal(Qbasic, Qbasic.diagonal() + 1E-8)
         eigen_value, stationary_distribution = scipy.sparse.linalg.eigs(Qbasic.T, k = 1, sigma = 0.0)
         stationary_distribution = abs(stationary_distribution / stationary_distribution.sum())
         expected_rate = np.dot(stationary_distribution.T, Qbasic_diag_sum)[0] / 2.  # because we have 2 paralogs here
@@ -828,7 +835,7 @@ class ReCodonGeneconv:
         self.update_by_x(x)
         f, g = self.loglikelihood_and_gradient(display = display)
         self.auto_save += 1
-        if self.auto_save == 5:
+        if self.auto_save == self.save_every:
             self.save_x()
             self.auto_save = 0
         return f, g
@@ -1663,15 +1670,36 @@ class ReCodonGeneconv:
         save_file = self.get_save_file_name()
             
         np.savetxt(save_file, np.array(save).T)
+        if '.txt' in save_file:
+            np.save(save_file.replace('.txt', '.npy'), np.array(save).T) # save additional binary file to reserve precision
 
     def initialize_by_save(self, save_file):
+
+        use_binary = False
+        if '.txt' in save_file:
+            binary_save_file = save_file.replace('.txt', '.npy')
+            if os.path.isfile(binary_save_file) and os.path.getsize(binary_save_file) > 0:
+                use_binary = True
             
         if self.clock:
-            self.x_clock = np.loadtxt(open(save_file, 'r'))
+            if use_binary:
+                self.x_clock = np.load(binary_save_file)
+            else:
+                self.x_clock = np.loadtxt(open(save_file, 'r'))
             self.update_by_x_clock()
         else:
             self.x = np.loadtxt(open(save_file, 'r'))
             self.update_by_x()
+
+            if use_binary:
+                self.x = np.load(binary_save_file)
+            else:
+                self.x = np.loadtxt(open(save_file, 'r'))
+            self.update_by_x()
+        if use_binary:
+            return binary_save_file
+        else:
+            return save_file
 
     def get_sitewise_derivatives(self, dim, display=False):
         self.update_by_x()
@@ -1736,7 +1764,7 @@ if __name__ == '__main__':
     # Force MG94:{5:0.0} HKY:{4:0.0}
 
     #MG94+tau
-    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/')
+    MG94_tau = ReCodonGeneconv( newicktree, alignment_file, paralog, Model = 'MG94', Force = Force, clock = False, save_path = '../test/save/', save_every = 1)
     MG94_tau_lnL = MG94_tau._loglikelihood()[0]
     # # MG94_tau.get_mle(True, True, 0, 'BFGS')
     # lnL = MG94_tau._loglikelihood()

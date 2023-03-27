@@ -2,7 +2,6 @@
 # Xiang Ji
 # xji3@ncsu.edu
 import sys
-sys.path.append('/usr/local/lib/python2.7/site-packages')
 from HMMTract import *
 from IndCodonGeneconv import IndCodonGeneconv
 from JSGeneconv import JSGeneconv

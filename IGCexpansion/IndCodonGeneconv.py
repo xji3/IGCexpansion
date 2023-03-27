@@ -139,7 +139,7 @@ class IndCodonGeneconv:
 
         # change the number of sites for calculation if requested
         if self.nsites is None:
-            self.nsites = len(self.name_to_seq[self.name_to_seq.keys()[0]])
+            self.nsites = len(self.name_to_seq[list(self.name_to_seq.keys())[0]])
         else:
             for name in self.name_to_seq:
                 self.name_to_seq[name] = self.name_to_seq[name][: self.nsites]
@@ -161,7 +161,7 @@ class IndCodonGeneconv:
             iid_observations_list = []
             for codon_site in range(3):
                 iid_observations = []
-                for site_iter in range(self.nsites/3):
+                for site_iter in range(int(self.nsites/3)):
                     site = site_iter*3 + codon_site
                     observations = []
                     for name in self.observable_names:
@@ -228,7 +228,7 @@ class IndCodonGeneconv:
             NOIGC_iid_observations_list = []
             for codon_site in range(3):
                 iid_observations = []
-                for site_iter in range(self.nsites/3):
+                for site_iter in range(int(self.nsites/3)):
                     observations = []
                     site = site_iter * 3 + codon_site
                     for name in self.observable_names:
