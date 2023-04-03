@@ -543,8 +543,14 @@ class ReCodonGeneconv:
         Qbasic_diag_sum = Qbasic.sum(axis = 1)
         Qbasic = np.subtract(Qbasic, np.diag(Qbasic_diag_sum))
         np.fill_diagonal(Qbasic, Qbasic.diagonal() + 1E-8)
-        eigen_value, stationary_distribution = scipy.sparse.linalg.eigs(Qbasic.T, k = 1, sigma = 0.0)
-        stationary_distribution = abs(stationary_distribution / stationary_distribution.sum())
+        # eigen_value, stationary_distribution = scipy.sparse.linalg.eigs(Qbasic.T, k = 1, sigma = 0.0)
+        # stationary_distribution = abs(stationary_distribution / stationary_distribution.sum())
+
+        stationary_distn = np.array([self.prior_distribution[i] * self.prior_distribution[j] * self.Homo_Omega \
+                                   if self.isSynonymous(codon_nonstop[i], codon_nonstop[j]) \
+                                   else self.prior_distribution[i] * self.prior_distribution[j] * self.omega for (k, (i, j)) in enumerate(product(range(61), repeat = 2))])
+        stationary_distribution = stationary_distn / stationary_distn.sum()
+
         expected_rate = np.dot(stationary_distribution.T, Qbasic_diag_sum)[0] / 2.  # because we have 2 paralogs here
         Qbasic = Qbasic / expected_rate
         return Qbasic, stationary_distribution
