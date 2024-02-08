@@ -371,9 +371,17 @@ class ReCodonGeneconv:
                 self.tau = x_process[6]
             elif self.use_Homo_Omega():
                 self.Homo_Omega = x_process[5]
-                self.tau = x_process[6]
+                if self.use_Diff_Omega():
+                    self.Diff_Omega = x_process[6]
+                    self.tau = x_process[7]
+                else:
+                    self.tau = x_process[6]
             else:
-                self.tau = x_process[5]
+                if self.use_Diff_Omega():
+                    self.Diff_Omega = x_process[5]
+                    self.tau = x_process[6]
+                else:
+                    self.tau = x_process[5]
         elif self.Model == 'HKY':
             # x_process[] = %AG, %A, %C, kappa, tau
             assert(len(self.x_process) == 5)
