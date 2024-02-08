@@ -417,10 +417,16 @@ class ReCodonGeneconv:
             self.processes = self.get_HKYGeneconv()
 
     def get_MG94Geneconv_and_MG94(self):
-        Qbasic = self.get_MG94Basic(omega=self.omega)
+        if self.use_Diff_Omega():
+            Qbasic, _ = self.get_MG94_with_Homogenization(self.omega, self.omega, self.Diff_Omega)
+        else:
+            Qbasic = self.get_MG94Basic(omega=self.omega)
         num_states = len(self.codon_nonstop)
         if self.use_Homo_Omega():
-            Qbasic_Homo, _ = self.get_MG94_with_Homogenization(self.omega, self.Homo_Omega)
+            if self.use_Diff_Omega():
+                Qbasic_Homo, _ = self.get_MG94_with_Homogenization(self.omega, self.Homo_Omega, self.Diff_Omega)
+            else:
+                Qbasic_Homo, _ = self.get_MG94_with_Homogenization(self.omega, self.Homo_Omega, self.omega)
         row = []
         col = []
         rate_geneconv = []
@@ -536,7 +542,7 @@ class ReCodonGeneconv:
         Qbasic = Qbasic / expected_rate
         return Qbasic
 
-    def get_MG94_with_Homogenization(self, original_oemga, homo_omega):
+    def get_MG94_with_Homogenization(self, original_oemga, homo_omega, diff_omega):
         num_state = len(self.codon_nonstop)
         Qbasic = np.zeros((num_state**2, num_state**2), dtype = float)
         # Keep it simple and stupid
@@ -553,6 +559,8 @@ class ReCodonGeneconv:
                         joint_state_to = num_state * sa + sc
                         if isHomogenizing(ca, cc, self.codon_table):
                             Qbasic[joint_state_from, joint_state_to] = get_MG94BasicRate(cb, cc, pi = self.pi, kappa = self.kappa, omega = homo_omega, codon_table=self.codon_table)
+                        elif isHomogenizing(ca, cb, self.codon_table):
+                            Qbasic[joint_state_from, joint_state_to] = get_MG94BasicRate(cb, cc, pi=self.pi, kappa=self.kappa, omega=diff_omega, codon_table=self.codon_table)
                         else:
                             Qbasic[joint_state_from, joint_state_to] = get_MG94BasicRate(cb, cc, pi = self.pi, kappa = self.kappa, omega = original_oemga, codon_table = self.codon_table)
                     # (ca, cb) to (cc, cb)
@@ -560,6 +568,8 @@ class ReCodonGeneconv:
                         joint_state_to = num_state * sc + sb
                         if isHomogenizing(cc, cb, self.codon_table):
                             Qbasic[joint_state_from, joint_state_to] = get_MG94BasicRate(ca, cc, pi=self.pi, kappa=self.kappa, omega=homo_omega, codon_table=self.codon_table)
+                        elif isHomogenizing(ca, cb, self.codon_table):
+                            Qbasic[joint_state_from, joint_state_to] = get_MG94BasicRate(ca, cc, pi=self.pi, kappa=self.kappa, omega=diff_omega, codon_table=self.codon_table)
                         else:
                             Qbasic[joint_state_from, joint_state_to] = get_MG94BasicRate(ca, cc, pi=self.pi, kappa=self.kappa, omega=original_oemga, codon_table=self.codon_table)
         Qbasic_diag_sum = Qbasic.sum(axis = 1)
@@ -1826,7 +1836,7 @@ if __name__ == '__main__':
     MG94_homo_omega_lnL = MG94_homo_omega._loglikelihood()[0]
     # special case: when Homo_omega == original omega, the numeric stationary distribution should match the analytic
     # we use this fact to check
-    Qbasic, stationary_distribution = MG94_homo_omega.get_MG94_with_Homogenization(MG94_homo_omega.omega, MG94_homo_omega.omega)
+    Qbasic, stationary_distribution = MG94_homo_omega.get_MG94_with_Homogenization(MG94_homo_omega.omega, MG94_homo_omega.omega, MG94_homo_omega.omega)
     analytic_distribution = np.kron(MG94_homo_omega.prior_distribution, MG94_homo_omega.prior_distribution)
     print(np.sum(abs(np.reshape(stationary_distribution, analytic_distribution.shape) - analytic_distribution)))
     print(MG94_tau_lnL, MG94_homo_omega_lnL)
