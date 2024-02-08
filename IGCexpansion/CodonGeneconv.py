@@ -8,7 +8,7 @@
   
 
 from __future__ import print_function, absolute_import
-from .CodonGeneconFunc import *
+from CodonGeneconFunc import *
 import argparse
 #from jsonctmctree.extras import optimize_em
 import ast
@@ -20,7 +20,7 @@ class ReCodonGeneconv:
     save_every = 5
 
     def __init__(self, tree_newick, alignment, paralog, Model = 'MG94', IGC_Omega = None, Tau_Omega = None,
-                 Homo_Omega = None, nnsites = None, clock = False, Force = None, save_path = './save/',
+                 Homo_Omega = None, Diff_Omega = None, nnsites = None, clock = False, Force = None, save_path = './save/',
                  save_name = None, post_dup = 'N1', save_every = None):
         self.newicktree  = tree_newick  # newick tree file loc
         self.seqloc      = alignment    # multiple sequence alignment, now need to remove gap before-hand
@@ -38,7 +38,8 @@ class ReCodonGeneconv:
         self.auto_save   = 0            # auto save control
         self.IGC_Omega   = IGC_Omega    # separate omega parameter for IGC-related nonsynonymous changes
         self.Tau_Omega   = Tau_Omega    # the product of tau * IGC_omega
-        self.Homo_Omega = Homo_Omega  # separate omega parameter for homogenizing nonsynonymous changes
+        self.Homo_Omega = Homo_Omega    # separate omega parameter for homogenizing nonsynonymous changes
+        self.Diff_Omega = Diff_Omega    # omega parameter for nonsynonymous changes that originate from two paralogs being the same amino acid
 
         self.logzero     = -15.0        # used to avoid log(0), replace log(0) with -15
         self.infinity    = 1e6          # used to avoid -inf in gradiance calculation of the clock case
@@ -181,6 +182,9 @@ class ReCodonGeneconv:
         assert self.Homo_Omega is None or (self.IGC_Omega is None and self.Tau_Omega is None)
         return self.Homo_Omega is not None
 
+    def use_Diff_Omega(self):
+        return self.Diff_Omega is not None
+
     def get_initial_x_process(self, transformation = 'log'):
         
         count = np.array([0, 0, 0, 0], dtype = float) # count for A, C, G, T in all seq
@@ -192,9 +196,14 @@ class ReCodonGeneconv:
         if self.Model == 'MG94':
             # x_process[] = %AG, %A, %C, kappa, omega, tau
             if not (self.use_IGC_Omega() or self.use_Homo_Omega()):
-                self.x_process = np.log(np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
-                                  self.kappa, self.omega, self.tau]))
+                if self.use_Diff_Omega():
+                    self.x_process = np.log(np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
+                         self.kappa, self.omega, self.Diff_Omega, self.tau]))
+                else:
+                    self.x_process = np.log(np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
+                          self.kappa, self.omega, self.tau]))
             elif self.use_IGC_Omega():
+                assert(not self.use_Diff_Omega())
                 if self.IGC_Omega is not None:
                     self.x_process = np.log(
                         np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
@@ -206,8 +215,13 @@ class ReCodonGeneconv:
                 else:
                     Exception("something in IGC_Omega is wrong when initial x process")
             elif self.use_Homo_Omega():
-                self.x_process = np.log(
-                    np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
+                if self.use_Diff_Omega():
+                    self.x_process = np.log(np.array(
+                            [count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
+                             self.kappa, self.omega, self.Homo_Omega, self.Diff_Omega, self.tau]))
+                else:
+                    self.x_process = np.log(
+                        np.array([count[0] + count[2], count[0] / (count[0] + count[2]), count[1] / (count[1] + count[3]),
                               self.kappa, self.omega, self.Homo_Omega, self.tau]))
             else:
                 Exception("something is wrong when initial x process")
