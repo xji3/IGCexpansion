@@ -551,7 +551,7 @@ class ReCodonGeneconv:
                                    else self.prior_distribution[i] * self.prior_distribution[j] * self.omega for (k, (i, j)) in enumerate(product(range(61), repeat = 2))])
         stationary_distribution = stationary_distn / stationary_distn.sum()
 
-        expected_rate = np.dot(stationary_distribution.T, Qbasic_diag_sum)[0] / 2.  # because we have 2 paralogs here
+        expected_rate = np.dot(stationary_distribution.T, Qbasic_diag_sum) / 2.  # because we have 2 paralogs here
         Qbasic = Qbasic / expected_rate
         return Qbasic, stationary_distribution
 
