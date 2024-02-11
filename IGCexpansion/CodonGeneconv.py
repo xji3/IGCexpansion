@@ -8,7 +8,7 @@
   
 
 from __future__ import print_function, absolute_import
-from CodonGeneconFunc import *
+from .CodonGeneconFunc import *
 import argparse
 #from jsonctmctree.extras import optimize_em
 import ast
@@ -1710,6 +1710,8 @@ class ReCodonGeneconv:
                 prefix_save = prefix_save + 'homoOmega_'
             if self.Force:
                 prefix_save = prefix_save + '_Force'
+            if self.use_Diff_Omega():
+                prefix_save = prefix_save + '_diffOmega'
 
     ##        if self.Dir:
     ##            prefix_save = prefix_save + '_Dir'
@@ -1878,6 +1880,7 @@ if __name__ == '__main__':
     print(MG94_homo_omega_diff.x_process, MG94_homo_omega.x_process)
 
     test_derivatives = MG94_homo_omega.get_sitewise_derivatives(dim = [6])
+    MG94_homo_omega_diff.get_mle()
 
 
 
