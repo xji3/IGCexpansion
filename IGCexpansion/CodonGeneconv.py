@@ -1683,6 +1683,9 @@ class ReCodonGeneconv:
             elif self.use_Homo_Omega():
                 prefix_summary = prefix_summary + 'homoOmega_'
 
+            if self.use_Diff_Omega():
+                prefix_summary = prefix_summary + 'diffOmega_'
+
             if self.clock:
                 suffix_summary = '_clock_summary.txt'
             else:
