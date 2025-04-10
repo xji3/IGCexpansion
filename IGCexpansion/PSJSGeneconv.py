@@ -793,7 +793,7 @@ class PSJSGeneconv:
         summary = np.matrix(summary)
         footer = ' '.join(label)  # row labels
 
-        np.savetxt(open(summary_file, 'w+'), summary.T, delimiter = ' ', footer = footer)
+        np.savetxt(summary_file, summary.T, delimiter = ' ', footer = footer)
                     
         
 
