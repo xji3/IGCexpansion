@@ -41,7 +41,7 @@ class IGCModel:
         IGC_rate = np.exp(self.x_IGC[0])
         if not self.force == None: # add in force constraints
             IGC_rate = self.force[0]
-        self.Q_IGC = np.ones((self.n_orlg, self.n_orlg), dtype = np.floating) * IGC_rate
+        self.Q_IGC = np.ones((self.n_orlg, self.n_orlg), dtype = float) * IGC_rate
         np.fill_diagonal(self.Q_IGC, 0.0)
         self.parameters['Tau'] = IGC_rate
         self.parameter_list = ['Tau']

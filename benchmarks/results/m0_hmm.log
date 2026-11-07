@@ -1,0 +1,140 @@
++ export PYTHONPATH=. IGC_MAFFT_DIR=/home/xiangji/igc-bench/m0/MafftAlignment
++ PYTHONPATH=.
++ IGC_MAFFT_DIR=/home/xiangji/igc-bench/m0/MafftAlignment
++ ../venv/bin/python benchmarks/m0_baselines.py isigc --procs 8
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+lnL {'sec': 20.090253396891057, 'lnL': -20782.709884346274, 'rows': 1129}
+lnL_compressed {'sec': 16.126389746088535, 'lnL': -20782.709884346274, 'rows': 1013}
+lnL+sdnderi {'sec': 69.87290048133582, 'lnL': -20782.709884346274, 'rows': 1129}
+lnL+sdngrad {'sec': 40.48882042290643, 'lnL': -20782.709884346274, 'rows': 1129}
+lnL+wdngrad_compressed {'sec': 32.57102847797796, 'lnL': -20782.709884346274, 'rows': 1013}
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+pool 36.15122229186818
+/home/xiangji/igc-bench/m0/IGCexpansion/benchmarks/results/m0_isigc_hmm.json
++ ../venv/bin/python benchmarks/m0_baselines.py psigc --procs 10
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+get_scene all 27.498023556079715
+status quo {'sec': 104.8747041109018, 'lnL': -941165.5369426671}
+compressed 1p {'sec': 80.23457859409973, 'lnL': -941165.536942667}
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+compressed pool lnL {'sec': 8.39787411224097, 'lnL': -941165.5369426652, 'groups': 40}
+compressed pool grad 79.20176454028115
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+check {'1': {'lnL_abs_diff': 0.0, 'grad_max_abs_diff': 4.547473508864641e-05, 'grad_max_abs': 156.73981579311658}, '488': {'lnL_abs_diff': 0.0, 'grad_max_abs_diff': 0.0, 'grad_max_abs': 2.9473755880360386}}
+/home/xiangji/igc-bench/m0/IGCexpansion/benchmarks/results/m0_psigc_hmm.json
++ mv benchmarks/results/m0_psigc_hmm.json benchmarks/results/m0_psigc_hmm_p10.json
++ ../venv/bin/python benchmarks/m0_baselines.py psigc --procs 32 --skip-status-quo
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+get_scene all 28.137781378813088
+compressed 1p {'sec': 80.85894764726982, 'lnL': -941165.536942667}
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+compressed pool lnL {'sec': 2.926959174219519, 'lnL': -941165.5369426656, 'groups': 128}
+compressed pool grad 29.77760300366208
+/home/xiangji/igc-bench/m0/venv/lib64/python3.9/site-packages/networkx/utils/backends.py:135: RuntimeWarning: networkx backend defined more than once: nx-loopback
+  backends.update(_get_backends("networkx.backends"))
+check {'1': {'lnL_abs_diff': 0.0, 'grad_max_abs_diff': 4.547473508864641e-05, 'grad_max_abs': 156.73981579311658}, '488': {'lnL_abs_diff': 0.0, 'grad_max_abs_diff': 0.0, 'grad_max_abs': 2.9473755880360386}}
+/home/xiangji/igc-bench/m0/IGCexpansion/benchmarks/results/m0_psigc_hmm.json
++ mv benchmarks/results/m0_psigc_hmm.json benchmarks/results/m0_psigc_hmm_p32.json
++ echo M0_DONE
+M0_DONE

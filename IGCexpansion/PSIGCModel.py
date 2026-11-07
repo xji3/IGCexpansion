@@ -45,8 +45,8 @@ class PSIGCModel:
             IGC_rate = self.force[0]
         init_rate, tract_p = IGC_rate
         
-        self.rate_IGC = np.ones((self.n_orlg, self.n_orlg), dtype = np.floating) * init_rate
-        self.p_IGC = np.ones((self.n_orlg, self.n_orlg), dtype = np.floating) * tract_p
+        self.rate_IGC = np.ones((self.n_orlg, self.n_orlg), dtype = float) * init_rate
+        self.p_IGC = np.ones((self.n_orlg, self.n_orlg), dtype = float) * tract_p
         
         np.fill_diagonal(self.rate_IGC, 0.0)
         np.fill_diagonal(self.p_IGC, 0.0)

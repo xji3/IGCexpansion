@@ -221,9 +221,9 @@ class Simulator:
         if len(ordered_orlg) == 1:
             Total_IGC_init_rate = 0.0
         else:
-            branch_IGC_init_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = np.floating)
-            branch_IGC_tract_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = np.floating)
-            Total_IGC_init_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = np.floating)
+            branch_IGC_init_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = float)
+            branch_IGC_tract_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = float)
+            Total_IGC_init_Q = np.zeros((len(ordered_orlg), len(ordered_orlg)), dtype = float)
             for i in range(len(ordered_orlg)):
                 for j in range(len(ordered_orlg)):
                     if i == j:

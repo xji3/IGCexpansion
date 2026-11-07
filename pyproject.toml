@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "IGCexpansion"
+version = "0.4.dev0"
+description = "Interlocus gene conversion models (IS-IGC, PS-IGC) on gene-duplication trees"
+authors = [{ name = "Xiang Ji" }]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "biopython",
+    "networkx",
+    "numpy",
+    "scipy",
+    "numdifftools",
+    "jsonctmctree @ git+https://github.com/xji3/jsonctmctree.git@d9d26cc7cbf3bff7c19035c9c9154d92c551da86",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://github.com/xji3/IGCexpansion"
+
+[tool.setuptools]
+packages = ["IGCexpansion"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: long-running golden values (3721-state MG94, PS-IGC objectives)",
+    "external: needs data outside this repository (IGCTract/MafftAlignment)",
+]

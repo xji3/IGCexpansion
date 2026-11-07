@@ -102,3 +102,10 @@ ENV/
 # R related files
 *.Rhistory
 *.DS_Store
+
+# Python build and test outputs
+.venv/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+build/

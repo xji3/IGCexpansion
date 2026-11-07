@@ -151,7 +151,8 @@ class ReCodonGeneconv:
 
         # assign observable parameters
         self.observable_names = [n for n in self.name_to_seq.keys() if self.separate_species_paralog_names(n)[0] in self.node_to_num.keys()]
-        suffix_to_axis = {n:i for (i, n) in enumerate(list(set(self.paralog)))}
+        # Axis order follows the paralog list (list(set(...)) depended on PYTHONHASHSEED).
+        suffix_to_axis = {n:i for (i, n) in enumerate(dict.fromkeys(self.paralog))}
         self.observable_nodes = [self.node_to_num[self.separate_species_paralog_names(n)[0]] for n in self.observable_names]
         self.observable_axes = [suffix_to_axis[self.separate_species_paralog_names(s)[1]] for s in self.observable_names]
         

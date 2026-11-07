@@ -59,7 +59,7 @@ class IGCTractModel:
 
     def init_one_rate_init_Q(self):
         assert(len(self.x_init) == 1)
-        self.Q_init = np.ones((self.n_orlg, self.n_orlg), dtype = np.floating) * self.x_init[0]
+        self.Q_init = np.ones((self.n_orlg, self.n_orlg), dtype = float) * self.x_init[0]
         np.fill_diagonal(self.Q_init, 0.0)
         self.parameters['Init_rate'] = self.x_init[0]
         if not 'Init_rate' in self.parameter_list:
@@ -67,7 +67,7 @@ class IGCTractModel:
 
     def init_one_rate_tract_Q(self):
         assert(len(self.x_tract) == 1)
-        self.Q_tract = np.ones((self.n_orlg, self.n_orlg), dtype = np.floating) * self.x_tract[0]
+        self.Q_tract = np.ones((self.n_orlg, self.n_orlg), dtype = float) * self.x_tract[0]
         np.fill_diagonal(self.Q_tract, 0.0)
         self.parameters['Tract_p'] = self.x_tract[0]
         if not 'Tract_p' in self.parameter_list:

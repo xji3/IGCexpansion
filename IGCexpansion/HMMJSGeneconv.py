@@ -2,9 +2,9 @@
 # Xiang Ji
 # xji3@ncsu.edu
 import sys
-from HMMTract import *
-from IndCodonGeneconv import IndCodonGeneconv
-from JSGeneconv import JSGeneconv
+from .HMMTract import *
+from .IndCodonGeneconv import IndCodonGeneconv
+from .JSGeneconv import JSGeneconv
 from copy import deepcopy
 import numdifftools as nd
 
