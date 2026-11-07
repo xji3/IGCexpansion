@@ -1,0 +1,23 @@
+{
+ "wall_sec": 194.30110387480818,
+ "stats": {
+  "instances_created": 2450,
+  "beagle_calls": 2547,
+  "sec_beagle": 57.804333987878636,
+  "sec_jsonctmctree": 104.28496967512183
+ },
+ "shadow_calls_logged": 1000,
+ "max_scaled_diff": 5.542000627615345e-14,
+ "mismatches": [],
+ "by_request": {
+  "snnlogl": {
+   "calls": 82,
+   "max_scaled_diff": 3.704172378488946e-16
+  },
+  "dnnlogl": {
+   "calls": 2465,
+   "max_scaled_diff": 5.542000627615345e-14
+  }
+ },
+ "note": "times are summed over all shadow calls (engine.STATS)"
+}
