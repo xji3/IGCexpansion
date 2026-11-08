@@ -1,0 +1,57 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  BEAGLE_SHA: 07fc8b61a91a57092aa3f786cda225e25b04944f   # beagle-dev/beagle-lib, branch action
+  BEAGLE_PREFIX: ${{ github.workspace }}/../beagle-install
+
+jobs:
+  pytest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache BEAGLE build
+        id: beagle-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.BEAGLE_PREFIX }}
+          key: beagle-action-${{ env.BEAGLE_SHA }}-ubuntu-24.04-v1
+
+      - name: Build BEAGLE (action plugin, CPU)
+        if: steps.beagle-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/beagle-dev/beagle-lib.git "$RUNNER_TEMP/beagle-lib"
+          git -C "$RUNNER_TEMP/beagle-lib" checkout "$BEAGLE_SHA"
+          cmake -S "$RUNNER_TEMP/beagle-lib" -B "$RUNNER_TEMP/beagle-build" \
+            -DBUILD_ACTION=ON -DBUILD_JNI=OFF -DBUILD_OPENMP=OFF -DBUILD_CUDA=OFF -DBUILD_OPENCL=OFF \
+            -DBEAGLE_OPTIMIZE_FOR_NATIVE_ARCH=OFF -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$BEAGLE_PREFIX"
+          cmake --build "$RUNNER_TEMP/beagle-build" -j 4
+          cmake --install "$RUNNER_TEMP/beagle-build"
+
+      - name: Install IGCexpansion
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test]"
+
+      - name: Tests with BEAGLE
+        env:
+          IGC_BEAGLE_PREFIX: ${{ env.BEAGLE_PREFIX }}
+        run: |
+          python -c "from IGCexpansion.beagle._lib import get_lib; get_lib(); print('BEAGLE loaded')"
+          python -m pytest -q -rs
+
+      - name: Tests without BEAGLE (legacy fallback)
+        env:
+          IGC_BEAGLE_PREFIX: /nonexistent
+        run: python -m pytest -q

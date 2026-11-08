@@ -109,3 +109,5 @@ ENV/
 __pycache__/
 .pytest_cache/
 build/
+tutorials/IS_IGC_BEAGLE/save/
+tutorials/IS_IGC_BEAGLE/summary/

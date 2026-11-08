@@ -1,5 +1,5 @@
 # IGCexpansion
-[![Build Status](https://travis-ci.com/xji3/IGCexpansion.svg?branch=master)](https://travis-ci.com/xji3/IGCexpansion)
+[![tests](https://github.com/xji3/IGCexpansion/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/xji3/IGCexpansion/actions/workflows/tests.yml)
 
 IGC expansion development folder
 
