@@ -180,3 +180,38 @@ def test_l4_hky_fit(recodon):
     assert f1 <= f0 + 1e-6
     assert abs(f1 - f0) < 1e-4
     np.testing.assert_allclose(x1, x0, atol=2e-3)
+
+
+def test_default_engine_and_fallback(recodon, monkeypatch):
+    """BEAGLE is the default (IGC_RECODON_ENGINE unset); legacy when set or when BEAGLE is missing."""
+    recodon.install()
+    o = _obj("HKY")
+    monkeypatch.delenv("IGC_RECODON_ENGINE", raising=False)
+    with cases.quiet():
+        f, g = o.loglikelihood_and_gradient()
+    assert o in recodon._STATE                                   # evaluated on BEAGLE
+    recodon.detach(o)
+    monkeypatch.setenv("IGC_RECODON_ENGINE", "legacy")
+    with cases.quiet():
+        f0, g0 = o.loglikelihood_and_gradient()
+    assert o not in recodon._STATE
+    assert f == pytest.approx(f0, rel=1e-12)
+    np.testing.assert_allclose(g, g0, rtol=1e-6, atol=1e-6)
+    monkeypatch.delenv("IGC_RECODON_ENGINE")
+    monkeypatch.setattr(recodon, "_AVAILABLE", [False])           # as if the library did not load
+    with cases.quiet():
+        f1, _ = o.loglikelihood_and_gradient()
+    assert o not in recodon._STATE and f1 == pytest.approx(f0, rel=1e-12)
+
+
+def test_default_at_import(lib):
+    """A fresh interpreter without IGC_RECODON_ENGINE patches ReCodonGeneconv on import."""
+    import subprocess
+    env = {k: v for k, v in os.environ.items() if k != "IGC_RECODON_ENGINE"}
+    code = ("import IGCexpansion\nfrom IGCexpansion.CodonGeneconv import ReCodonGeneconv\n"
+            "print(ReCodonGeneconv.loglikelihood_and_gradient.__module__)")
+    out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True).stdout
+    assert out.strip() == "IGCexpansion.beagle.recodon"
+    env["IGC_RECODON_ENGINE"] = "legacy"
+    out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True).stdout
+    assert out.strip() == "IGCexpansion.CodonGeneconv"

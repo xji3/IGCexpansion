@@ -13,6 +13,10 @@ import os
 
 import numpy as np
 
+# The legacy code is the oracle for golden values and FD comparisons; tests that exercise the
+# BEAGLE IS-IGC default select it explicitly (recodon.attach or the environment variable).
+os.environ.setdefault("IGC_RECODON_ENGINE", "legacy")
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 T = os.path.join(REPO, "test")
 # Yeast alignments of the IGCTract study, outside this repository.

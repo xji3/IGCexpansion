@@ -11,13 +11,14 @@
 * f = -lnL and g = -[d/dx_process, d/dlog t] keep the legacy layout. Forced process
   parameters get 0, as in the legacy code.
 
-Select with ``IGC_RECODON_ENGINE=beagle`` before importing IGCexpansion (``install()`` patches
-ReCodonGeneconv and JointAnalysis), or per object with ``attach(obj, processes=...)``.
-``legacy`` (the default) leaves the classes alone. ``IGC_RECODON_PROCS`` > 1 evaluates a single
-pair on a ``RecodonPool`` that splits its GL edges over worker processes (lower latency);
-otherwise a pair is evaluated in process. ``IGC_BEAGLE_THREADS`` / ``IGC_BEAGLE_RESOURCE``
-apply per instance. Homo_Omega models are not covered by the analytic Jacobian; they use
-``scene_fd_jacobian``.
+BEAGLE is the default engine (D3). ``IGC_RECODON_ENGINE=legacy`` before importing
+IGCexpansion restores the legacy code (jsonctmctree + central differences); the variable is read
+at every call, so it can also be changed at run time. If the BEAGLE library does not load, the
+legacy code is used with one warning. ``attach(obj, processes=...)`` selects BEAGLE for one
+object regardless. ``IGC_RECODON_PROCS`` > 1 evaluates a single pair on a ``RecodonPool`` that
+splits its GL edges over worker processes (use threads first: ``IGC_BEAGLE_THREADS``);
+``IGC_BEAGLE_RESOURCE=gpu`` uses the GPU. Homo_Omega models are not covered by the analytic
+Jacobian; they use ``scene_fd_jacobian``.
 
 JointAnalysis (both objective methods) runs on a ``RecodonPool`` (by default one process per
 pair) instead of the legacy per-call ``multiprocessing.Pool``: workers build and keep their
@@ -493,7 +494,7 @@ def _quiet_ctx():
 
 # ----------------------------------------------------------------------------- selection
 def _settings():
-    return dict(engine=os.environ.get("IGC_RECODON_ENGINE", "legacy"),
+    return dict(engine=os.environ.get("IGC_RECODON_ENGINE", "beagle"),
                 threads=int(os.environ.get("IGC_BEAGLE_THREADS", "1")),
                 resource=os.environ.get("IGC_BEAGLE_RESOURCE", "cpu"))
 
@@ -534,8 +535,28 @@ def detach(obj):
         st.bs.inst.close()
 
 
+_AVAILABLE = []
+
+
+def available():
+    """Whether the BEAGLE action library loads (checked once per process). When it does not,
+    the default engine falls back to the legacy code with one warning."""
+    if not _AVAILABLE:
+        try:
+            get_lib()
+            _AVAILABLE.append(True)
+        except Exception as e:  # missing or broken BEAGLE install
+            import warnings
+            warnings.warn("BEAGLE action library not available (%s); IS-IGC uses the legacy jsonctmctree "
+                          "code. Set IGC_BEAGLE_PREFIX, or IGC_RECODON_ENGINE=legacy to silence this." % e)
+            _AVAILABLE.append(False)
+    return _AVAILABLE[0]
+
+
 def _active(obj):
-    return obj in _ATTACHED or _settings()["engine"] == "beagle"
+    if obj in _ATTACHED:
+        return True
+    return _settings()["engine"] == "beagle" and available()
 
 
 def _pool_for(obj):
