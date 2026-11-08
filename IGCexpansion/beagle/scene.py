@@ -285,7 +285,7 @@ class BeagleScene:
             # 10x branch lengths (tests/test_beagle_l3.py).
             # K="auto": on a single-panel edge use the smallest K in [K_min, K_graded] whose a-priori
             # bound (K!)^4 (2 t||B||)^(2K) / ((2K+1) ((2K)!)^3) is below ``tol`` (plan §6.2).
-            g = dict(K="auto", K_min=2, K_graded=8, J_max=32, rho0=2.0, grade=2.0, tol=1e-13)
+            g = dict(GL_DEFAULTS)
             g.update(gl)
             J = g["J_max"]
             Ks = list(range(g["K_min"], g["K_graded"] + 1)) if g["K"] == "auto" else [g["K"], g["K_graded"]]
@@ -376,40 +376,18 @@ class BeagleScene:
         return float(np.max(-d + np.abs(d - mu))) if S else 0.0
 
     def _panels(self, t, norm):
-        """Panel breakpoints on [0, t]: one panel if t*norm <= rho0, else panels graded
-        geometrically (ratio ``grade``) from both ends, the first of width rho0/norm. The
-        integrand q'e^{Q(t-u)} D e^{Qu} p has boundary layers of width ~1/||B|| at both ends."""
-        G = self.gl
-        L = t * norm
-        if L <= G["rho0"]:
-            return np.array([0.0, t])
-        h0 = G["rho0"] / norm
-        left = [0.0]
-        w = h0
-        while left[-1] + w < t / 2:
-            left.append(left[-1] + w)
-            w *= G["grade"]
-        bp = np.array(left + [t / 2] + [t - v for v in reversed(left)])
-        if len(bp) - 1 > G["J_max"]:
-            self.gl_clipped += 1
-            # keep the graded ends, merge the middle panels
-            keep = G["J_max"] // 2
-            bp = np.concatenate([bp[: keep + 1], bp[-keep - 1:]]) if keep > 0 else np.array([0.0, t])
+        bp, clipped = gl_panels(t, norm, self.gl)
+        self.gl_clipped += clipped
         return bp
 
     def _k_single(self, L):
-        G = self.gl
-        if G["K"] != "auto":
-            return G["K"]
-        from math import factorial
-        for k in range(G["K_min"], G["K_graded"] + 1):
-            b = factorial(k) ** 4 * (2.0 * L) ** (2 * k) / ((2 * k + 1) * float(factorial(2 * k)) ** 3)
-            if b <= G["tol"]:
-                return k
-        return G["K_graded"]
+        return gl_k_single(L, self.gl)
 
-    def gl_gradient(self, D, dpi=None, per_site=False):
+    def gl_gradient(self, D, dpi=None, per_site=False, edges=None):
         """Exact-to-quadrature d lnL / d theta_k for k = 0..m-1.
+
+        ``edges``: integrate only these edges and skip the root-prior term when it is given (the
+        caller splits one gradient over several instances and adds dpi once).
 
         D[k][g]: triplets of dQ_g/dtheta_k (diagonal included) or None; dpi[k]: d pi/d theta_k or None.
         Needs ``loglik`` at the current values (the pre-order pass is run here if needed).
@@ -436,7 +414,7 @@ class BeagleScene:
         per_k = np.zeros((m, self.P)) if per_site else None
         Z, ONES = cs.Z, cs.ONES
         self._gl_nodes = [None] * cs.E
-        for e in range(cs.E):
+        for e in (range(cs.E) if edges is None else edges):
             g = cs.procs[e]
             t = float(self.rates[e])
             ks = [k for k in range(m) if (k, g) in slot]
@@ -478,7 +456,7 @@ class BeagleScene:
                 grad[ks] += tot @ wts
                 if per_site:
                     per_k[ks] += np.einsum("i,kip->kp", wts, per.reshape(len(ks), K, self.P))
-        if dpi is not None and any(d is not None for d in dpi):
+        if edges is None and dpi is not None and any(d is not None for d in dpi):
             rp = inst.get_partials(cs.idx[cs.root_b])[0]
             den = rp @ self.distn
             w = self.data.weights
@@ -505,3 +483,53 @@ class BeagleScene:
                                         cs.edge_top[e][2])])
             out.append((self.inst.get_partials(self.gl["QT"])[0], self.inst.get_partials(cs.edge_post[e])[0]))
         return out
+
+
+GL_DEFAULTS = dict(K="auto", K_min=2, K_graded=8, J_max=32, rho0=2.0, grade=2.0, tol=1e-13)
+
+
+def gl_panels(t, norm, G):
+    """Panel breakpoints on [0, t] and whether the J_max cap clipped them: one panel if
+    t*norm <= rho0, else panels graded geometrically (ratio ``grade``) from both ends, the first of
+    width rho0/norm. The integrand q'e^{Q(t-u)} D e^{Qu} p has boundary layers of width ~1/||B||
+    at both ends."""
+    L = t * norm
+    if L <= G["rho0"]:
+        return np.array([0.0, t]), 0
+    h0 = G["rho0"] / norm
+    left = [0.0]
+    w = h0
+    while left[-1] + w < t / 2:
+        left.append(left[-1] + w)
+        w *= G["grade"]
+    bp = np.array(left + [t / 2] + [t - v for v in reversed(left)])
+    if len(bp) - 1 > G["J_max"]:
+        # keep the graded ends, merge the middle panels
+        keep = G["J_max"] // 2
+        bp = np.concatenate([bp[: keep + 1], bp[-keep - 1:]]) if keep > 0 else np.array([0.0, t])
+        return bp, 1
+    return bp, 0
+
+
+def gl_k_single(L, G):
+    """K on a single-panel edge: fixed, or ("auto") the smallest K in [K_min, K_graded] whose
+    a-priori bound (K!)^4 (2L)^(2K) / ((2K+1) ((2K)!)^3) is below ``tol``."""
+    if G["K"] != "auto":
+        return G["K"]
+    from math import factorial
+    for k in range(G["K_min"], G["K_graded"] + 1):
+        b = factorial(k) ** 4 * (2.0 * L) ** (2 * k) / ((2 * k + 1) * float(factorial(2 * k)) ** 3)
+        if b <= G["tol"]:
+            return k
+    return G["K_graded"]
+
+
+def gl_nodes(t, norm, gl=None):
+    """(panels J, nodes per panel K) that ``gl_gradient`` uses for an edge of length t."""
+    G = dict(GL_DEFAULTS)
+    G.update(gl or {})
+    if t == 0.0:
+        return 0, 0
+    bp, _ = gl_panels(t, norm, G)
+    J = len(bp) - 1
+    return J, (gl_k_single(t * norm, G) if J == 1 else G["K_graded"])

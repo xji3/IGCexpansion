@@ -14,3 +14,9 @@ if _os.environ.get("IGC_PSJS_ENGINE", "legacy") != "legacy":
     from .beagle import psjs as _psjs
 
     _psjs.install()
+
+if _os.environ.get("IGC_RECODON_ENGINE", "legacy") != "legacy":
+    # IS-IGC (ReCodonGeneconv, JointAnalysis) on BEAGLE with exact gradients.
+    from .beagle import recodon as _recodon
+
+    _recodon.install()

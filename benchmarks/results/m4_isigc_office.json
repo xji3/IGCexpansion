@@ -1,0 +1,62 @@
+{
+ "case": "ReCodonGeneconv MG94 YGL062W_YBR218C, 3721 states, exact GL gradient",
+ "env": {
+  "host": "office (6p0vry3.stat.iastate.edu)",
+  "gpu": "NVIDIA RTX A6000 48 GB, driver 615.71.09, CUDA 13.4",
+  "cpu_count": 16,
+  "python": "3.12.3",
+  "numpy": "2.5.4",
+  "beagle": "beagle-dev action 07fc8b6, BUILD_CUDA=ON, sm_86",
+  "date": "2026-11-07",
+  "note": "key fields recovered from truncated stdout (results dir was missing on the host)"
+ },
+ "runs": [
+  {
+   "processes": 1,
+   "threads": 1,
+   "sec_start": 15.172696736000944,
+   "sec_lnl": 14.33305413898779,
+   "sec_grad": 221.34884451900143,
+   "lnL": -20782.70988434627,
+   "grad_rel_diff": 0.0,
+   "loadavg_before": 2.63671875
+  },
+  {
+   "processes": 1,
+   "threads": 8,
+   "sec_start": 3.179388431017287,
+   "sec_lnl": 2.4330202790442854,
+   "sec_grad": 39.54889448697213,
+   "lnL": -20782.709884346274,
+   "grad_rel_diff": 6.772360450213455e-15,
+   "loadavg_before": 1.01513671875
+  },
+  {
+   "processes": 1,
+   "threads": 16,
+   "sec_start": 3.714332622010261,
+   "sec_lnl": 2.3975266459747218,
+   "sec_grad": 39.23628195701167,
+   "lnL": -20782.709884346277,
+   "grad_rel_diff": 3.3306690738754696e-15,
+   "loadavg_before": 6.33837890625
+  },
+  {
+   "processes": 2,
+   "threads": 8,
+   "sec_start": 1.7570507689961232,
+   "sec_lnl": 2.5230121659697033,
+   "sec_grad": 44.848099742026534,
+   "loadavg_before": 13.73583984375
+  },
+  {
+   "processes": "gpu",
+   "threads": 1,
+   "sec_start": 1.0268243160098791,
+   "sec_lnl": 0.2458350880187936,
+   "sec_grad": 1.3874802060308866,
+   "lnL": -20782.709884346277,
+   "loadavg_before": 14.0361328125
+  }
+ ]
+}

@@ -72,3 +72,29 @@ The BEAGLE CPU/GPU numbers for the same machine are in the integration plan's `g
   rerun; the spike extrapolated about 1,175 s.
 - On this machine one jsonctmctree MG94 lnL is about 5x slower than on an Apple M5
   (20.1 s vs 3.9 s); the PS-IGC objective is about the same (105 s vs 109 s).
+
+## M4: IS-IGC MG94 with exact gradients (`m4_isigc.py`, `l4_mg94_fit.py`)
+
+YGL062W_YBR218C (1013 patterns, 3721 states, 6 process parameters + 12 edges), lnL + full
+gradient with GL model-parameter derivatives (88 quadrature nodes). `PxT` = processes x BEAGLE
+threads; P > 1 splits the GL edges over a `RecodonPool` (each worker repeats the post- and
+pre-order passes). Raw: `results/m4_isigc_hmm.json`, `results/m4_isigc_office.json`.
+
+| Host | Config | lnL | lnL + exact gradient |
+|---|---|---|---|
+| hmm (Xeon 6438Y+) | 1x1 | 10.1 s | 129.4 s |
+| hmm | 1x8 | 1.20 s | **17.4 s** |
+| hmm | 8x1 | 8.4 s | 41.9 s |
+| hmm | 8x4 | 2.26 s | **14.6 s** |
+| hmm | **A100 80 GB** | **0.17 s** | **0.74 s** |
+| office (16 cores) | 1x8 / 1x16 | 2.4 s | 39.5 / 39.2 s |
+| office | **RTX A6000** | **0.25 s** | **1.39 s** |
+| (M0 baseline, hmm) | jsonctmctree, central FD, 8 processes | — | 36.2 s |
+
+- Threads inside one instance beat edge splitting at equal cores (1x8 17.4 s vs 8x1 41.9 s):
+  every split worker repeats the post- and pre-order passes. Split only after the threads.
+- hmm runs 1x1 and 16x2 had another user's job on the machine (load 30-51); see `loadavg_before`.
+- Gradients agree across configs and devices to 2e-13 (relative).
+- L4 (`l4_mg94_fit.py`, YLR406C test alignment, Mac, 4 processes): BEAGLE + GL reaches the
+  legacy (jsonctmctree, central FD) optimum, f 1178.0991406 (Δ = -2.4e-8, max |Δx| = 5.6e-6),
+  in the same 55 iterations / 63 evaluations, 193 s vs 444 s.
