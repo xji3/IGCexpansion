@@ -91,42 +91,27 @@ def compile_scene(scene, compress=True):
     if "node_count" in scene and any(n < 0 or n >= int(scene["node_count"]) for n in nodes):
         raise UnsupportedScene("node index out of range")
 
-    # Observations, compressed to unique patterns.
+    # Observation layout (which nodes/axes are observed); the rows themselves are pattern data.
     od = scene["observed_data"]
     obs_nodes = [int(n) for n in od["nodes"]]
     obs_vars = [int(a) for a in od["variables"]]
-    iid = np.asarray(od["iid_observations"], dtype=np.int64)
-    if iid.ndim != 2 or iid.shape[1] != len(obs_nodes) or len(obs_vars) != len(obs_nodes) or iid.shape[0] == 0:
+    if len(obs_vars) != len(obs_nodes) or not obs_nodes:
         raise UnsupportedScene("observed_data arrays are inconsistent or empty")
     if any(n not in nodes for n in obs_nodes) or any(a < 0 or a >= len(shape) for a in obs_vars):
         raise UnsupportedScene("observation on an unknown node or axis")
-    for j, a in enumerate(obs_vars):
-        col = iid[:, j]
-        if np.any(col < -1) or np.any(col >= shape[a]):
-            raise UnsupportedScene("observed state out of range")
-    if compress:
-        uniq, inv, w = np.unique(iid, axis=0, return_inverse=True, return_counts=True)
-        inv = np.asarray(inv).reshape(-1)
-    else:
-        uniq, inv, w = iid, np.arange(len(iid)), np.ones(len(iid), dtype=np.int64)
-    cs.nobs, cs.P, cs.inv, cs.weights = len(iid), len(uniq), inv, f64(w)
-    coords = np.unravel_index(np.arange(S), shape)
-    masks = {}
-    for j, (n, a) in enumerate(zip(obs_nodes, obs_vars)):
-        vals = uniq[:, j]
-        m = (coords[a][:, None] == vals[None, :]) | (vals[None, :] == -1)
-        masks[n] = masks[n] * m if n in masks else m.astype(float)
+    cs.obs_nodes, cs.obs_vars = obs_nodes, obs_vars
+    observed = set(obs_nodes)
 
     # Binary operation tree: ('real', n), ('virt', k), ('pseudo', n).
     leaves = sorted(n for n in nodes if not children[n])
     internal = sorted(n for n in nodes if children[n])
-    pseudo = sorted(n for n in internal if n in masks)
+    pseudo = sorted(n for n in internal if n in observed)
     tips = [("real", n) for n in leaves] + [("pseudo", n) for n in pseudo]
     bchildren = {}           # binary node -> [(child, is_edge_with_key_Z)]
     virt = []
     for n in internal:
         ch = [(("real", c), False) for c in children[n]]
-        if n in masks:
+        if n in observed:
             ch.append((("pseudo", n), True))
         while len(ch) > 2:
             vnode = ("virt", len(virt))
@@ -147,11 +132,7 @@ def compile_scene(scene, compress=True):
     cs.ONES, cs.Z = ONES, ONES
     cs.keys = cs.nbuf
     cs.idx, cs.pre, cs.root_b = idx, pre, ("real", root)
-    cs.tip_partials = []
-    for b in tips:
-        m = masks.get(b[1]) if b[0] == "pseudo" or b[1] in masks else None
-        a = np.ones((S, cs.P)) if m is None else m
-        cs.tip_partials.append((idx[b], f64(a.T)))
+    cs.tips = tips
     # key of a binary node as a child: its own post index for real edges, Z otherwise.
     edge_of = {v: e for e, v in enumerate(cols)}
 
@@ -180,7 +161,7 @@ def compile_scene(scene, compress=True):
         ops.append((idx[b], cs.scale_of[b], NONE, idx[c0], key(c0, z0), c1, k1))
     cs.post_ops = ops
     # Pre-order: parent before child, skipping pseudo-tips.
-    pre_ops = []
+    pre_ops, top_inputs = [], []
     for b in reversed(post_order):
         ch = bchildren[b]
         for i, (c, z) in enumerate(ch):
@@ -194,6 +175,7 @@ def compile_scene(scene, compress=True):
             # Each pre op rescales its output (own write-scale buffer). Without it deep trees
             # underflow in the pre-order pass; the factor cancels in every derivative ratio.
             pre_ops.append((pre[c], cs.CUM + 1 + len(pre_ops), NONE, pre[b], key(c, z), sib, sk))
+            top_inputs.append((c, sib, sk, b))
     cs.pre_ops = pre_ops
     cs.nscale = cs.CUM + 1 + len(pre_ops)
     cs.root_pre = pre[cs.root_b]
@@ -201,15 +183,67 @@ def compile_scene(scene, compress=True):
     cs.edge_post = [idx[("real", v)] for v in cols]
     cs.edge_pre = [pre[("real", v)] for v in cols]
     cs.edge_key = [idx[("real", v)] for v in cols]
-    cs.zero_keys = sorted({cs.Z})
+    # Top-of-edge inputs for gradients: q_e = pre(binary parent) o e^{Q_sib t_sib} post(sibling).
+    top = {}
+    for (c, sb, sk, b) in top_inputs:
+        top[c] = (pre[b], sb, sk)
+    cs.edge_top = [top[("real", v)] for v in cols]
     h = hashlib.sha1()
-    for part in (shape, [G], rows, cols, procs, obs_nodes, obs_vars, [int(compress)]):
+    for part in (shape, [G], rows, cols, procs, obs_nodes, obs_vars):
         h.update(np.asarray(part, dtype=np.int64).tobytes())
         h.update(b"|")
-    h.update(np.ascontiguousarray(iid).tobytes())
-    cs.signature = h.hexdigest()
-    cs.nbytes = 2 * cs.nbuf * cs.P * S * 8
+    cs.topology = h.hexdigest()
+    cs.data = None
+    if "iid_observations" in od:
+        cs.data = pattern_data(cs, od["iid_observations"], compress=compress)
+        cs.P = cs.data.cap
+        cs.signature = cs.topology + cs.data.digest
+        cs.nbytes = 2 * cs.nbuf * cs.P * S * 8
     return cs
+
+
+class PatternData:
+    """Tip partials for one set of observation rows (compressed, optionally padded to ``cap``)."""
+
+
+def pattern_data(cs, iid, compress=True, capacity=None):
+    """Compress rows to unique patterns and build tip partials; pad to ``capacity`` with weight-0,
+    all-ones patterns so one instance can serve every scene of a bucket."""
+    iid = np.asarray(iid, dtype=np.int64)
+    if iid.ndim != 2 or iid.shape[1] != len(cs.obs_nodes) or iid.shape[0] == 0:
+        raise UnsupportedScene("observation rows do not match the observed nodes")
+    for j, a in enumerate(cs.obs_vars):
+        col = iid[:, j]
+        if np.any(col < -1) or np.any(col >= cs.shape[a]):
+            raise UnsupportedScene("observed state out of range")
+    if compress:
+        uniq, inv, w = np.unique(iid, axis=0, return_inverse=True, return_counts=True)
+        inv = np.asarray(inv).reshape(-1)
+    else:
+        uniq, inv, w = iid, np.arange(len(iid)), np.ones(len(iid), dtype=np.int64)
+    P = len(uniq)
+    cap = P if capacity is None else int(capacity)
+    if cap < P:
+        raise ValueError("pattern capacity %d < %d patterns" % (cap, P))
+    d = PatternData()
+    d.nobs, d.P, d.cap, d.inv = len(iid), P, cap, inv
+    d.weights = f64(np.concatenate([w, np.zeros(cap - P)]))
+    coords = np.unravel_index(np.arange(cs.S), cs.shape)
+    masks = {}
+    for j, (n, a) in enumerate(zip(cs.obs_nodes, cs.obs_vars)):
+        vals = uniq[:, j]
+        m = (coords[a][:, None] == vals[None, :]) | (vals[None, :] == -1)
+        masks[n] = masks[n] * m if n in masks else m.astype(float)
+    d.tip_partials = []
+    for b in cs.tips:
+        a = np.ones((cap, cs.S))
+        if b[1] in masks:
+            a[:P] = masks[b[1]].T
+        d.tip_partials.append((cs.idx[b], f64(a)))
+    h = hashlib.sha1(np.ascontiguousarray(iid).tobytes())
+    h.update(np.asarray([int(compress), cap], dtype=np.int64).tobytes())
+    d.digest = h.hexdigest()
+    return d
 
 
 def scene_values(scene, cs):
@@ -229,30 +263,79 @@ def scene_values(scene, cs):
 
 
 class BeagleScene:
-    """One BEAGLE instance for a compiled scene."""
+    """One BEAGLE instance for a compiled topology.
 
-    def __init__(self, lib, cs, resource="cpu", device=None, threads=1, spare_slots=0):
+    ``capacity``: patterns per instance (default: the compiled scene's own data). Pattern data of
+    any scene with the same topology and at most ``capacity`` patterns can be loaded with
+    ``load_patterns``. ``gl``: dict(m=<parameters>, K=6, J_max=4, rho0=2.0) adds the buffers, keys
+    and spare slots for exact parameter gradients (``gl_gradient``).
+    """
+
+    def __init__(self, lib, cs, resource="cpu", device=None, threads=1, capacity=None, gl=None):
         self.cs = cs
-        self.inst = ActionInstance(lib, tips=cs.T, partials=cs.nbuf, states=cs.S, patterns=cs.P,
-                                   generators=cs.G, spare_slots=spare_slots, keys=cs.keys,
+        P = capacity or (cs.data.cap if cs.data is not None else None)
+        if P is None:
+            raise ValueError("no pattern capacity: compile with data or pass capacity")
+        self.P = P
+        self.gl = None
+        partials, keys, spare = cs.nbuf, cs.keys, 0
+        if gl:
+            # K nodes on single-panel edges (t ||B|| <= rho0); K_graded nodes per panel on graded edges.
+            # Defaults reach ~1e-13 on short edges and <= 5e-11 relative at log tau = 4..7 with
+            # 10x branch lengths (tests/test_beagle_l3.py).
+            # K="auto": on a single-panel edge use the smallest K in [K_min, K_graded] whose a-priori
+            # bound (K!)^4 (2 t||B||)^(2K) / ((2K+1) ((2K)!)^3) is below ``tol`` (plan §6.2).
+            g = dict(K="auto", K_min=2, K_graded=8, J_max=32, rho0=2.0, grade=2.0, tol=1e-13)
+            g.update(gl)
+            J = g["J_max"]
+            Ks = list(range(g["K_min"], g["K_graded"] + 1)) if g["K"] == "auto" else [g["K"], g["K_graded"]]
+            K = max(Ks)
+            g["rules"] = {}
+            for k in set(Ks):
+                x, w = np.polynomial.legendre.leggauss(k)
+                g["rules"][k] = ((x + 1.0) / 2.0, w / 2.0)
+            b = cs.nbuf
+            g["QT"] = b                         # top vector of the current edge
+            g["BP"] = b + 1                     # boundary posts 1..J-1   (J_max + 1 slots)
+            g["BR"] = b + 1 + (J + 1)           # boundary pres  1..J-1   (J_max + 1 slots)
+            g["CP"] = b + 1 + 2 * (J + 1)       # panel post chain        (K)
+            g["CR"] = g["CP"] + K               # panel pre chain         (K)
+            partials = g["CR"] + K
+            g["kB"] = cs.keys                   # boundary segment keys   (J_max)
+            g["kP"] = cs.keys + J               # panel segment keys      (K + 1)
+            keys = cs.keys + J + K + 1
+            spare = g["m"] * cs.G
+            self.gl = g
+            self.gl_clipped = 0
+        self.inst = ActionInstance(lib, tips=cs.T, partials=partials, states=cs.S, patterns=P,
+                                   generators=cs.G, spare_slots=spare, keys=keys,
                                    categories=1, scale_buffers=cs.nscale, resource=resource,
-                                   device=device, threads=threads)
-        for b, a in cs.tip_partials:
-            self.inst.set_tip_partials(b, a)
-        self.inst.set_partials(cs.ONES, np.ones(cs.P * cs.S))
-        self.inst.set_pattern_weights(cs.weights)
+                                   device=device, threads=threads, scratch_keys_from=cs.keys)
+        self.inst.set_partials(cs.ONES, np.ones(P * cs.S))
         self.inst.set_categories([1.0], [1.0])
         self.rates = None
+        self.data = None
+        if cs.data is not None and cs.data.cap == P:
+            self.load_patterns(cs.data)
 
+    def load_patterns(self, data):
+        if data.cap != self.P:
+            raise ValueError("pattern data capacity %d != instance capacity %d" % (data.cap, self.P))
+        for b, a in data.tip_partials:
+            self.inst.set_tip_partials(b, a)
+        self.inst.set_pattern_weights(data.weights)
+        self.data = data
+
+    # -------------------------------------------------------------- values and passes
     def set_values(self, trips, distn, rates):
         cs, inst = self.cs, self.inst
         for g, (r, c, v) in enumerate(trips):
             inst.set_generator(g, r, c, v)
         inst.set_state_frequencies(distn)
-        self.distn, self.rates = distn, rates
+        self.distn, self.rates, self.trips = distn, np.asarray(rates, dtype=float), trips
         for g in range(cs.G):
             keys = [cs.edge_key[e] for e in range(cs.E) if cs.procs[e] == g]
-            lens = [rates[e] for e in range(cs.E) if cs.procs[e] == g]
+            lens = [self.rates[e] for e in range(cs.E) if cs.procs[e] == g]
             if g == 0:
                 keys.append(cs.Z)
                 lens.append(0.0)
@@ -264,15 +347,161 @@ class BeagleScene:
         inst.update_partials(cs.post_ops)
         inst.accumulate_scaling(list(range(cs.CUM)), cs.CUM)
         total, site = inst.root_log_likelihood(cs.idx[cs.root_b], cs.CUM)
-        return total, site[cs.inv]
+        return total, site[: self.data.P][self.data.inv]
+
+    def pre_pass(self):
+        cs = self.cs
+        self.inst.set_partials(cs.root_pre, np.tile(self.distn, self.P))
+        self.inst.update_pre_partials(cs.pre_ops)
 
     def edge_derivatives(self, per_site=False):
         """d lnL / d log t_e (jsonctmctree's ``deri``) for every edge, optionally per observation."""
         cs, inst = self.cs, self.inst
-        inst.set_partials(cs.root_pre, np.tile(self.distn, cs.P))
-        inst.update_pre_partials(cs.pre_ops)
+        self.pre_pass()
         tot, per = inst.edge_derivatives(cs.edge_post, cs.edge_pre, cs.procs, per_pattern=per_site)
         tot = self.rates * tot
         if per_site:
-            per = (self.rates[:, None] * per)[:, cs.inv].T
+            per = (self.rates[:, None] * per[:, : self.data.P])[:, self.data.inv].T
         return tot, per
+
+    # -------------------------------------------------------------- Gauss-Legendre gradients
+    @staticmethod
+    def _norm_inf_shifted(trip, S):
+        """||Q - mu I||_inf with mu = trace/S, from generator triplets (diagonal = -row sums)."""
+        r, c, v = trip
+        d = np.zeros(S)
+        diag = r == c
+        np.add.at(d, r[diag], v[diag])
+        mu = d.mean()
+        return float(np.max(-d + np.abs(d - mu))) if S else 0.0
+
+    def _panels(self, t, norm):
+        """Panel breakpoints on [0, t]: one panel if t*norm <= rho0, else panels graded
+        geometrically (ratio ``grade``) from both ends, the first of width rho0/norm. The
+        integrand q'e^{Q(t-u)} D e^{Qu} p has boundary layers of width ~1/||B|| at both ends."""
+        G = self.gl
+        L = t * norm
+        if L <= G["rho0"]:
+            return np.array([0.0, t])
+        h0 = G["rho0"] / norm
+        left = [0.0]
+        w = h0
+        while left[-1] + w < t / 2:
+            left.append(left[-1] + w)
+            w *= G["grade"]
+        bp = np.array(left + [t / 2] + [t - v for v in reversed(left)])
+        if len(bp) - 1 > G["J_max"]:
+            self.gl_clipped += 1
+            # keep the graded ends, merge the middle panels
+            keep = G["J_max"] // 2
+            bp = np.concatenate([bp[: keep + 1], bp[-keep - 1:]]) if keep > 0 else np.array([0.0, t])
+        return bp
+
+    def _k_single(self, L):
+        G = self.gl
+        if G["K"] != "auto":
+            return G["K"]
+        from math import factorial
+        for k in range(G["K_min"], G["K_graded"] + 1):
+            b = factorial(k) ** 4 * (2.0 * L) ** (2 * k) / ((2 * k + 1) * float(factorial(2 * k)) ** 3)
+            if b <= G["tol"]:
+                return k
+        return G["K_graded"]
+
+    def gl_gradient(self, D, dpi=None, per_site=False):
+        """Exact-to-quadrature d lnL / d theta_k for k = 0..m-1.
+
+        D[k][g]: triplets of dQ_g/dtheta_k (diagonal included) or None; dpi[k]: d pi/d theta_k or None.
+        Needs ``loglik`` at the current values (the pre-order pass is run here if needed).
+        Each edge is integrated over graded panels with K Gauss-Legendre nodes; boundary vectors
+        and panel chains live in scratch buffers reused across edges and panels.
+        Returns (grad[m], per-observation scores[nobs, m] or None).
+        """
+        cs, G, inst = self.cs, self.gl, self.inst
+        if G is None:
+            raise RuntimeError("BeagleScene was created without gl=...")
+        m = len(D)
+        if m > G["m"]:
+            raise ValueError("more parameters than spare slots")
+        if inst.pre_epoch != inst.values_epoch:
+            self.pre_pass()
+        slot = {}
+        for k in range(m):
+            for g in range(cs.G):
+                if D[k][g] is not None and len(D[k][g][2]):
+                    slot[(k, g)] = cs.G + k * cs.G + g
+                    inst.set_differential(slot[(k, g)], *D[k][g])
+        norms = [self._norm_inf_shifted(t, cs.S) for t in self.trips]
+        grad = np.zeros(m)
+        per_k = np.zeros((m, self.P)) if per_site else None
+        Z, ONES = cs.Z, cs.ONES
+        self._gl_nodes = [None] * cs.E
+        for e in range(cs.E):
+            g = cs.procs[e]
+            t = float(self.rates[e])
+            ks = [k for k in range(m) if (k, g) in slot]
+            if t == 0.0 or not ks:
+                continue
+            bp = self._panels(t, norms[g])
+            J = len(bp) - 1
+            K = self._k_single(t * norms[g]) if J == 1 else G["K_graded"]
+            s_, w_ = G["rules"][K]
+            CP = [G["CP"] + i for i in range(K)]
+            CR = [G["CR"] + i for i in range(K)]
+            self._gl_nodes[e] = (J * K, bp)
+            # top vector, boundary posts (bottom-up) and boundary pres (top-down)
+            BP = [cs.edge_post[e]] + [G["BP"] + j for j in range(1, J)]
+            BR = [None] + [G["BR"] + j for j in range(1, J)] + [G["QT"]]
+            if J > 1:
+                inst.update_transitions(g, [G["kB"] + j for j in range(J)], np.diff(bp))
+            post = [(G["QT"], NONE, NONE, cs.edge_top[e][0], Z, cs.edge_top[e][1], cs.edge_top[e][2])]
+            post += [(BP[j], NONE, NONE, BP[j - 1], G["kB"] + j - 1, ONES, Z) for j in range(1, J)]
+            inst.update_partials(post)          # also writes cache(ONES) = ONES, read by pre ops
+            if J > 1:
+                inst.update_pre_partials([(BR[j], NONE, NONE, BR[j + 1], G["kB"] + j, ONES, Z)
+                                          for j in range(J - 1, 0, -1)])
+            for j in range(1, J + 1):
+                a, b = bp[j - 1], bp[j]
+                u = a + (b - a) * s_
+                inst.update_transitions(g, [G["kP"] + i for i in range(K + 1)],
+                                        np.maximum(np.diff(np.concatenate([[a], u, [b]])), 0.0))
+                inst.update_partials([(CP[0], NONE, NONE, BP[j - 1], G["kP"], ONES, Z)] +
+                                     [(CP[i], NONE, NONE, CP[i - 1], G["kP"] + i, ONES, Z) for i in range(1, K)])
+                inst.update_pre_partials([(CR[K - 1], NONE, NONE, BR[j], G["kP"] + K, ONES, Z)] +
+                                         [(CR[i], NONE, NONE, CR[i + 1], G["kP"] + i + 1, ONES, Z)
+                                          for i in range(K - 2, -1, -1)])
+                wts = (b - a) * w_
+                tot, per = inst.edge_derivatives(CP * len(ks), CR * len(ks),
+                                                 [slot[(k, g)] for k in ks for _ in range(K)],
+                                                 per_pattern=per_site)
+                tot = tot.reshape(len(ks), K)
+                grad[ks] += tot @ wts
+                if per_site:
+                    per_k[ks] += np.einsum("i,kip->kp", wts, per.reshape(len(ks), K, self.P))
+        if dpi is not None and any(d is not None for d in dpi):
+            rp = inst.get_partials(cs.idx[cs.root_b])[0]
+            den = rp @ self.distn
+            w = self.data.weights
+            for k in range(m):
+                if dpi[k] is not None:
+                    r = (rp @ dpi[k]) / den
+                    grad[k] += float(w @ r)
+                    if per_site:
+                        per_k[k] += r
+        if per_site:
+            per_k = per_k[:, : self.data.P][:, self.data.inv].T
+        return grad, per_k
+
+    def edge_vectors(self, edges=None):
+        """(q_top, p_bottom) arrays [P x S] for each edge (for the block-generator oracle)."""
+        cs = self.cs
+        if self.gl is None:
+            raise RuntimeError("needs gl buffers")
+        if self.inst.pre_epoch != self.inst.values_epoch:
+            self.pre_pass()
+        out = []
+        for e in (range(cs.E) if edges is None else edges):
+            self.inst.update_partials([(self.gl["QT"], NONE, NONE, cs.edge_top[e][0], cs.Z, cs.edge_top[e][1],
+                                        cs.edge_top[e][2])])
+            out.append((self.inst.get_partials(self.gl["QT"])[0], self.inst.get_partials(cs.edge_post[e])[0]))
+        return out

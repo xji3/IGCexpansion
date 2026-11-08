@@ -30,7 +30,9 @@ packages = ["IGCexpansion", "IGCexpansion.beagle"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Slow cases (3721-state YGL062W, full PS-IGC objectives) run with: pytest -m slow  (or -m "" for all)
+addopts = "-m 'not slow'"
 markers = [
-    "slow: long-running golden values (3721-state MG94, PS-IGC objectives)",
+    "slow: long-running cases (3721-state MG94, full PS-IGC objectives); run with -m slow",
     "external: needs data outside this repository (IGCTract/MafftAlignment)",
 ]

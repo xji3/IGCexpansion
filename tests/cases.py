@@ -77,7 +77,14 @@ def mg94_ygl062w(save_dir):
     return obj
 
 
-def psjs_ydr418w(save_dir):
+def psjs_ydr418w_igc(save_dir):
+    """As psjs_ydr418w but with IGC switched on (no force), unpacked at x: a(n), b(n) matter."""
+    obj = psjs_ydr418w(save_dir, force=None)
+    obj.unpack_x(np.array(obj.x, float))
+    return obj
+
+
+def psjs_ydr418w(save_dir, force={6: 0.0}):
     """PS-IGC (PSJSGeneconv, HKY, one rate) on YDR418W_YEL054C, as in PSJSGeneconv's own test."""
     from IGCexpansion.PSJSGeneconv import PSJSGeneconv
 
@@ -87,7 +94,7 @@ def psjs_ydr418w(save_dir):
         T + "/YeastTree.newick", T + "/YeastTestDupLost.txt", x_js, "HKY", "One rate", True,
         {"D1": 0}, ["kluyveri", "castellii", "bayanus", "kudriavzevii", "mikatae", "paradoxus", "cerevisiae"],
         os.path.join(save_dir, "psjs_save.txt"), os.path.join(save_dir, "psjs_log.txt"),
-        force={6: 0.0}, space_list=None,
+        force=force, space_list=None,
     )
 
 
@@ -103,6 +110,11 @@ PSJS_SCENES = [(1, (1, 2)), (1, (2, 3)), (2, (1, 3))]
 def evaluate(name, save_dir):
     """Return {key: lnL} for one case."""
     with quiet():
+        if name == "psjs_objective_at_x":
+            obj = psjs_ydr418w(save_dir)
+            obj.unpack_x(np.array(obj.x, float))
+            from IGCexpansion.beagle.psjs import scene_list
+            return {"lnL": float(sum(obj._loglikelihood(n, cs)[0] for n, cs in scene_list(obj)))}
         if name in ("psjs_ydr418w", "psjs_ydr418w_at_x"):
             obj = psjs_ydr418w(save_dir)
             if name == "psjs_ydr418w_at_x":
@@ -118,8 +130,9 @@ def evaluate(name, save_dir):
         return {"lnL": float(ll)}
 
 
-CASES = ["hky_ylr406c", "mg94_ylr406c", "psjs_ydr418w", "psjs_ydr418w_at_x", "mg94_ygl062w"]
-SLOW = {"mg94_ygl062w"}
+CASES = ["hky_ylr406c", "mg94_ylr406c", "psjs_ydr418w", "psjs_ydr418w_at_x", "mg94_ygl062w",
+         "psjs_objective_at_x"]
+SLOW = {"mg94_ygl062w", "psjs_objective_at_x"}
 EXTERNAL = {"mg94_ygl062w"}
 
 # Values recorded by the spike (2026-11-06; PYTHONHASHSEED=0, numpy 2.5, scipy 1.18).

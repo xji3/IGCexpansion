@@ -38,7 +38,7 @@ def _finalize(lib, handle, pid):
 
 class ActionInstance:
     def __init__(self, lib, *, tips, partials, states, patterns, generators, spare_slots=0, keys,
-                 categories=1, scale_buffers=0, resource="cpu", device=None, threads=1):
+                 categories=1, scale_buffers=0, resource="cpu", device=None, threads=1, scratch_keys_from=None):
         if resource not in IMPL:
             raise ValueError("resource must be 'cpu' or 'gpu'")
         F = lib.F
@@ -47,6 +47,9 @@ class ActionInstance:
         self.generators, self.eigen = generators, generators + spare_slots
         self.categories, self.scale_buffers, self.threads = categories, scale_buffers, int(threads)
         self.keys = keys
+        # Keys >= scratch_keys_from are scratch (gradient chains): changing them does not invalidate
+        # the likelihood passes, because no likelihood operation uses them.
+        self.scratch_keys_from = keys if scratch_keys_from is None else scratch_keys_from
         pref = F["COMPUTATION_ACTION"] | F["PRECISION_DOUBLE"] | F["SCALING_MANUAL"] | F["SCALERS_LOG"]
         rl, nrl = None, 0
         if resource == "gpu":
@@ -190,7 +193,8 @@ class ActionInstance:
         if len(lengths) != len(keys) or np.any(~np.isfinite(lengths)) or np.any(lengths < 0):
             raise ValueError("edge lengths must be finite and >= 0, one per key")
         self._call("beagleUpdateTransitionMatrices", int(generator), iptr(keys), None, None, dptr(lengths), len(keys))
-        self._values_changed()
+        if keys.min() < self.scratch_keys_from:
+            self._values_changed()
 
     # ------------------------------------------------------------------ passes
     def _ops(self, ops):

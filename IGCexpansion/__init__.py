@@ -8,3 +8,9 @@ if _os.environ.get("IGC_ENGINE", "jsonctmctree") != "jsonctmctree":
     from . import beagle as _beagle
 
     _beagle.install()
+
+if _os.environ.get("IGC_PSJS_ENGINE", "legacy") != "legacy":
+    # PS-IGC objective on resident workers with the selected engine (jsonctmctree | beagle).
+    from .beagle import psjs as _psjs
+
+    _psjs.install()

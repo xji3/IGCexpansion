@@ -1,7 +1,7 @@
 """L2: jsonctmctree log-likelihoods at fixed points match the checked-in golden values.
 
-Fast cases run by default. ``-m slow`` adds the 3721-state YGL062W case, which also
-needs the IGCTract alignments (set IGC_MAFFT_DIR if they are elsewhere).
+Fast cases run by default; ``-m slow`` runs the slow ones (3721-state YGL062W, which needs the
+IGCTract alignments or IGC_MAFFT_DIR, and the full PS-IGC objective); ``-m ""`` runs all.
 """
 
 import json
