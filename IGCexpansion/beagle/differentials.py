@@ -1,9 +1,13 @@
-"""dQ/dtheta and dpi/dtheta for the gradient (plan §6.2).
+"""Differential matrices dQ/dtheta and root-prior derivatives dpi/dtheta for the gradient (plan §6.2).
 
-``scene_fd_jacobian`` works for any model that can produce a jsonctmctree scene at x: central
+In BEAGLE's vocabulary, dQ_g/dtheta_k is the differential matrix of process g for parameter k
+(``beagleSetSparseDifferentialMatrix``); ``BeagleScene.gl_gradient`` turns each one into d lnL/dtheta_k.
+
+``scene_fd_differentials`` works for any model that can produce a jsonctmctree scene at x: central
 differences (h = 1e-5) of the generator and root prior. It is built on the full listed pattern of
 each process, so entries that are zero at x (e.g. a rate forced to 0) still get their derivative.
-Model-specific analytic Jacobians (e.g. PS-IGC in psjs.py) replace it where available.
+Model-specific analytic differential matrices (``PSJSDifferentials`` in psjs.py,
+``IsIgcDifferentials`` in recodon.py) replace it where available.
 """
 
 import numpy as np
@@ -27,8 +31,9 @@ def triplets_of(M):
             np.ascontiguousarray(M.data[keep], dtype=np.float64))
 
 
-def scene_fd_jacobian(scene_at, x, free, cs, h=1e-5):
-    """D[k][g] (triplets or None) and dpi[k] (array or None) for x[free[k]], by central differences.
+def scene_fd_differentials(scene_at, x, free, cs, h=1e-5):
+    """Differential matrices D[k][g] (triplets or None) and root-prior derivatives dpi[k] (array or
+    None) for x[free[k]], by central differences.
 
     ``scene_at(x)`` must return the jsonctmctree scene at parameter vector x (and may change model
     state; the caller restores it). ``cs`` is the compiled scene (shape, S).

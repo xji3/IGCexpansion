@@ -22,8 +22,8 @@ What the workers do differently from the legacy code:
   x0 + constant in log space); the legacy code weights them 10 and 10/9 (plan §2.1).
 * Model-parameter derivatives (``fd``): with BEAGLE the default is ``'gl'``, exact to quadrature
   tolerance (Gauss-Legendre Frechet integrals on BEAGLE's edge-derivative kernel, with the
-  analytic complex-step Jacobian ``PSJSJacobian``); ``'central'`` (h = 1e-5, the jsonctmctree
-  default) and ``'forward'`` (the legacy 1e-8 step) are finite differences.
+  analytic complex-step differential matrices ``PSJSDifferentials``); ``'central'`` (h = 1e-5,
+  the jsonctmctree default) and ``'forward'`` (the legacy 1e-8 step) are finite differences.
 * BEAGLE instances are shared per worker and pattern-capacity bucket (ratio 2^(1/4)); each scene's
   tips are re-uploaded, padded with weight-0 all-ones patterns, before it is evaluated.
 """
@@ -167,9 +167,9 @@ def psjs_root_states():
     return [(a, b, a, b) for a in range(4) for b in range(4)]
 
 
-class PSJSJacobian:
-    """Analytic dQ/dx and dpi/dx for PS-IGC scenes by complex-step differentiation (exact to
-    rounding) of QBuilder.values through psjs_coefficients."""
+class PSJSDifferentials:
+    """Differential matrices dQ/dx and root-prior derivatives dpi/dx for PS-IGC scenes, by
+    complex-step differentiation (exact to rounding) of QBuilder.values through psjs_coefficients."""
 
     def __init__(self, qb, shape, free, h=1e-30):
         self.qb, self.shape, self.free, self.h = qb, shape, list(free), h
@@ -285,9 +285,9 @@ class _Worker:
                                                       threads=threads, gl=gl)
                 item["bs"] = self.instances[cap]
             self.items.append(item)
-        self.jac = None
+        self.differentials = None
         if gl:
-            self.jac = PSJSJacobian(self.qb, self.shape, gl["free"])
+            self.differentials = PSJSDifferentials(self.qb, self.shape, gl["free"])
 
     def _set_x(self, x):
         with _quiet():
@@ -295,8 +295,8 @@ class _Worker:
         tj = self.obj.tree.tree_json
         self.rates = np.asarray(tj["edge_rate_scaling_factors"], dtype=float)
         self.coef = self.qb.coefficients()
-        if self.jac is not None:
-            self.jac.at(self.obj.psjsmodel.x_js)
+        if self.differentials is not None:
+            self.differentials.at(self.obj.psjsmodel.x_js)
         states, distn = self.obj.get_prior()
         self.distn = np.zeros(int(np.prod(self.shape)))
         np.add.at(self.distn, np.ravel_multi_index(np.asarray(states).T, self.shape), distn)
@@ -317,7 +317,7 @@ class _Worker:
                 return ll, None
             ed = bs.edge_derivatives()[0]
             if edges == "gl":
-                D, dpi = self.jac.scene(item["cs"], item["n"])
+                D, dpi = self.differentials.scene(item["cs"], item["n"])
                 return ll, (ed, bs.gl_gradient(D, dpi)[0])
             return ll, ed
         from .engine import ORIGINAL
@@ -674,7 +674,7 @@ def pair_scores_2d(obj, x2d, worker=None):
         bs.set_values([_generator(s["rows"], s["cols"], v, worker.shape) for s, v in zip((pm, igc), vals)],
                       worker.distn, worker.rates)
         bs.loglik()
-        D, dpi = worker.jac.scene(it["cs"], it["n"])
+        D, dpi = worker.differentials.scene(it["cs"], it["n"])
         _, per = bs.gl_gradient(D, dpi, per_site=True)            # [nobs, 2] in (log init, log p)
         g2 = np.stack([per[:, 0], (per[:, 0] + per[:, 1]) * (1.0 - sig)], axis=1)
         n, cs = it["n"], it["cs"]

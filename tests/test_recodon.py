@@ -2,7 +2,7 @@
 
 * IsIgcBuilder reproduces the object's own process definitions and root prior (1e-13) for HKY,
   MG94, MG94 + IGC_Omega, MG94 + Tau_Omega, and with Force.
-* Exact gradients: GL with the analytic complex-step Jacobian against the block-generator
+* Exact gradients: GL with the analytic complex-step differential matrices against the block-generator
   oracle (1e-10), and against IGCexpansion's central differences (step ~1e-6).
 * Golden lnL values (L2) through the patched class.
 * RecodonPool (whole pairs and one pair split by edges) equals in-process evaluation.
@@ -74,7 +74,7 @@ def test_gl_vs_block_and_fd(recodon, model, kw):
     o = _obj(model, **kw)
     ll, g, _ = recodon.evaluate(o)
     st = recodon._STATE[o]
-    D, dpi = st.jac.at(np.asarray(o.x_process, float))
+    D, dpi = st.differentials.at(np.asarray(o.x_process, float))
     ref = block_gradient(get_lib(), st.bs, D, dpi)
     assert _rel(g[st.free], ref) < 1e-10
     for i in set(range(st.m)) - set(st.free):

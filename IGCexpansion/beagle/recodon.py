@@ -6,8 +6,8 @@
   (pattern-compressed tips uploaded once).
 * The process-parameter derivatives are exact to quadrature tolerance: Gauss-Legendre Frechet
   integrals on BEAGLE's edge-derivative kernel (``BeagleScene.gl_gradient``) with the analytic
-  Jacobian ``IsIgcJacobian``. The legacy code uses central differences with relative step 1e-6
-  (2m extra likelihoods); jsonctmctree's ``sdngrad`` is not used.
+  differential matrices ``IsIgcDifferentials``. The legacy code uses central differences with
+  relative step 1e-6 (2m extra likelihoods); jsonctmctree's ``sdngrad`` is not used.
 * f = -lnL and g = -[d/dx_process, d/dlog t] keep the legacy layout. Forced process
   parameters get 0, as in the legacy code.
 
@@ -18,7 +18,7 @@ legacy code is used with one warning. ``attach(obj, processes=...)`` selects BEA
 object regardless. ``IGC_RECODON_PROCS`` > 1 evaluates a single pair on a ``RecodonPool`` that
 splits its GL edges over worker processes (use threads first: ``IGC_BEAGLE_THREADS``);
 ``IGC_BEAGLE_RESOURCE=gpu`` uses the GPU. Homo_Omega models are not covered by the analytic
-Jacobian; they use ``scene_fd_jacobian``.
+differential matrices; they use ``scene_fd_differentials``.
 
 JointAnalysis (both objective methods) runs on a ``RecodonPool`` (by default one process per
 pair) instead of the legacy per-call ``multiprocessing.Pool``: workers build and keep their
@@ -33,7 +33,7 @@ import weakref
 import numpy as np
 
 from ._lib import get_lib
-from .jacobian import scene_fd_jacobian
+from .differentials import scene_fd_differentials
 from .scene import BeagleScene, compile_scene, scene_values
 
 ENGINES = ("legacy", "beagle")
@@ -181,9 +181,9 @@ class IsIgcBuilder:
         return err
 
 
-class IsIgcJacobian:
-    """dQ_g/dx_k (generator triplets) and dpi/dx_k by complex-step differentiation of
-    ``IsIgcBuilder.values`` (exact to rounding)."""
+class IsIgcDifferentials:
+    """Differential matrices dQ_g/dx_k (generator triplets) and root-prior derivatives dpi/dx_k,
+    by complex-step differentiation of ``IsIgcBuilder.values`` (exact to rounding)."""
 
     def __init__(self, builder, free, h=1e-30):
         self.b, self.free, self.h = builder, list(free), h
@@ -222,9 +222,9 @@ class _Resident:
         try:
             self.builder = IsIgcBuilder(obj)
             self.builder_err = self.builder.check(obj, self.cs)
-            self.jac = IsIgcJacobian(self.builder, self.free)
+            self.differentials = IsIgcDifferentials(self.builder, self.free)
         except NotImplementedError:
-            self.builder = self.jac = None
+            self.builder = self.differentials = None
 
 
 def _obs_key(scene):
@@ -274,15 +274,15 @@ def evaluate(obj, grad=True, per_site=False, edges=None, primary=True, **kw):
     other = np.zeros(st.m)
     other_site = np.zeros((len(site), st.m)) if per_site else None
     if st.free and (edges is None or len(edges) or primary):
-        if st.jac is not None:
-            D, dpi = st.jac.at(np.asarray(obj.x_process, float))
+        if st.differentials is not None:
+            D, dpi = st.differentials.at(np.asarray(obj.x_process, float))
         else:
             x0 = np.array(obj.x, float)
 
             def scene_at(xx):
                 obj.update_by_x(xx)
                 return obj.get_scene()
-            D, dpi = scene_fd_jacobian(scene_at, x0, st.free, st.cs)
+            D, dpi = scene_fd_differentials(scene_at, x0, st.free, st.cs)
             obj.update_by_x(x0)
         g, per = bs.gl_gradient(D, dpi, per_site=per_site, edges=edges)
         if edges is not None and primary:

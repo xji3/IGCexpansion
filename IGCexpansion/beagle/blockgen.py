@@ -1,6 +1,6 @@
 """Block-generator oracle for parameter gradients (plan §6.2, tests only).
 
-For an edge with generator Q, derivative matrix D, length t, bottom vector p and top vector q,
+For an edge with generator Q, differential matrix D, length t, bottom vector p and top vector q,
 e^{M t} [0; p] with M = [[Q, D], [0, Q]] is [ int_0^t e^{Q(t-u)} D e^{Qu} p du ; e^{Qt} p ], so
 q'top / q'bottom is the exact (to action tolerance) Frechet term of d lnL_s / d theta. This uses
 a separate 2S-state action instance and is far more expensive than Gauss-Legendre; it is the

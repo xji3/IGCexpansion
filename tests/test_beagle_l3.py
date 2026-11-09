@@ -6,8 +6,8 @@ block-generator oracle (plan §6.2, §11).
 * Random scenes (several processes, polytomies, observed internal nodes) with random D and dpi.
 * Composite panels (J_e > 1) and the J_max clip counter.
 * Long edges and large tau (log tau = 4 and 7, branch lengths x10).
-* PS-IGC scenes with the analytic complex-step Jacobian, which also matches the generic
-  scene-FD Jacobian.
+* PS-IGC scenes with the analytic complex-step differential matrices, which also match the
+  generic scene-FD differential matrices.
 * MG94 (3721 states) log tau (slow).
 """
 
@@ -25,7 +25,7 @@ import cases  # noqa: E402
 from test_beagle_l1 import random_scene  # noqa: E402
 
 from IGCexpansion.beagle.blockgen import block_gradient  # noqa: E402
-from IGCexpansion.beagle.jacobian import scene_fd_jacobian  # noqa: E402
+from IGCexpansion.beagle.differentials import scene_fd_differentials  # noqa: E402
 from IGCexpansion.beagle.scene import BeagleScene, compile_scene, scene_values  # noqa: E402
 
 RTOL = 1e-10
@@ -65,7 +65,7 @@ def _jac(obj, cs, free):
         with cases.quiet():
             obj.update_by_x(xx)
         return obj.get_scene()
-    return scene_fd_jacobian(scene_at, np.array(obj.x, float), free, cs)
+    return scene_fd_differentials(scene_at, np.array(obj.x, float), free, cs)
 
 
 @pytest.fixture(scope="module")
@@ -194,15 +194,15 @@ def test_long_edges_large_tau(lib, log_tau, scale):
     assert _rel(g, ref) < RTOL
 
 
-def test_psjs_analytic_jacobian(lib):
-    from IGCexpansion.beagle.psjs import PSJSJacobian, QBuilder, scene_list
+def test_psjs_analytic_differentials(lib):
+    from IGCexpansion.beagle.psjs import PSJSDifferentials, QBuilder, scene_list
     d = tempfile.mkdtemp()
     with cases.quiet():
         obj = cases.psjs_ydr418w_igc(d)
     sl = scene_list(obj)
     qb = QBuilder(obj.psjsmodel, sorted({c for _, c in sl}))
     free = list(range(8))
-    J = PSJSJacobian(qb, [4] * 4, free)
+    J = PSJSDifferentials(qb, [4] * 4, free)
     x = np.array(obj.x, float)
     J.at(obj.psjsmodel.x_js)
     rng = np.random.default_rng(3)
@@ -220,9 +220,9 @@ def test_psjs_analytic_jacobian(lib):
             with cases.quiet():
                 obj.unpack_x(xx)
                 return obj.get_scene(n, c)
-        D2, dpi2 = scene_fd_jacobian(scene_at, x, free, cs)
+        D2, dpi2 = scene_fd_differentials(scene_at, x, free, cs)
         g2, _ = bs.gl_gradient(D2, dpi2)
-        np.testing.assert_allclose(g2, g, rtol=1e-7, atol=1e-7)   # FD Jacobian (h = 1e-5) vs analytic
+        np.testing.assert_allclose(g2, g, rtol=1e-7, atol=1e-7)   # FD differential matrices (h = 1e-5) vs analytic
 
 
 @pytest.mark.slow

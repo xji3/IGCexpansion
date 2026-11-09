@@ -389,7 +389,8 @@ class BeagleScene:
         ``edges``: integrate only these edges and skip the root-prior term when it is given (the
         caller splits one gradient over several instances and adds dpi once).
 
-        D[k][g]: triplets of dQ_g/dtheta_k (diagonal included) or None; dpi[k]: d pi/d theta_k or None.
+        D[k][g]: the differential matrix dQ_g/dtheta_k as triplets (diagonal included) or None;
+        dpi[k]: d pi/d theta_k or None.
         Needs ``loglik`` at the current values (the pre-order pass is run here if needed).
         Each edge is integrated over graded panels with K Gauss-Legendre nodes; boundary vectors
         and panel chains live in scratch buffers reused across edges and panels.
