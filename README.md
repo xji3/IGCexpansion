@@ -169,3 +169,10 @@ For independent site IGC (IS-IGC) analyses, please refer to this [tutorial](tuto
 There are two versions of the software that implement the same IS-IGC approach.  The difference between them is the flexibility of considering different duplication/loss histories where the first version assumes one single duplication event without loss which the second version does not.
 
 To run IS-IGC with BEAGLE (exact gradients, optional GPU), see the [BEAGLE tutorial](tutorials/IS_IGC_BEAGLE/Run_IS_IGC_BEAGLE.py) and the BEAGLE section above.
+
+##### PS-IGC tract length on the GPU (`IGCexpansion.psigc`)
+
+`IGCexpansion.psigc` estimates the mean IGC tract length 1/p under the HKY + pair-site IGC (PS-IGC) model by
+composite likelihood over site pairs, with exact gradients, Godambe (sandwich) and adjusted-CLR intervals,
+and a parametric bootstrap. The GPU backend needs PyTorch: `pip install -e ".[gpu]"`. Tests are in
+`tests/psigc`. To reproduce the simulation and real-data results, see [psigc_reproduce](psigc_reproduce/README.md).

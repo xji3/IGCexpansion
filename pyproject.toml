@@ -21,12 +21,15 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
+# GPU backend of the PS-IGC pair-site engine (IGCexpansion.psigc.gpu). Re-run tests/psigc/test_gpu.py
+# (test_graph_capture) after any change of torch, CUDA or driver: CUDA-graph capture has broken across versions.
+gpu = ["torch>=2.11"]
 
 [project.urls]
 Homepage = "https://github.com/xji3/IGCexpansion"
 
 [tool.setuptools]
-packages = ["IGCexpansion", "IGCexpansion.beagle"]
+packages = ["IGCexpansion", "IGCexpansion.beagle", "IGCexpansion.psigc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
