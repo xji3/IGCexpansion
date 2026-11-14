@@ -4,9 +4,13 @@ import pytest
 from IGCexpansion import psigc
 from IGCexpansion.psigc import simulate as S
 
-# arm-L bundle of the psigc simulation study (truth parameters of the 2017 archive), shipped in psigc_reproduce/
-BUNDLE = os.environ.get('PSIGC_ARML_BUNDLE', os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'psigc_reproduce', 'data', 'armL_bundle'))
+# bundle of the 2017 PS-IGC simulation study (alignments and truth parameters): part of the paper's
+# supplementary folder psigc_reproduce, outside this repository (default: next to the repository)
+BUNDLE = os.environ.get('PSIGC_SIM2017_BUNDLE', os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+    'psigc_reproduce', 'data', 'sim2017_bundle'))
+pytestmark = [pytest.mark.external,
+              pytest.mark.skipif(not os.path.isdir(BUNDLE), reason='2017 simulation bundle not found (set PSIGC_SIM2017_BUNDLE)')]
 
 
 @pytest.fixture(scope='module')

@@ -54,4 +54,5 @@ jobs:
       - name: Tests without BEAGLE (legacy fallback)
         env:
           IGC_BEAGLE_PREFIX: /nonexistent
-        run: python -m pytest -q
+        # tests/psigc does not use BEAGLE; it runs once, in the step above
+        run: python -m pytest -q --ignore=tests/psigc

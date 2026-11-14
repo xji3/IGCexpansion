@@ -149,6 +149,7 @@ def test_missing_data_marginalises(tree):
 
 
 # ------------------------------------------------------------------ 5-6. exact gradient
+@pytest.mark.slow                                   # ~5 min on a laptop, ~30 min on a CI runner
 @pytest.mark.parametrize('inv_p', [1.5, 6.0, 300.0])
 def test_gradient_vs_richardson(tree, inv_p):
     ds = synthetic(tree, L=30, seed=1)
@@ -202,6 +203,7 @@ def test_is_gradient(tree):
         assert abs(g[j] - fd) <= 1e-6 * max(1.0, abs(fd)), (j, g[j], fd)
 
 
+@pytest.mark.slow
 def test_theta_transform_and_fit(tree):
     from IGCexpansion.psigc import fit
     ds = synthetic(tree, L=18, seed=6)

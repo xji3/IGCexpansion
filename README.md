@@ -175,4 +175,4 @@ To run IS-IGC with BEAGLE (exact gradients, optional GPU), see the [BEAGLE tutor
 `IGCexpansion.psigc` estimates the mean IGC tract length 1/p under the HKY + pair-site IGC (PS-IGC) model by
 composite likelihood over site pairs, with exact gradients, Godambe (sandwich) and adjusted-CLR intervals,
 and a parametric bootstrap. The GPU backend needs PyTorch: `pip install -e ".[gpu]"`. Tests are in
-`tests/psigc`. To reproduce the simulation and real-data results, see [psigc_reproduce](psigc_reproduce/README.md).
+`tests/psigc` (`pytest -m "" tests/psigc` includes the slow ones).

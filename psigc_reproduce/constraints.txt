@@ -1,4 +1,0 @@
-# Versions of the published runs (Python 3.12.16, CUDA 12.8). Use with: pip install -c constraints.txt
-numpy==2.5.4
-scipy==1.18.1
-torch==2.11.0
